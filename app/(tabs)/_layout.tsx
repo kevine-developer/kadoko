@@ -84,13 +84,13 @@ export default function TabLayout() {
               >
                 <Ionicons
                   size={22}
-                  name={focused ? "heart" : "heart-outline"}
+                  name={focused ? "people" : "people-outline"}
                   color={focused ? "#097e05ff" : color}
                 />
               </View>
               {focused && (
                 <Text style={[styles.label, { color: "#097e05ff" }]}>
-                  Activity
+                  Cercle
                 </Text>
               )}
             </View>

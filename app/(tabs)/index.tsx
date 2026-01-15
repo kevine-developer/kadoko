@@ -1,514 +1,391 @@
+import CreateWishlistBanner from "@/components/HomeUI/CreateWishlistBanner";
+import GiftCardHome from "@/components/HomeUI/GiftCardHome";
+import HeaderLive from "@/components/HomeUI/HeaderLive";
+import { getPublishedGifts } from "@/lib/getPublishedGifts";
+import { MOCK_USERS } from "@/mocks/users.mock";
+import { MOCK_WISHLISTS } from "@/mocks/wishlists.mock";
 import { Ionicons } from "@expo/vector-icons";
+import { BlurView } from "expo-blur";
 import { Image } from "expo-image";
 import { router } from "expo-router";
-import React, { useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import {
   Platform,
   ScrollView,
   StatusBar,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-// Mocks
-import { MOCK_USERS } from "@/mocks/users.mock";
-
-// --- THEME LUXE ---
-const THEME = {
-  background: "#FDFBF7",
-  surface: "#FFFFFF",
-  textMain: "#111827",
-  textSecondary: "#6B7280",
-  accent: "#111827",
-  border: "rgba(0,0,0,0.06)",
-  success: "#10B981",
-};
-
-// Simulation : Utilisateur connecté (Luna)
+// Simulation de l'utilisateur connecté (ici Luna)
 const CURRENT_USER_ID = "user-kevine";
 
-// Simulation : Quelques demandes d'amis (IDs qui ne sont pas dans la liste d'amis de Luna)
-const MOCK_REQUESTS_IDS = ["user-sophie", "user-thomas"];
+// --- COMPOSANT: CARTE LISTE D'AMI (Slider Item) ---
+const FriendWishlistCard = ({
+  wishlist,
+  owner,
+}: {
+  wishlist: any;
+  owner: any;
+}) => {
+  // On prend la première image d'un cadeau de la liste comme cover, ou une placeholder
+  const coverImage =
+    wishlist.gifts.find((g: any) => g.imageUrl)?.imageUrl ||
+    "https://images.unsplash.com/photo-1513201099705-a9746e1e201f?q=80&w=1000&auto=format&fit=crop";
 
-export default function UsersListScreen() {
-  const insets = useSafeAreaInsets();
-  const [searchQuery, setSearchQuery] = useState("");
-
-  // 1. Récupérer l'utilisateur courant
-  const currentUser = MOCK_USERS.find((u) => u.id === CURRENT_USER_ID);
-  console.log(currentUser);
-  const myFriendIds = useMemo(() => currentUser?.friends || [], [currentUser]);
-  console.log(myFriendIds);
-
-  // 2. Filtrer les données
-  const data = useMemo(() => {
-    // A. Cas Recherche : On cherche dans TOUT le monde (sauf soi-même)
-    if (searchQuery.length > 0) {
-      return {
-        mode: "SEARCH",
-        items: MOCK_USERS.filter(
-          (u) =>
-            u.id !== CURRENT_USER_ID &&
-            u.fullName.toLowerCase().includes(searchQuery.toLowerCase())
-        ),
-      };
-    }
-
-    // B. Cas Défaut : Mes Amis + Demandes
-    const myFriends = MOCK_USERS.filter((u) => myFriendIds.includes(u.id));
-    const myRequests = MOCK_USERS.filter((u) =>
-      MOCK_REQUESTS_IDS.includes(u.id)
-    );
-
-    return {
-      mode: "FRIENDS",
-      friends: myFriends,
-      requests: myRequests,
-    };
-  }, [searchQuery, myFriendIds]);
-
-  // --- COMPOSANTS INTERNES ---
-
-  // Carte "Demande d'ami"
-  const RequestCard = ({ user }: { user: (typeof MOCK_USERS)[0] }) => (
-    <View style={styles.requestCard}>
-      <View style={styles.requestHeader}>
-        <Image source={{ uri: user.avatarUrl }} style={styles.requestAvatar} />
-        <View style={styles.requestInfo}>
-          <Text style={styles.requestName}>{user.fullName}</Text>
-          <Text style={styles.requestMeta}>
-            Souhaite rejoindre votre cercle
-          </Text>
-        </View>
-      </View>
-      <View style={styles.requestActions}>
-        <TouchableOpacity style={styles.acceptBtn}>
-          <Text style={styles.acceptText}>Accepter</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.ignoreBtn}>
-          <Ionicons name="close" size={18} color={THEME.textSecondary} />
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
-
-  // Carte "Ami / Utilisateur" (Liste verticale)
-  const UserRow = ({
-    user,
-    isFriend,
-  }: {
-    user: (typeof MOCK_USERS)[0];
-    isFriend?: boolean;
-  }) => (
+  return (
     <TouchableOpacity
-      activeOpacity={0.7}
-      style={styles.userRowContainer}
+      activeOpacity={0.9}
+      style={styles.friendCard}
       onPress={() =>
         router.push({
-          pathname: "/profilFriend/[friendId]",
-          params: { friendId: user.id },
+          pathname: "/gifts/wishlists/[wishlistId]",
+          params: { wishlistId: wishlist.id },
         })
       }
     >
-      <View style={styles.userRowLeft}>
-        <Image source={{ uri: user.avatarUrl }} style={styles.rowAvatar} />
-        <View style={styles.rowText}>
-          <Text style={styles.rowName}>{user.fullName}</Text>
-          <Text style={styles.rowHandle}>
-            {isFriend ? "Dans votre cercle" : "Utilisateur"}
-          </Text>
-        </View>
+      <View style={styles.friendCardImageWrapper}>
+        <Image
+          source={{ uri: coverImage }}
+          style={styles.friendCardImage}
+          contentFit="cover"
+          transition={400}
+        />
+        {/* Badge Date ou Event */}
+        {wishlist.eventDate && (
+          <View style={styles.dateBadge}>
+            <Text style={styles.dateBadgeText}>
+              {new Date(wishlist.eventDate)
+                .toLocaleDateString("fr-FR", { day: "numeric", month: "short" })
+                .toUpperCase()}
+            </Text>
+          </View>
+        )}
       </View>
 
-      {/* Action contextuelle */}
-      <TouchableOpacity
-        style={[
-          styles.rowActionBtn,
-          isFriend ? styles.btnOutline : styles.btnSolid,
-        ]}
-      >
-        {isFriend ? (
-          <Text style={styles.btnTextOutline}>Voir</Text>
-        ) : (
-          <>
-            <Text style={styles.btnTextSolid}>Ajouter</Text>
-            <Ionicons name="add" size={14} color="#FFF" />
-          </>
-        )}
-      </TouchableOpacity>
+      <View style={styles.friendCardInfo}>
+        <Text style={styles.friendListTitle} numberOfLines={1}>
+          {wishlist.title}
+        </Text>
+
+        <View style={styles.friendRow}>
+          <Image source={{ uri: owner?.avatarUrl }} style={styles.miniAvatar} />
+          <Text style={styles.friendName}>{owner?.fullName}</Text>
+        </View>
+      </View>
     </TouchableOpacity>
   );
+};
+
+// --- COMPOSANT: SLIDER DES LISTES D'AMIS ---
+const FriendsWishlistSlider = ({ wishlists }: { wishlists: any[] }) => {
+  if (wishlists.length === 0) return null;
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={THEME.background} />
-
-      {/* HEADER */}
-      <View style={[styles.headerContainer, { paddingTop: insets.top }]}>
-        <View style={styles.headerTop}>
-          <View>
-            <Text style={styles.headerSubtitle}>COMMUNAUTÉ</Text>
-            <Text style={styles.headerTitle}>Mon Cercle</Text>
-          </View>
-          <TouchableOpacity style={styles.inviteBtn}>
-            <Ionicons name="share-outline" size={22} color={THEME.textMain} />
-          </TouchableOpacity>
-        </View>
-
-        {/* SEARCH BAR */}
-        <View style={styles.searchWrapper}>
-          <Ionicons
-            name="search"
-            size={20}
-            color="#9CA3AF"
-            style={styles.searchIcon}
-          />
-          <TextInput
-            placeholder="Rechercher un ami ou un membre..."
-            placeholderTextColor="#9CA3AF"
-            style={styles.searchInput}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            selectionColor={THEME.textMain}
-          />
-          {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={() => setSearchQuery("")}>
-              <Ionicons name="close-circle" size={20} color="#9CA3AF" />
-            </TouchableOpacity>
-          )}
-        </View>
+    <View style={styles.sliderSection}>
+      <View style={styles.sectionHeaderRow}>
+        <Text style={styles.sectionTitle}>Le Cercle Proche</Text>
+        <TouchableOpacity>
+          <Text style={styles.seeAllText}>TOUT VOIR</Text>
+        </TouchableOpacity>
       </View>
 
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.sliderContent}
       >
-        {/* CAS 1 : MODE RECHERCHE GLOBALE */}
-        {data.mode === "SEARCH" ? (
-          <>
-            <Text style={styles.sectionTitle}>
-              Résultats ({data.items?.length})
-            </Text>
-            {data.items?.map((user) => {
-              const isFriend = myFriendIds?.includes(user.id);
-              return <UserRow key={user.id} user={user} isFriend={isFriend} />;
-            })}
-            {data.items?.length === 0 && (
-              <View style={styles.emptyState}>
-                <Text style={styles.emptyText}>Aucun utilisateur trouvé.</Text>
-              </View>
-            )}
-          </>
-        ) : (
-          // CAS 2 : MODE PAR DÉFAUT (AMIS + REQUETES)
-          <>
-            {/* SECTION DEMANDES (Si existantes) */}
-            {data.requests && data.requests.length > 0 && (
-              <View style={styles.sectionContainer}>
-                <View style={styles.sectionHeader}>
-                  <Text style={styles.sectionTitle}>Demandes</Text>
-                  <View style={styles.badge}>
-                    <Text style={styles.badgeText}>{data.requests.length}</Text>
-                  </View>
-                </View>
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  style={styles.requestsScroll}
-                >
-                  {data.requests.map((req) => (
-                    <RequestCard key={req.id} user={req} />
-                  ))}
-                </ScrollView>
-              </View>
-            )}
+        {wishlists.map((wl) => {
+          const owner = MOCK_USERS.find((u) => u.id === wl.userId);
+          return <FriendWishlistCard key={wl.id} wishlist={wl} owner={owner} />;
+        })}
+      </ScrollView>
+    </View>
+  );
+};
 
-            {/* SECTION LISTE D'AMIS */}
-            <View style={styles.sectionContainer}>
-              <Text style={styles.sectionTitle}>
-                Mes Amis ({data.friends?.length})
-              </Text>
-              {data.friends && data.friends.length > 0 ? (
-                data.friends.map((friend) => (
-                  <UserRow key={friend.id} user={friend} isFriend={true} />
-                ))
-              ) : (
-                <View style={styles.emptyState}>
-                  <Ionicons name="people-outline" size={40} color="#D1D5DB" />
-                  <Text style={styles.emptyText}>
-                    Votre cercle est encore vide.
-                  </Text>
-                  <TouchableOpacity
-                    onPress={() => {
-                      /* Logic invite */
-                    }}
-                  >
-                    <Text style={styles.linkText}>Inviter des amis</Text>
-                  </TouchableOpacity>
-                </View>
-              )}
-            </View>
-          </>
+// --- COMPOSANT: RADAR TICKER (Existant) ---
+const UPDATES = [
+  { id: 1, user: "Sophie", action: "a créé", target: "Déco Salon", time: "2h" },
+  {
+    id: 2,
+    user: "Marc",
+    action: "a ajouté",
+    target: "Apple Watch",
+    time: "4h",
+  },
+  {
+    id: 3,
+    user: "Léa",
+    action: "fête son",
+    target: "Anniversaire",
+    time: "J-3",
+    urgent: true,
+  },
+];
+
+const RadarTicker = () => (
+  <BlurView
+    intensity={80}
+    blurReductionFactor={1}
+    style={styles.radarContainer}
+  >
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={styles.radarContent}
+    >
+      <View style={styles.radarLabelContainer}>
+        <Ionicons name="flash" size={12} color="#FFFFFF" />
+        <Text style={styles.radarLabel}>LIVE</Text>
+      </View>
+      {UPDATES.map((item, index) => (
+        <View key={item.id} style={styles.radarItem}>
+          <Text style={styles.radarText}>
+            <Text style={styles.radarUser}>{item.user}</Text>
+            <Text style={{ opacity: 0.6 }}> {item.action} </Text>
+            <Text style={styles.radarTarget}>{item.target}</Text>
+          </Text>
+          {index !== UPDATES.length - 1 && (
+            <View style={styles.radarSeparator} />
+          )}
+        </View>
+      ))}
+    </ScrollView>
+  </BlurView>
+);
+
+// --- ECRAN PRINCIPAL ---
+
+export default function LuxuryFeedScreen() {
+  // 1. Vérifier si l'utilisateur courant a des wishlists
+  const hasMyOwnWishlists = useMemo(() => {
+    return MOCK_WISHLISTS.some((wl) => wl.userId === CURRENT_USER_ID);
+  }, []);
+
+  // 2. Récupérer les wishlists des amis (exclure celles de l'user courant)
+  // Dans une vraie app, on filtrerait par la liste d'amis. Ici on prend tout ce qui n'est pas à moi.
+  const friendsWishlists = useMemo(() => {
+    return MOCK_WISHLISTS.filter((wl) => wl.userId !== CURRENT_USER_ID);
+  }, []);
+
+  // 3. Préparer le feed (inspirations)
+  const feedPosts = useMemo(() => {
+    const allGifts = MOCK_WISHLISTS.flatMap((wl) => wl.gifts);
+    const publishedGifts = getPublishedGifts(allGifts);
+
+    return publishedGifts.map((gift) => {
+      const wishlist = MOCK_WISHLISTS.find((w) => w.id === gift.wishlistId);
+      const owner = MOCK_USERS.find((u) => u.id === wishlist?.userId);
+
+      return {
+        id: gift.id,
+        user: {
+          name: owner?.fullName ?? "Inconnu",
+          avatar: owner?.avatarUrl ?? "https://i.pravatar.cc/150",
+        },
+        product: {
+          name: gift.title,
+          image: gift.imageUrl,
+          price: gift.estimatedPrice || 0,
+        },
+        wishlistId: gift.wishlistId,
+        context: wishlist?.title || "Liste perso",
+        isReserved: gift.status === "RESERVED" || gift.status === "PURCHASED",
+      };
+    });
+  }, []);
+
+  return (
+    <View style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="#FDFBF7" />
+
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 100 }}
+        stickyHeaderIndices={[1]}
+      >
+        <HeaderLive />
+
+        <View style={{ zIndex: 10 }}>
+          <RadarTicker />
+        </View>
+
+        {/* LOGIQUE D'AFFICHAGE CONDITIONNEL */}
+        {hasMyOwnWishlists ? (
+          // Si j'ai une liste -> Je vois les listes de mes amis
+          <FriendsWishlistSlider wishlists={friendsWishlists} />
+        ) : (
+          // Sinon -> On m'incite à créer ma première liste
+          <CreateWishlistBanner onPress={() => {}} />
         )}
 
-        <View style={{ height: 40 }} />
+        <View style={styles.feedSection}>
+          <Text style={styles.sectionTitle}>Inspirations du moment</Text>
+          {feedPosts.map((post) => (
+            <GiftCardHome key={post.id} item={post} />
+          ))}
+        </View>
       </ScrollView>
     </View>
   );
 }
 
+// --- STYLES ---
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: THEME.background,
+    backgroundColor: "#FDFBF7",
   },
 
-  /* HEADER */
-  headerContainer: {
-    paddingHorizontal: 24,
-    paddingBottom: 20,
-    backgroundColor: THEME.background,
-    zIndex: 10,
+  /* RADAR */
+  radarContainer: {
+    marginBottom: 24,
+    paddingTop: 20,
+    overflow: "hidden",
   },
-  headerTop: {
+  radarContent: {
+    paddingHorizontal: 24,
+    alignItems: "center",
+    paddingVertical: 10,
+  },
+  radarLabelContainer: {
+    backgroundColor: "#111827",
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
+    marginRight: 16,
+    gap: 4,
+  },
+  radarLabel: {
+    color: "#FFF",
+    fontSize: 10,
+    fontWeight: "800",
+    letterSpacing: 1,
+  },
+  radarItem: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  radarText: {
+    fontSize: 14,
+    color: "#374151",
+  },
+  radarUser: {
+    fontWeight: "700",
+    color: "#111827",
+  },
+  radarTarget: {
+    fontWeight: "600",
+    textDecorationLine: "underline",
+  },
+  radarSeparator: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: "#D1D5DB",
+    marginHorizontal: 12,
+  },
+
+  /* FRIENDS SLIDER (Nouveau) */
+  sliderSection: {
+    marginBottom: 32,
+  },
+  sectionHeaderRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 24,
-    marginTop: 10,
+    alignItems: "baseline",
+    paddingHorizontal: 24,
+    marginBottom: 16,
   },
-  headerSubtitle: {
+  seeAllText: {
     fontSize: 11,
     fontWeight: "700",
     color: "#9CA3AF",
-    letterSpacing: 1.5,
-    marginBottom: 4,
-    textTransform: "uppercase",
+    letterSpacing: 1,
   },
-  headerTitle: {
-    fontSize: 34,
-    fontWeight: "400",
-    color: THEME.textMain,
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-    letterSpacing: -0.5,
+  sliderContent: {
+    paddingHorizontal: 20,
+    gap: 16,
   },
-  inviteBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: THEME.surface,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: THEME.border,
+  friendCard: {
+    width: 160,
+    marginRight: 4,
   },
-
-  /* SEARCH BAR */
-  searchWrapper: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: THEME.surface,
-    borderRadius: 16,
-    paddingHorizontal: 16,
-    height: 56,
+  friendCardImageWrapper: {
+    width: 160,
+    height: 200,
+    borderRadius: 20,
+    overflow: "hidden",
+    backgroundColor: "#F3F4F6",
+    marginBottom: 10,
+    position: "relative",
+    // Ombre légère
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.04,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.1,
     shadowRadius: 12,
-    elevation: 2,
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.02)",
+    elevation: 4,
   },
-  searchIcon: { marginRight: 12 },
-  searchInput: {
-    flex: 1,
-    fontSize: 16,
-    fontWeight: "500",
-    color: THEME.textMain,
+  friendCardImage: {
+    width: "100%",
+    height: "100%",
   },
-
-  /* SCROLL CONTENT */
-  scrollContent: {
-    paddingHorizontal: 24,
-    paddingTop: 10,
-  },
-  sectionContainer: {
-    marginBottom: 32,
-  },
-  sectionHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: THEME.textMain,
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-    marginBottom: 12, // Default margin if no header container
-  },
-  badge: {
-    backgroundColor: THEME.accent,
+  dateBadge: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    backgroundColor: "rgba(255,255,255,0.9)",
     paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+    backdropFilter: "blur(4px)",
   },
-  badgeText: {
-    color: "#FFF",
-    fontSize: 11,
+  dateBadgeText: {
+    fontSize: 10,
     fontWeight: "700",
+    color: "#111827",
   },
-
-  /* REQUEST CARDS (Horizontal) */
-  requestsScroll: {
-    overflow: "visible", // Permet aux ombres de ne pas être coupées
-    marginHorizontal: -24, // Pour scroller bord à bord
-    paddingHorizontal: 24,
+  friendCardInfo: {
+    paddingHorizontal: 4,
   },
-  requestCard: {
-    backgroundColor: THEME.surface,
-    padding: 16,
-    borderRadius: 20,
-    marginRight: 16,
-    width: 260,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    elevation: 3,
-    borderWidth: 1,
-    borderColor: THEME.border,
-  },
-  requestHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    marginBottom: 16,
-  },
-  requestAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: "#F3F4F6",
-  },
-  requestInfo: { flex: 1 },
-  requestName: {
+  friendListTitle: {
     fontSize: 15,
-    fontWeight: "700",
-    color: THEME.textMain,
-    marginBottom: 2,
-  },
-  requestMeta: {
-    fontSize: 12,
-    color: THEME.textSecondary,
-  },
-  requestActions: {
-    flexDirection: "row",
-    gap: 8,
-  },
-  acceptBtn: {
-    flex: 1,
-    backgroundColor: THEME.textMain,
-    height: 36,
-    borderRadius: 18,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  acceptText: {
-    color: "#FFF",
-    fontSize: 12,
     fontWeight: "600",
+    color: "#111827",
+    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
+    marginBottom: 4,
   },
-  ignoreBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: THEME.border,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  /* USER ROWS (Vertical) */
-  userRowContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(0,0,0,0.03)",
-  },
-  userRowLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 14,
-  },
-  rowAvatar: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: "#F3F4F6",
-  },
-  rowText: {
-    justifyContent: "center",
-  },
-  rowName: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: THEME.textMain,
-    marginBottom: 2,
-  },
-  rowHandle: {
-    fontSize: 13,
-    color: THEME.textSecondary,
-  },
-  rowActionBtn: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
+  friendRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
   },
-  btnSolid: {
-    backgroundColor: THEME.textMain,
+  miniAvatar: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: "#E5E7EB",
   },
-  btnOutline: {
-    borderWidth: 1,
-    borderColor: THEME.border,
-    backgroundColor: "transparent",
-  },
-  btnTextSolid: {
-    color: "#FFF",
+  friendName: {
     fontSize: 12,
-    fontWeight: "700",
-  },
-  btnTextOutline: {
-    color: THEME.textMain,
-    fontSize: 12,
-    fontWeight: "600",
+    color: "#6B7280",
   },
 
-  /* EMPTY STATES */
-  emptyState: {
-    alignItems: "center",
-    marginTop: 40,
-    gap: 12,
+  /* FEED SECTION */
+  feedSection: {
+    paddingHorizontal: 20,
   },
-  emptyText: {
-    color: "#9CA3AF",
-    fontSize: 15,
-    fontStyle: "italic",
-  },
-  linkText: {
-    color: THEME.textMain,
-    fontSize: 14,
-    fontWeight: "700",
-    textDecorationLine: "underline",
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: "600",
+    color: "#111827",
+    marginBottom: 20,
+    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
   },
 });
