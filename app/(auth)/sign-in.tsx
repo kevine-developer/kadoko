@@ -1,12 +1,12 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { Link } from "expo-router";
+import { StatusBar } from "expo-status-bar";
 import React, { useState } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  StatusBar,
   StyleSheet,
   Text,
   TextInput,
@@ -34,7 +34,7 @@ export default function SignIn() {
   const [password, setPassword] = useState("");
 
   const handleLogin = async () => {
-
+    console.log("Login avec email et mot de passe");
   };
 
   const handleSocialLogin = (provider: string) => {
@@ -43,13 +43,12 @@ export default function SignIn() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" />
-
+      <StatusBar style="light" />
       {/* 1. IMAGE D'ACCUEIL IMMERSIVE */}
       <View style={styles.headerImageContainer}>
         <Image
           source={{
-            uri: "https://images.unsplash.com/photo-1469334031218-e382a71b716b?q=80&w=1000&auto=format&fit=crop",
+            uri: "https://plus.unsplash.com/premium_photo-1672233867062-64af815416dd?q=80&w=627&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
           }}
           style={styles.headerImage}
           contentFit="cover"
@@ -198,7 +197,7 @@ export default function SignIn() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: THEME.primary, // Fond noir derrière l'image
+    backgroundColor: THEME.background, // Fond noir derrière l'image
   },
 
   /* --- HEADER IMAGE --- */
@@ -207,8 +206,7 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    height: "55%", // Prend un peu plus de la moitié
-    zIndex: -1,
+    height: "54%", // Prend un peu plus de la moitié
   },
   headerImage: {
     width: "100%",
@@ -239,12 +237,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 40,
     minHeight: "50%",
-    // Ombre inversée pour mordre sur l'image
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: -10 },
-    shadowOpacity: 0.15,
-    shadowRadius: 20,
-    elevation: 20,
   },
 
   /* --- TYPOGRAPHY --- */

@@ -10,12 +10,16 @@ export type ISODateString = string;
 
 export enum UserRole {
   USER = "USER",
-  ADMIN = "ADMIN",
 }
 
 export interface UserReservedGift {
   giftId: string;
   reservedAt: ISODateString;
+}
+
+export interface SocialLink {
+  platform: string;
+  url: string;
 }
 
 export interface UserPurchasedGift {
@@ -31,10 +35,10 @@ export interface User {
   username: string;
   fullName: string;
   email: string;
-
   description?: string;
   avatarUrl?: string;
-
+  socialLinks?: SocialLink[];
+  isPublic: boolean;
   role: UserRole;
 
   friends: string[];       // userIds
@@ -45,4 +49,9 @@ export interface User {
 
   createdAt: ISODateString;
   updatedAt: ISODateString;
+
+  // Friend-related
+  friendRequests: string[]; // userIds
+  pendingFriendRequests: string[]; // userIds
+  blockedUsers: string[]; // userIds
 }
