@@ -5,20 +5,10 @@ export default function GiftsLayout() {
     <>
       <Stack screenOptions={{ headerShown: false }}>
         {/* Détail d’un cadeau */}
-        <Stack.Screen
-          name="[giftId]"
-          options={{
-            title: "Détail du cadeau",
-          }}
-        />
+        <Stack.Screen name="[giftId]" />
 
         {/* Liste d’un groupe de cadeaux */}
-        <Stack.Screen
-          name="wishlists/[wishlistId]"
-          options={{
-            title: "Liste des cadeaux",
-          }}
-        />
+        <Stack.Screen name="wishlists/[wishlistId]" />
       </Stack>
     </>
   );

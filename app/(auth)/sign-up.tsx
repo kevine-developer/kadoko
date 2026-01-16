@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { View, TextInput, Button } from "react-native";
-import { authClient } from "@/lib/auth-client";
 
 export default function SignUp() {
     const [email, setEmail] = useState("");
@@ -8,11 +7,7 @@ export default function SignUp() {
     const [password, setPassword] = useState("");
 
     const handleLogin = async () => {
-        await authClient.signUp.email({
-                email,
-                password,
-                name
-        })
+     
     };
 
     return (

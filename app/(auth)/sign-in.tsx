@@ -1,4 +1,3 @@
-import { authClient } from "@/lib/auth-client";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { Link } from "expo-router";
@@ -35,10 +34,7 @@ export default function SignIn() {
   const [password, setPassword] = useState("");
 
   const handleLogin = async () => {
-    await authClient.signIn.email({
-      email,
-      password,
-    });
+
   };
 
   const handleSocialLogin = (provider: string) => {
