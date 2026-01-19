@@ -8,20 +8,17 @@ interface TopBarSettingQrProps {
 
 const TopBarSettingQr = ({ handleSettingsPress }: TopBarSettingQrProps) => {
   return (
-    <>
-      <View /> {/* Spacer */}
-      <View style={styles.navActions}>
-        <TouchableOpacity style={styles.iconButtonBlur}>
-          <Ionicons name="qr-code-outline" size={20} color="#FFF" />
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.iconButtonBlur}
-          onPress={handleSettingsPress}
-        >
-          <Ionicons name="settings-outline" size={20} color="#FFF" />
-        </TouchableOpacity>
-      </View>
-    </>
+    <View style={styles.navActions}>
+      <TouchableOpacity style={styles.iconButtonBlur}>
+        <Ionicons name="qr-code-outline" size={20} color="#FFF" />
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={styles.iconButtonBlur}
+        onPress={handleSettingsPress}
+      >
+        <Ionicons name="settings-outline" size={20} color="#FFF" />
+      </TouchableOpacity>
+    </View>
   );
 };
 

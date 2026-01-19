@@ -9,7 +9,7 @@ import {
   View,
 } from "react-native";
 import { authService } from "../../lib/auth/auth-service";
-import { showErrorToast, showSuccessToast } from "../../lib/toast";
+import { showErrorToast} from "../../lib/toast";
 import InputCustom from "@/components/auth/input-custom";
 import HeaderAuth from "@/components/auth/headerAuth";
 import FooterAuth from "@/components/auth/footerAuth";
@@ -52,8 +52,6 @@ export default function SignIn() {
       });
 
       if (response.success) {
-        showSuccessToast(response.message);
-        // Redirection vers l'écran principal
         router.replace("/(tabs)");
       } else {
         showErrorToast(response.message || "Erreur de connexion");

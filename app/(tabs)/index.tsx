@@ -3,6 +3,7 @@ import GiftCardHome from "@/components/HomeUI/GiftCardHome";
 import { router } from "expo-router";
 import React, { useMemo, useEffect, useState, useCallback } from "react";
 import { giftService } from "@/lib/services/gift-service";
+import { wishlistService } from "@/lib/services/wishlist-service";
 import { authClient } from "@/lib/auth/auth-client";
 import {
   Platform,
@@ -16,12 +17,12 @@ import HeaderHome from "@/components/HomeUI/HeaderHome";
 import FriendsWishlistSlider from "@/components/HomeUI/FriendsWishlistSlider";
 import RadarTicker from "@/components/HomeUI/RadarTicker";
 
-
 // --- ECRAN PRINCIPAL ---
 
 export default function LuxuryFeedScreen() {
   const [inspirations, setInspirations] = useState<any[]>([]);
   const [circles, setCircles] = useState<any[]>([]);
+  const [myWishlists, setMyWishlists] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Vérifier si l'utilisateur est connecté pour l'affichage conditionnel
@@ -42,9 +43,22 @@ export default function LuxuryFeedScreen() {
     }
   }, []);
 
+  const loadMyWishlists = useCallback(async () => {
+    if (!session) return;
+    try {
+      const data = await wishlistService.getMyWishlists();
+      if (data.success) {
+        setMyWishlists(data.wishlists);
+      }
+    } catch (error) {
+      console.error("Failed to load wishlists:", error);
+    }
+  }, [session]);
+
   useEffect(() => {
     loadFeed();
-  }, [loadFeed]);
+    loadMyWishlists();
+  }, [loadFeed, loadMyWishlists]);
 
   // Préparer le feed pour le composant (Inspirations)
   const feedPosts = useMemo(() => {
@@ -80,14 +94,12 @@ export default function LuxuryFeedScreen() {
         </View>
 
         {/* LOGIQUE D'AFFICHAGE CONDITIONNEL */}
-        {circles.length > 0 ? (
+        {myWishlists.length > 0 ? (
           <FriendsWishlistSlider wishlists={circles} />
         ) : (
-          !session && (
-            <CreateWishlistBanner
-              onPress={() => router.push("/(auth)/sign-up")}
-            />
-          )
+          <CreateWishlistBanner
+            onPress={() => router.push("/(screens)/createEventScreen")}
+          />
         )}
 
         <View style={styles.feedSection}>
@@ -113,7 +125,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#FDFBF7",
   },
-
 
   /* FEED SECTION */
   feedSection: {

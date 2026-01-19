@@ -98,7 +98,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   card: {
-    height: 200,
+    height: 230,
     width: "100%",
     borderRadius: 28,
     overflow: "hidden",
@@ -156,7 +156,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   title: {
-    fontSize: 28,
+    fontSize: 24,
     color: THEME.white,
     fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
     lineHeight: 34,

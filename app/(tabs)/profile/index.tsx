@@ -41,13 +41,13 @@ export default function ModernUserProfileScreen() {
   // Récupération de la session réelle
   const { data: session } = authClient.useSession();
   const user = session?.user;
+  console.log(user);
 
   // États pour les données réelles
   const [userWishlists, setUserWishlists] = useState<any[]>([]);
   const [reservedGifts, setReservedGifts] = useState<any[]>([]);
   const [purchasedGifts, setPurchasedGifts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-
   const loadProfileData = useCallback(async () => {
     setLoading(true);
     const [wlRes, feedRes] = await Promise.all([
@@ -64,7 +64,7 @@ export default function ModernUserProfileScreen() {
     }
     setLoading(false);
   }, []);
-
+  console.log(userWishlists);
   useEffect(() => {
     if (session) {
       loadProfileData();
@@ -139,6 +139,7 @@ export default function ModernUserProfileScreen() {
       />
       {/* 2. TOP BAR */}
       <View style={[styles.navBar, { top: insets.top }]}>
+        <View />
         <TopBarSettingQr handleSettingsPress={handleSettingsPress} />
       </View>
 

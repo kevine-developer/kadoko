@@ -1,59 +1,51 @@
-import { Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  Platform,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import React from "react";
 import { router } from "expo-router";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 
-const ProfilCard = ({user}: any) => {
+const ProfilCard = ({ user }: any) => {
   return (
-      <View style={styles.cardHeader}>
-        <View style={styles.avatarWrapper}>
-          <Image
-            source={{
-              uri:
-                user?.image ||
-                "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=400",
-            }}
-            style={styles.avatar}
-          />
-          <View style={styles.editAvatarBadge}>
-            <Ionicons name="pencil" size={10} color="#FFF" />
-          </View>
+    <View style={styles.cardHeader}>
+      <View style={styles.avatarWrapper}>
+        <Image
+          source={{
+            uri:
+              user?.image ||
+              "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=400",
+          }}
+          style={styles.avatar}
+        />
+        <View style={styles.editAvatarBadge}>
+          <Ionicons name="pencil" size={10} color="#FFF" />
         </View>
-
-        <View style={styles.identityContainer}>
-          <Text style={styles.userName}>{user?.name}</Text>
-          <Text style={styles.userHandle}>@{user?.email?.split("@")[0]}</Text>
-        </View>
-
-        <TouchableOpacity
-          style={styles.editProfileBtn}
-          onPress={() => router.push("/(screens)/settingsScreen")}
-        >
-          <Text style={styles.editProfileText}>Éditer</Text>
-        </TouchableOpacity>
       </View>
 
+      <View style={styles.identityContainer}>
+        <Text style={styles.userName}>{user?.name}</Text>
+        <Text style={styles.userHandle}>@{user?.email?.split("@")[0]}</Text>
+      </View>
+
+      <TouchableOpacity
+        style={styles.editProfileBtn}
+        onPress={() => router.push("/(screens)/settingsScreen")}
+      >
+        <Text style={styles.editProfileText}>Éditer</Text>
+      </TouchableOpacity>
+      <Text style={styles.description}>{user?.description}</Text>
+    </View>
   );
 };
 
 export default ProfilCard;
 
 const styles = StyleSheet.create({
-  /* --- PROFILE CARD --- */
-  profileCard: {
-    backgroundColor: "#FFFFFF",
-    marginHorizontal: 20,
-    borderRadius: 32,
-    padding: 24,
-    marginBottom: 32,
-    // Ombre diffuse
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 16 },
-    shadowOpacity: 0.08,
-    shadowRadius: 32,
-    elevation: 6,
-  },
   cardHeader: {
     flexDirection: "row",
     alignItems: "center", // Alignement centré verticalement
@@ -108,6 +100,11 @@ const styles = StyleSheet.create({
     borderColor: "#E5E7EB",
   },
   editProfileText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#111827",
+  },
+  description: {
     fontSize: 13,
     fontWeight: "600",
     color: "#111827",
