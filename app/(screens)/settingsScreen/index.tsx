@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { router } from "expo-router";
+import { authService } from "@/lib/auth/auth-service";
 import React, { useRef, useState } from "react";
 import {
   Alert,
@@ -72,7 +73,13 @@ const SettingItem = ({
 };
 
 // 3. Setting Switch (Toggle)
-const SettingSwitch = ({ icon, label, value, onValueChange, isLast = false }: any) => {
+const SettingSwitch = ({
+  icon,
+  label,
+  value,
+  onValueChange,
+  isLast = false,
+}: any) => {
   return (
     <View style={[styles.itemContainer, isLast && styles.itemLast]}>
       <View style={styles.itemIconBox}>
@@ -111,7 +118,13 @@ export default function SettingsScreen() {
   const handleLogout = () => {
     Alert.alert("Déconnexion", "Êtes-vous sûr de vouloir vous déconnecter ?", [
       { text: "Annuler", style: "cancel" },
-      { text: "Se déconnecter", style: "destructive", onPress: () => console.log("Logout") },
+      {
+        text: "Se déconnecter",
+        style: "destructive",
+        onPress: async () => {
+          await authService.signOut();
+        },
+      },
     ]);
   };
 
@@ -123,7 +136,11 @@ export default function SettingsScreen() {
       <Animated.View
         style={[
           styles.navbar,
-          { paddingTop: insets.top, opacity: headerOpacity, height: 50 + insets.top },
+          {
+            paddingTop: insets.top,
+            opacity: headerOpacity,
+            height: 50 + insets.top,
+          },
         ]}
       >
         <Text style={styles.navTitle}>Paramètres</Text>
@@ -138,7 +155,7 @@ export default function SettingsScreen() {
         showsVerticalScrollIndicator={false}
         onScroll={Animated.event(
           [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-          { useNativeDriver: false }
+          { useNativeDriver: false },
         )}
         scrollEventThrottle={16}
       >
@@ -154,7 +171,9 @@ export default function SettingsScreen() {
           style={styles.profileCard}
         >
           <Image
-            source={{ uri: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=800&auto=format&fit=crop" }}
+            source={{
+              uri: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=800&auto=format&fit=crop",
+            }}
             style={styles.avatar}
             contentFit="cover"
           />
@@ -165,7 +184,11 @@ export default function SettingsScreen() {
               <Text style={styles.badgeText}>MEMBRE PREMIUM</Text>
             </View>
           </View>
-          <Ionicons name="create-outline" size={20} color={THEME.textSecondary} />
+          <Ionicons
+            name="create-outline"
+            size={20}
+            color={THEME.textSecondary}
+          />
         </TouchableOpacity>
 
         {/* 2. SECTION COMPTE */}
@@ -247,7 +270,7 @@ export default function SettingsScreen() {
             <Text style={styles.logoutText}>Se déconnecter</Text>
             <Ionicons name="log-out-outline" size={18} color={THEME.textMain} />
           </TouchableOpacity>
-          
+
           <Text style={styles.versionText}>Version 2.4.0 (Build 102)</Text>
         </View>
       </ScrollView>
@@ -260,7 +283,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: THEME.background,
   },
-  
+
   /* NAVBAR (Sticky) */
   navbar: {
     position: "absolute",
@@ -279,7 +302,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     color: THEME.textMain,
-    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
   },
 
   /* HEADER */
@@ -290,7 +313,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 34,
     fontWeight: "400",
-    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
     color: THEME.textMain,
     letterSpacing: -0.5,
   },
@@ -324,7 +347,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "700",
     color: THEME.textMain,
-    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
     marginBottom: 4,
   },
   profileEmail: {

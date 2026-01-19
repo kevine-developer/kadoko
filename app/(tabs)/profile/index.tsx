@@ -1,9 +1,17 @@
 import { Ionicons } from "@expo/vector-icons";
-import { Image } from "expo-image";
-import React, { useRef, useState } from "react";
+import React, {
+  useRef,
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+} from "react";
+import { wishlistService } from "@/lib/services/wishlist-service";
+import { giftService } from "@/lib/services/gift-service";
+import GiftWishlistCard from "@/components/GiftCard";
+import ReservedGiftItem from "@/components/ProfilUI/ReservedGiftItem";
 import {
   Animated,
-  Platform,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -11,46 +19,72 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useRouter } from "expo-router";
 import PagerView from "react-native-pager-view";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-
-// Composants existants
-import GiftWishlistCard from "@/components/GiftCard";
-import ReservedGiftItem from "@/components/ProfilUI/ReservedGiftItem";
-
-// Libs & Mocks
-import {
-  getUserPurchasedGiftsWithContext,
-  getUserReservedGiftsWithContext,
-} from "@/lib/getUserGifts";
-import { getWishlistPhotos } from "@/lib/getWishlistPhotos";
-import { getUserWishlists } from "@/lib/userWishlists";
-import { MOCK_USERS } from "@/mocks/users.mock";
-import { MOCK_WISHLISTS } from "@/mocks/wishlists.mock";
-
-// --- DATA SETUP ---
-const user = MOCK_USERS[0];
-const reservedGifts = getUserReservedGiftsWithContext(user);
-const purchasedGifts = getUserPurchasedGiftsWithContext(user);
-const userWishlists = getUserWishlists(MOCK_WISHLISTS, user.wishlists);
-const MOCK_WISHES = getWishlistPhotos(userWishlists);
-
-const TABS = {
-  RESERVED: 0,
-  WISHES: 1,
-  BOUGHT: 2,
-};
+import { authClient } from "@/lib/auth/auth-client";
+import StatsMinimalistes from "@/components/ProfilUI/StatsMinimalistes";
+import ProfilCard from "@/components/ProfilUI/ProfilCard";
+import EmptyListTab from "@/components/ProfilUI/ui/EmptyListTab";
+import LayoutPagerView from "@/components/layoutPagerView";
+import HeaderParallax from "@/components/ProfilUI/HeaderParallax";
+import TopBarSettingQr from "@/components/ProfilUI/TopBarSettingQr";
+import { HEADER_HEIGHT, TABS } from "@/constants/const";
 
 export default function ModernUserProfileScreen() {
+  const router = useRouter();
   const insets = useSafeAreaInsets();
   const [activePage, setActivePage] = useState(0);
   const pagerRef = useRef<PagerView>(null);
   const scrollY = useRef(new Animated.Value(0)).current;
 
-  // --- ANIMATIONS ---
-  const headerHeight = 320;
+  // Récupération de la session réelle
+  const { data: session } = authClient.useSession();
+  const user = session?.user;
 
-  const handleSettingsPress = () => {};
+  // États pour les données réelles
+  const [userWishlists, setUserWishlists] = useState<any[]>([]);
+  const [reservedGifts, setReservedGifts] = useState<any[]>([]);
+  const [purchasedGifts, setPurchasedGifts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const loadProfileData = useCallback(async () => {
+    setLoading(true);
+    const [wlRes, feedRes] = await Promise.all([
+      wishlistService.getMyWishlists(),
+      giftService.getFeed(), // Pour l'instant on prend du feed ou on pourrait avoir une route /me/gifts
+    ]);
+
+    if (wlRes.success) setUserWishlists(wlRes.wishlists);
+    // Filtrer les cadeaux réservés/offerts par l'utilisateur (sera amélioré avec une route dédiée)
+    if (feedRes.success) {
+      // En attendant une route dédiée /users/me/activities
+      setReservedGifts([]);
+      setPurchasedGifts([]);
+    }
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    if (session) {
+      loadProfileData();
+    }
+  }, [session, loadProfileData]);
+
+  const wishesMapped = useMemo(() => {
+    return userWishlists.map((wl) => ({
+      wishlistId: wl.id,
+      wishlistTitle: wl.title,
+      totalGifts: wl._count?.gifts || 0,
+      wishlistVisibility: wl.visibility,
+      images: wl.gifts?.map((g: any) => g.imageUrl).filter(Boolean) || [],
+    }));
+  }, [userWishlists]);
+
+  const handleSettingsPress = () => {
+    router.push("../../(screens)/settingsScreen");
+  };
+
   const imageScale = scrollY.interpolate({
     inputRange: [-100, 0],
     outputRange: [1.15, 1],
@@ -58,7 +92,7 @@ export default function ModernUserProfileScreen() {
   });
 
   const headerOpacity = scrollY.interpolate({
-    inputRange: [0, headerHeight - 120],
+    inputRange: [0, HEADER_HEIGHT - 120],
     outputRange: [1, 0],
     extrapolate: "clamp",
   });
@@ -77,7 +111,7 @@ export default function ModernUserProfileScreen() {
   const renderTab = (
     label: string,
     icon: keyof typeof Ionicons.glyphMap,
-    index: number
+    index: number,
   ) => {
     const isActive = activePage === index;
     return (
@@ -98,34 +132,14 @@ export default function ModernUserProfileScreen() {
       <StatusBar barStyle="light-content" />
 
       {/* 1. HEADER PARALLAX (Cover Artistique) */}
-      <Animated.View
-        style={[styles.headerContainer, { opacity: headerOpacity }]}
-      >
-        <Animated.Image
-          source={{
-            uri: user.avatarUrl,
-          }}
-          style={[styles.headerImage, { transform: [{ scale: imageScale }] }]}
-        />
-        <View style={styles.headerOverlay} />
-        {/* Dégradé pour fondre avec la carte */}
-        <View style={styles.headerGradient} />
-      </Animated.View>
-
+      <HeaderParallax
+        user={user}
+        headerOpacity={headerOpacity}
+        imageScale={imageScale}
+      />
       {/* 2. TOP BAR */}
       <View style={[styles.navBar, { top: insets.top }]}>
-        <View /> {/* Spacer */}
-        <View style={styles.navActions}>
-          <TouchableOpacity style={styles.iconButtonBlur}>
-            <Ionicons name="qr-code-outline" size={20} color="#FFF" />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.iconButtonBlur}
-            onPress={handleSettingsPress}
-          >
-            <Ionicons name="settings-outline" size={20} color="#FFF" />
-          </TouchableOpacity>
-        </View>
+        <TopBarSettingQr handleSettingsPress={handleSettingsPress} />
       </View>
 
       <ScrollView
@@ -133,47 +147,20 @@ export default function ModernUserProfileScreen() {
         contentContainerStyle={{ paddingTop: 140 }}
         onScroll={Animated.event(
           [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-          { useNativeDriver: false }
+          { useNativeDriver: false },
         )}
         scrollEventThrottle={16}
       >
         {/* 3. PROFILE CARD (Overlap & Luxe) */}
         <View style={styles.profileCard}>
-          <View style={styles.cardHeader}>
-            <View style={styles.avatarWrapper}>
-              <Image source={{ uri: user.avatarUrl }} style={styles.avatar} />
-              <View style={styles.editAvatarBadge}>
-                <Ionicons name="pencil" size={10} color="#FFF" />
-              </View>
-            </View>
-
-            <View style={styles.identityContainer}>
-              <Text style={styles.userName}>{user.fullName}</Text>
-              <Text style={styles.userHandle}>@{user.email.split("@")[0]}</Text>
-            </View>
-
-            <TouchableOpacity style={styles.editProfileBtn}>
-              <Text style={styles.editProfileText}>Éditer</Text>
-            </TouchableOpacity>
-          </View>
+          <ProfilCard user={user} />
 
           {/* Stats Minimalistes */}
-          <View style={styles.statsContainer}>
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>{userWishlists.length}</Text>
-              <Text style={styles.statLabel}>Collections</Text>
-            </View>
-            <View style={styles.verticalLine} />
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>{reservedGifts.length}</Text>
-              <Text style={styles.statLabel}>Réservés</Text>
-            </View>
-            <View style={styles.verticalLine} />
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>{purchasedGifts.length}</Text>
-              <Text style={styles.statLabel}>Offerts</Text>
-            </View>
-          </View>
+          <StatsMinimalistes
+            userWishlists={userWishlists}
+            reservedGifts={reservedGifts}
+            purchasedGifts={purchasedGifts}
+          />
         </View>
 
         {/* 4. TABS FLOTTANTS (Style Menu) */}
@@ -185,6 +172,18 @@ export default function ModernUserProfileScreen() {
           </View>
         </View>
 
+        {loading && (
+          <Text
+            style={{
+              textAlign: "center",
+              marginVertical: 20,
+              color: "#9CA3AF",
+            }}
+          >
+            Chargement de vos collections...
+          </Text>
+        )}
+
         {/* 5. CONTENT AREA */}
         <View style={{ minHeight: 600 }}>
           <PagerView
@@ -194,66 +193,66 @@ export default function ModernUserProfileScreen() {
             onPageSelected={onPageSelected}
           >
             {/* PAGE 1: RESERVED */}
-            <View key="1" style={styles.pageContent}>
+            <LayoutPagerView pageNumber={1}>
               {reservedGifts.length > 0 ? (
                 reservedGifts.map((gift) => (
                   <View key={gift.id} style={{ marginBottom: 20 }}>
                     <ReservedGiftItem
                       gift={gift}
-                      ownerName={gift.owner.fullName}
+                      ownerName={gift.wishlist?.user?.name || "Inconnu"}
                       onPurchased={() => {}}
-                      eventDate={gift.wishlist.eventDate}
+                      eventDate={gift.wishlist?.eventDate}
                     />
                   </View>
                 ))
               ) : (
-                <View style={styles.emptyState}>
-                  <Ionicons name="gift-outline" size={40} color="#D1D5DB" />
-                  <Text style={styles.emptyText}>
-                    Aucune réservation active.
-                  </Text>
-                </View>
+                <EmptyListTab
+                  title="Aucune réservation active."
+                  icon="gift-outline"
+                />
               )}
-            </View>
+            </LayoutPagerView>
 
             {/* PAGE 2: WISHES */}
-            <View key="2" style={styles.pageContent}>
+            <LayoutPagerView pageNumber={2}>
               <View style={styles.gridContainer}>
-                {MOCK_WISHES.map((wishlist) => (
+                {wishesMapped.map((wishlist: any) => (
                   <View key={wishlist.wishlistId} style={{ marginBottom: 16 }}>
                     <GiftWishlistCard {...wishlist} />
                   </View>
                 ))}
               </View>
-              <TouchableOpacity style={styles.addListBtn}>
+              <TouchableOpacity
+                style={styles.addListBtn}
+                onPress={() => router.push("/(screens)/createEventScreen")}
+              >
                 <Ionicons name="add" size={24} color="#111827" />
                 <Text style={styles.addListText}>Nouvelle collection</Text>
               </TouchableOpacity>
-            </View>
+            </LayoutPagerView>
 
             {/* PAGE 3: BOUGHT */}
-            <View key="3" style={styles.pageContent}>
+            <LayoutPagerView pageNumber={3}>
               {purchasedGifts.length > 0 ? (
                 purchasedGifts.map((gift) => (
                   <View key={gift.id} style={{ marginBottom: 16 }}>
                     <ReservedGiftItem
                       gift={gift}
-                      ownerName={gift.owner.fullName}
+                      ownerName={gift.wishlist?.user?.name || "Inconnu"}
                       onPurchased={() => {}}
-                      eventDate={gift.wishlist.eventDate}
+                      eventDate={gift.wishlist?.eventDate}
                     />
                   </View>
                 ))
               ) : (
-                <View style={styles.emptyState}>
-                  <Ionicons name="receipt-outline" size={40} color="#D1D5DB" />
-                  <Text style={styles.emptyText}>Historique vide.</Text>
-                </View>
+                <EmptyListTab
+                  title="Aucune collection achetée."
+                  icon="receipt-outline"
+                />
               )}
-            </View>
+            </LayoutPagerView>
           </PagerView>
         </View>
-
         <View style={{ height: 40 }} />
       </ScrollView>
     </View>
@@ -263,35 +262,6 @@ export default function ModernUserProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-
-  /* --- HEADER --- */
-  headerContainer: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 240,
-    backgroundColor: "#111827",
-  },
-  headerImage: {
-    width: "100%",
-    height: "100%",
-    opacity: 0.7,
-  },
-  headerOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.3)",
-  },
-  headerGradient: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 100,
-    backgroundColor: "transparent",
-    // Note: Pour un vrai dégradé sur React Native sans Expo Linear Gradient,
-    // on utilise souvent une image PNG transparente ou on laisse tel quel.
   },
 
   /* --- NAV BAR --- */
@@ -305,21 +275,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 12,
     zIndex: 10,
-  },
-  navActions: {
-    flexDirection: "row",
-    gap: 12,
-  },
-  iconButtonBlur: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: "rgba(255,255,255,0.15)",
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.1)",
-    backdropFilter: "blur(12px)",
   },
 
   /* --- PROFILE CARD --- */
@@ -336,95 +291,6 @@ const styles = StyleSheet.create({
     shadowRadius: 32,
     elevation: 6,
   },
-  cardHeader: {
-    flexDirection: "row",
-    alignItems: "center", // Alignement centré verticalement
-    marginBottom: 24,
-  },
-  avatarWrapper: {
-    position: "relative",
-    marginRight: 16,
-  },
-  avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    borderWidth: 3,
-    borderColor: "#FFFFFF",
-    backgroundColor: "#F3F4F6",
-  },
-  editAvatarBadge: {
-    position: "absolute",
-    bottom: 0,
-    right: 0,
-    backgroundColor: "#111827",
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 2,
-    borderColor: "#FFFFFF",
-  },
-  identityContainer: {
-    flex: 1,
-  },
-  userName: {
-    fontSize: 24,
-    fontWeight: "500",
-    color: "#111827",
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-    marginBottom: 2,
-  },
-  userHandle: {
-    fontSize: 14,
-    color: "#9CA3AF",
-    letterSpacing: 0.5,
-  },
-  editProfileBtn: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-  },
-  editProfileText: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#111827",
-  },
-
-  /* STATS */
-  statsContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 8,
-  },
-  statItem: {
-    alignItems: "center",
-    flex: 1,
-  },
-  statNumber: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: "#111827",
-    marginBottom: 4,
-  },
-  statLabel: {
-    fontSize: 11,
-    color: "#9CA3AF",
-    fontWeight: "600",
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-  },
-  verticalLine: {
-    width: 1,
-    height: 30,
-    backgroundColor: "#F3F4F6",
-  },
-
   /* --- TABS --- */
   tabsContainer: {
     paddingHorizontal: 20,
@@ -464,9 +330,7 @@ const styles = StyleSheet.create({
   pagerView: {
     flex: 1,
   },
-  pageContent: {
-    paddingHorizontal: 20,
-  },
+
   gridContainer: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -486,27 +350,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#E5E7EB",
     backgroundColor: "#FFFFFF",
-    borderStyle: "dashed", // Optionnel, mais ici on préfère souvent solid pour le luxe
   },
   addListText: {
     fontSize: 14,
     fontWeight: "600",
     color: "#111827",
     letterSpacing: 0.5,
-  },
-
-  /* Empty State */
-  emptyState: {
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 60,
-    gap: 16,
-    opacity: 0.7,
-  },
-  emptyText: {
-    color: "#9CA3AF",
-    fontSize: 15,
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-    fontStyle: "italic",
   },
 });

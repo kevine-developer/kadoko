@@ -4,12 +4,13 @@ import GiftDetailsModal from "@/components/gift/GiftDetailsModal";
 import GiftItemGroup from "@/components/gift/GiftItemGroup";
 import WishlistEditModal from "@/components/gift/WishlistEditModal";
 import FloatingDockActions from "@/components/wishlist/floatingDock";
-import { MOCK_USERS } from "@/mocks/users.mock";
-import { MOCK_WISHLISTS } from "@/mocks/wishlists.mock";
-import { Gift, GiftWishlist } from "@/types/gift";
+import { Gift } from "@/types/gift";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
+import { wishlistService } from "@/lib/services/wishlist-service";
+import { giftService } from "@/lib/services/gift-service";
+import { authClient } from "@/lib/auth/auth-client";
 import {
   Animated,
   Dimensions,
@@ -52,10 +53,25 @@ export default function WishlistGroupView() {
   const dockTranslateY = useRef(new Animated.Value(0)).current;
 
   // Data
-  const currentUserId = MOCK_USERS[0].id;
-  const group: GiftWishlist | undefined = MOCK_WISHLISTS.find(
-    (g) => g.id === wishlistId
-  );
+  const { data: session } = authClient.useSession();
+  const currentUserId = session?.user?.id;
+  const [group, setGroup] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  const loadWishlist = useCallback(async () => {
+    if (!wishlistId) return;
+    setLoading(true);
+    const res = await wishlistService.getWishlistById(wishlistId);
+    if (res.success) {
+      setGroup(res.wishlist);
+    }
+    setLoading(false);
+  }, [wishlistId]);
+
+  useEffect(() => {
+    loadWishlist();
+  }, [loadWishlist]);
+
   const isOwner = group?.userId === currentUserId;
 
   // Animation Dock
@@ -70,24 +86,31 @@ export default function WishlistGroupView() {
   }, [dockTranslateY, selectedGift]);
 
   // --- HANDLERS ---
- // ✅ 2. Handler pour l'ajout
-  const handleAddGift = (newGiftData: any) => {
-    console.log("Nouveau cadeau à ajouter :", newGiftData);
-    // TODO: Appeler API (ex: createGift(wishlistId, newGiftData))
-    setIsAddGiftVisible(false);
+  // ✅ 2. Handler pour l'ajout
+  const handleAddGift = async (newGiftData: any) => {
+    if (!wishlistId) return;
+    const res = await giftService.addGift(wishlistId, newGiftData);
+    if (res.success) {
+      loadWishlist();
+      setIsAddGiftVisible(false);
+    }
   };
-  const handleDeleteWishlist = () => {
-    // ⚠️ TODO: Appeler API suppression wishlist ici
-    console.log("Suppression de la wishlist :", wishlistId);
-    setIsDeleteWishlistVisible(false);
-    router.back(); // Retour à l'accueil après suppression
+  const handleDeleteWishlist = async () => {
+    if (!wishlistId) return;
+    const res = await wishlistService.deleteWishlist(wishlistId);
+    if (res.success) {
+      setIsDeleteWishlistVisible(false);
+      router.back();
+    }
   };
 
-  const handleDeleteGift = () => {
+  const handleDeleteGift = async () => {
     if (giftToDelete) {
-      // ⚠️ TODO: Appeler API suppression cadeau ici
-      console.log("Suppression du cadeau :", giftToDelete.id);
-      setGiftToDelete(null);
+      const res = await giftService.deleteGift(giftToDelete.id);
+      if (res.success) {
+        loadWishlist();
+        setGiftToDelete(null);
+      }
     }
   };
 
@@ -182,7 +205,7 @@ export default function WishlistGroupView() {
         showsVerticalScrollIndicator={false}
         onScroll={Animated.event(
           [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-          { useNativeDriver: true }
+          { useNativeDriver: true },
         )}
         scrollEventThrottle={16}
         ListHeaderComponent={<ListHeader />}
@@ -226,7 +249,6 @@ export default function WishlistGroupView() {
         visible={selectedGift !== null}
         onClose={() => setSelectedGift(null)}
         isOwner={isOwner}
-        
       />
 
       <WishlistEditModal
@@ -260,7 +282,7 @@ export default function WishlistGroupView() {
         confirmText="Retirer"
         isDestructive={true}
       />
-        {/* ✅ 4. Intégration du composant */}
+      {/* ✅ 4. Intégration du composant */}
       <GiftAddModal
         visible={isAddGiftVisible}
         onClose={() => setIsAddGiftVisible(false)}

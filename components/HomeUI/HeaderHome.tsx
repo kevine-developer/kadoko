@@ -1,9 +1,15 @@
 import { Image } from "expo-image";
 import React from "react";
-import { Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  Platform,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-const HeaderLive = () => {
+const HeaderHome = ({ user }: any) => {
   const insets = useSafeAreaInsets();
   return (
     <View style={[styles.headerContainer, { paddingTop: insets.top + 10 }]}>
@@ -18,16 +24,13 @@ const HeaderLive = () => {
         </Text>
       </View>
       <TouchableOpacity style={styles.headerAvatarBtn}>
-        <Image
-          source={{ uri: "https://i.pravatar.cc/300" }}
-          style={styles.headerAvatar}
-        />
+        <Image source={user?.image} style={styles.headerAvatar} />
       </TouchableOpacity>
     </View>
   );
 };
 
-export default HeaderLive;
+export default HeaderHome;
 
 const styles = StyleSheet.create({
   /* HEADER STYLE */
@@ -72,5 +75,4 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: "#FFF",
   },
-
 });

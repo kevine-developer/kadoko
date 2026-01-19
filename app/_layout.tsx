@@ -19,7 +19,7 @@ export default function RootLayout() {
 
   const { data: session } = authClient.useSession();
   const isAuthenticated = !!session;
-
+console.log("isAuthenticated", isAuthenticated);  
   return (
     <ThemeProvider value={colorScheme === "light" ? DefaultTheme : DarkTheme}>
       <Stack>
@@ -31,6 +31,7 @@ export default function RootLayout() {
           <Stack.Screen name="(auth)" options={{ headerShown: false }} />
         </Stack.Protected>
       </Stack>
+
       <StatusBar style="auto" />
     </ThemeProvider>
   );

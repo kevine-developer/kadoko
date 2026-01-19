@@ -32,17 +32,18 @@ export interface UserPurchasedGift {
  */
 export interface User {
   id: string;
-  username: string;
-  fullName: string;
+  username?: string | null;
+  name: string; // Harmonisé avec Better Auth
   email: string;
-  description?: string;
-  avatarUrl?: string;
+  description?: string | null;
+  image?: string | null; // Harmonisé avec Better Auth
   socialLinks?: SocialLink[];
   isPublic: boolean;
   role: UserRole;
+  emailVerified: boolean;
 
-  friends: string[];       // userIds
-  wishlists: string[];     // wishlistIds
+  friends: string[]; // userIds
+  wishlists: string[]; // wishlistIds
 
   reservedGifts: UserReservedGift[];
   purchasedGifts: UserPurchasedGift[];

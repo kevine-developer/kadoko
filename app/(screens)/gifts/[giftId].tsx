@@ -1,9 +1,10 @@
 import ParallaxScrollView from "@/components/parallax-scroll-view";
-import { getGiftWithGroup } from "@/lib/giftUtils";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { router, useLocalSearchParams } from "expo-router";
-import React from "react";
+import React, { useState, useEffect, useCallback } from "react";
+import { giftService } from "@/lib/services/gift-service";
+import { authClient } from "@/lib/auth/auth-client";
 import {
   Dimensions,
   Linking,
@@ -42,9 +43,21 @@ export default function GiftDetailView() {
   const { giftId } = useLocalSearchParams<{ giftId: string }>();
   const insets = useSafeAreaInsets();
 
-  const giftWithGroup = giftId ? getGiftWithGroup(giftId) : null;
-  const gift = giftWithGroup?.gift;
-  const group = giftWithGroup?.group;
+  const [giftData, setGiftData] = useState<any>(null);
+
+  const loadGift = useCallback(async () => {
+    const res = await giftService.getGiftById(giftId as string);
+    if (res.success && "gift" in res) {
+      setGiftData(res.gift);
+    }
+  }, [giftId]);
+
+  useEffect(() => {
+    loadGift();
+  }, [loadGift]);
+
+  const gift = giftData; // Temporaire
+  const group = giftData?.wishlist;
 
   if (!gift || !group) {
     return (
@@ -276,6 +289,12 @@ export default function GiftDetailView() {
             style={[statusConfig.buttonStyle, { flex: 2 }]} // flex 2 pour largeur
             activeOpacity={statusConfig.isButtonDisabled ? 1 : 0.9}
             disabled={statusConfig.isButtonDisabled}
+            onPress={async () => {
+              if (!isReserved && !isPurchased) {
+                const res = await giftService.reserveGift(giftId);
+                if (res.success) loadGift();
+              }
+            }}
           >
             <Text
               style={[

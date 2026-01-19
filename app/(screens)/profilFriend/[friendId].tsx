@@ -1,4 +1,4 @@
-import LayoutPagerView from "@/components/Friends/friendProfil/PagerView/layoutPagerView";
+import LayoutPagerView from "@/components/layoutPagerView";
 import RenderTabButton from "@/components/Friends/friendProfil/renderTabButton";
 import GiftWishlistCard from "@/components/GiftCard";
 import ReservedGiftItem from "@/components/ProfilUI/ReservedGiftItem";
@@ -40,7 +40,7 @@ export default function FriendProfileScreen() {
   const friendInfo = getUserById(friendId);
   const friendWishlistsb = getUserWishlists(
     MOCK_WISHLISTS,
-    friendInfo?.wishlists
+    friendInfo?.wishlists,
   );
   const friendWishesPhotos = getWishlistPhotos(friendWishlistsb);
 
@@ -101,7 +101,7 @@ export default function FriendProfileScreen() {
         contentContainerStyle={{ paddingTop: 160 }}
         onScroll={Animated.event(
           [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-          { useNativeDriver: false }
+          { useNativeDriver: false },
         )}
         scrollEventThrottle={16}
         stickyHeaderIndices={[1]} // Tabs sticky si désiré (ici index 1 car ProfileCard est 0)
