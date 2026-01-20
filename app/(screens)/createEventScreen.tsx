@@ -1,7 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { Image } from "expo-image";
 import { router } from "expo-router";
-import * as ImagePicker from "expo-image-picker"; // npx expo install expo-image-picker
 import React, { useState } from "react";
 import {
   KeyboardAvoidingView,
@@ -9,76 +7,119 @@ import {
   ScrollView,
   StatusBar,
   StyleSheet,
-  Switch,
   Text,
   TextInput,
   TouchableOpacity,
   View,
+  Alert,
+  ActivityIndicator,
 } from "react-native";
+import DateTimePickerModal from "react-native-modal-datetime-picker";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import DateTimePickerModal from "react-native-modal-datetime-picker"; // npx expo install react-native-modal-datetime-picker
+
+// Services
+import { wishlistService } from "@/lib/services/wishlist-service";
 
 // --- THEME ---
 const THEME = {
-  background: "#FDFBF7",
+  background: "#FDFBF7", // Bone
   surface: "#FFFFFF",
   textMain: "#111827",
   textSecondary: "#6B7280",
   primary: "#111827",
   border: "#E5E7EB",
+  accent: "#F3F4F6",
 };
 
+// --- DATA ---
 const EVENT_TYPES = [
-  { id: "BIRTHDAY", label: "Anniversaire", icon: "gift-outline" },
-  { id: "CHRISTMAS", label: "Noël", icon: "snow-outline" },
-  { id: "WEDDING", label: "Mariage", icon: "heart-outline" },
-  { id: "HOUSE", label: "Crémaillère", icon: "home-outline" },
-  { id: "OTHER", label: "Autre", icon: "star-outline" },
+  { id: "BIRTHDAY", label: "Anniversaire", icon: "cake" }, // cake n'existe pas dans ionicons, on utilisera une map
+  { id: "CHRISTMAS", label: "Noël", icon: "gift" },
+  { id: "WEDDING", label: "Mariage", icon: "heart" },
+  { id: "BABY_SHOWER", label: "Naissance", icon: "happy" },
+  { id: "HOUSEWARMING", label: "Crémaillère", icon: "home" },
+  { id: "OTHER", label: "Autre", icon: "star" },
 ];
+
+const VISIBILITY_OPTIONS = [
+  {
+    id: "PUBLIC",
+    label: "Public",
+    desc: "Visible par tous via recherche ou lien.",
+  },
+  {
+    id: "FRIENDS",
+    label: "Cercle Proche",
+    desc: "Visible uniquement par vos amis.",
+  },
+  {
+    id: "PRIVATE",
+    label: "Privé",
+    desc: "Visible uniquement par vous.",
+  },
+  // "SELECT" sera implémenté plus tard, on peut le masquer ou le griser
+];
+
+// Mapping pour les icônes dynamiques (Ionicons)
+const getIconName = (type: string) => {
+  switch (type) {
+    case "BIRTHDAY":
+      return "balloon-outline";
+    case "CHRISTMAS":
+      return "snow-outline";
+    case "WEDDING":
+      return "heart-outline";
+    case "BABY_SHOWER":
+      return "happy-outline";
+    case "HOUSEWARMING":
+      return "key-outline";
+    default:
+      return "sparkles-outline";
+  }
+};
 
 export default function CreateWishlistScreen() {
   const insets = useSafeAreaInsets();
 
-  // Form State
+  // States
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [eventType, setEventType] = useState("BIRTHDAY");
-  const [isPrivate, setIsPrivate] = useState(false);
-  const [coverImage, setCoverImage] = useState<string | null>(null);
+  const [visibility, setVisibility] = useState("PUBLIC");
+  const [loading, setLoading] = useState(false);
 
-  // Date State
+  // Date
   const [date, setDate] = useState<Date | null>(null);
   const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
 
-  // --- HANDLERS ---
-
-  const pickImage = async () => {
-    let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [16, 9],
-      quality: 0.8,
-    });
-
-    if (!result.canceled) {
-      setCoverImage(result.assets[0].uri);
+  const handleCreate = async () => {
+    if (!title.trim()) {
+      Alert.alert("Erreur", "Veuillez donner un titre à votre collection.");
+      return;
     }
-  };
 
-  const handleCreate = () => {
-    if (!title) return;
+    try {
+      setLoading(true);
+      const res = await wishlistService.createWishlist({
+        title: title.trim(),
+        description: description.trim(),
+        eventType,
+        eventDate: date,
+        visibility,
+      });
 
-    // TODO: Appel API vers Hono (POST /api/wishlists)
-    console.log({
-      title,
-      description,
-      eventType,
-      visibility: isPrivate ? "PRIVATE" : "PUBLIC",
-      eventDate: date,
-      coverImage,
-    });
-
-    router.back();
+      if (res.success) {
+        // Redirection vers la liste créée ou retour arrière
+        router.back();
+      } else {
+        Alert.alert("Erreur", res.message || "Une erreur est survenue.");
+      }
+    } catch (error) {
+      console.error("Create wishlist error:", error);
+      Alert.alert("Erreur", "Connexion au serveur impossible.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -93,12 +134,24 @@ export default function CreateWishlistScreen() {
         <Text style={styles.navTitle}>Nouvelle Collection</Text>
         <TouchableOpacity
           onPress={handleCreate}
-          disabled={!title}
-          style={[styles.createBtn, !title && styles.createBtnDisabled]}
+          disabled={!title.trim() || loading}
+          style={[
+            styles.createBtn,
+            (!title.trim() || loading) && styles.createBtnDisabled,
+          ]}
         >
-          <Text style={[styles.createBtnText, !title && { color: "#D1D5DB" }]}>
-            Créer
-          </Text>
+          {loading ? (
+            <ActivityIndicator size="small" color={THEME.primary} />
+          ) : (
+            <Text
+              style={[
+                styles.createBtnText,
+                !title.trim() && { color: "#D1D5DB" },
+              ]}
+            >
+              Créer
+            </Text>
+          )}
         </TouchableOpacity>
       </View>
 
@@ -106,57 +159,35 @@ export default function CreateWishlistScreen() {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
       >
-        <ScrollView contentContainerStyle={styles.scrollContent}>
-          {/* 1. COVER IMAGE PICKER */}
-          <TouchableOpacity
-            style={styles.imagePicker}
-            onPress={pickImage}
-            activeOpacity={0.9}
-          >
-            {coverImage ? (
-              <>
-                <Image
-                  source={{ uri: coverImage }}
-                  style={styles.coverImage}
-                  contentFit="cover"
-                />
-                <View style={styles.editImageBadge}>
-                  <Ionicons name="camera" size={16} color="#FFF" />
-                </View>
-              </>
-            ) : (
-              <View style={styles.placeholderContainer}>
-                <View style={styles.iconCircle}>
-                  <Ionicons
-                    name="image-outline"
-                    size={32}
-                    color={THEME.textSecondary}
-                  />
-                </View>
-                <Text style={styles.placeholderText}>
-                  Ajouter une couverture
-                </Text>
-              </View>
-            )}
-          </TouchableOpacity>
-
-          {/* 2. MAIN INFO */}
-          <View style={styles.section}>
-            <Text style={styles.label}>TITRE</Text>
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* 1. HERO SECTION (Titre + Icône dynamique) */}
+          <View style={styles.heroSection}>
+            <View style={styles.heroIconContainer}>
+              <Ionicons
+                name={getIconName(eventType) as any}
+                size={32}
+                color={THEME.textMain}
+              />
+            </View>
             <TextInput
               style={styles.titleInput}
-              placeholder="Ex: Mes 30 ans 🎂"
+              placeholder="Nom de l'événement"
               placeholderTextColor="#9CA3AF"
+              multiline
               value={title}
               onChangeText={setTitle}
+              autoFocus
             />
+          </View>
 
-            <Text style={[styles.label, { marginTop: 24 }]}>
-              DESCRIPTION (OPTIONNEL)
-            </Text>
+          {/* 2. DESCRIPTION */}
+          <View style={styles.inputGroup}>
             <TextInput
               style={styles.descInput}
-              placeholder="Une petite note pour vos proches..."
+              placeholder="Ajouter une description ou une note..."
               placeholderTextColor="#9CA3AF"
               multiline
               value={description}
@@ -166,7 +197,7 @@ export default function CreateWishlistScreen() {
 
           <View style={styles.divider} />
 
-          {/* 3. TYPE D'ÉVÉNEMENT */}
+          {/* 3. TYPE D'ÉVÉNEMENT (Pills) */}
           <View style={styles.section}>
             <Text style={styles.label}>OCCASION</Text>
             <ScrollView
@@ -182,11 +213,6 @@ export default function CreateWishlistScreen() {
                     style={[styles.pill, isSelected && styles.pillSelected]}
                     onPress={() => setEventType(type.id)}
                   >
-                    <Ionicons
-                      name={type.icon as any}
-                      size={16}
-                      color={isSelected ? "#FFF" : THEME.textMain}
-                    />
                     <Text
                       style={[
                         styles.pillText,
@@ -201,60 +227,91 @@ export default function CreateWishlistScreen() {
             </ScrollView>
           </View>
 
-          <View style={styles.divider} />
-
-          {/* 4. DATE & VISIBILITÉ */}
+          {/* 4. DATE */}
           <View style={styles.section}>
-            {/* Date Picker Trigger */}
+            <Text style={styles.label}>DATE BUTOIR</Text>
             <TouchableOpacity
-              style={styles.rowItem}
+              style={styles.dateSelector}
               onPress={() => setDatePickerVisibility(true)}
             >
-              <View style={styles.rowLeft}>
+              <View style={styles.dateLeft}>
                 <Ionicons
                   name="calendar-outline"
-                  size={22}
+                  size={20}
                   color={THEME.textMain}
                 />
-                <Text style={styles.rowLabel}>Date de l'événement</Text>
-              </View>
-              <View style={styles.rowRight}>
-                <Text style={styles.rowValue}>
-                  {date ? date.toLocaleDateString("fr-FR") : "Définir"}
+                <Text style={[styles.dateText, !date && { color: "#9CA3AF" }]}>
+                  {date
+                    ? date.toLocaleDateString("fr-FR", {
+                        weekday: "long",
+                        day: "numeric",
+                        month: "long",
+                        year: "numeric",
+                      })
+                    : "Sélectionner une date"}
                 </Text>
-                <Ionicons name="chevron-forward" size={16} color="#D1D5DB" />
               </View>
+              {date && (
+                <TouchableOpacity onPress={() => setDate(null)}>
+                  <Ionicons name="close-circle" size={18} color="#9CA3AF" />
+                </TouchableOpacity>
+              )}
             </TouchableOpacity>
+          </View>
 
-            {/* Visibility Switch */}
-            <View style={[styles.rowItem, { borderBottomWidth: 0 }]}>
-              <View style={styles.rowLeft}>
-                <Ionicons
-                  name={isPrivate ? "lock-closed-outline" : "globe-outline"}
-                  size={22}
-                  color={THEME.textMain}
+          <View style={styles.divider} />
+
+          {/* 5. VISIBILITÉ */}
+          <View style={styles.section}>
+            <Text style={styles.label}>VISIBILITÉ</Text>
+            <View style={styles.visibilityContainer}>
+              {VISIBILITY_OPTIONS.map((option) => {
+                const isSelected = visibility === option.id;
+                return (
+                  <TouchableOpacity
+                    key={option.id}
+                    style={[
+                      styles.visibilityOption,
+                      isSelected && styles.visibilitySelected,
+                    ]}
+                    onPress={() => setVisibility(option.id)}
+                    activeOpacity={0.8}
+                  >
+                    <View style={styles.radioCircle}>
+                      {isSelected && <View style={styles.radioInner} />}
+                    </View>
+                    <View style={styles.visibilityTextContainer}>
+                      <Text style={styles.visibilityLabel}>{option.label}</Text>
+                      <Text style={styles.visibilityDesc}>{option.desc}</Text>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+
+              {/* Option Grisée pour plus tard */}
+              <View style={[styles.visibilityOption, { opacity: 0.5 }]}>
+                <View
+                  style={[styles.radioCircle, { borderColor: "#E5E7EB" }]}
                 />
-                <View>
-                  <Text style={styles.rowLabel}>Liste Privée</Text>
-                  <Text style={styles.rowSubLabel}>
-                    {isPrivate
-                      ? "Visible uniquement par vous"
-                      : "Visible par vos amis"}
+                <View style={styles.visibilityTextContainer}>
+                  <Text style={[styles.visibilityLabel, { color: "#9CA3AF" }]}>
+                    Spécifique
+                  </Text>
+                  <Text style={styles.visibilityDesc}>
+                    Partager avec certains utilisateurs
                   </Text>
                 </View>
+                <View style={styles.comingSoonBadge}>
+                  <Text style={styles.comingSoonText}>Bientôt</Text>
+                </View>
               </View>
-              <Switch
-                value={isPrivate}
-                onValueChange={setIsPrivate}
-                trackColor={{ false: "#E5E7EB", true: THEME.primary }}
-                thumbColor="#FFF"
-              />
             </View>
           </View>
+
+          <View style={{ height: 40 }} />
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* MODAL DATE PICKER */}
       <DateTimePickerModal
         isVisible={isDatePickerVisible}
         mode="date"
@@ -285,116 +342,77 @@ const styles = StyleSheet.create({
     borderBottomColor: "rgba(0,0,0,0.05)",
     backgroundColor: THEME.background,
   },
-  navBtn: {
-    padding: 8,
-  },
+  navBtn: { padding: 8 },
   navTitle: {
     fontSize: 16,
     fontWeight: "600",
     fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
     color: THEME.textMain,
   },
-  createBtn: {
-    padding: 8,
+  createBtn: { padding: 8 },
+  createBtnDisabled: { opacity: 0.5 },
+  createBtnText: { fontSize: 16, fontWeight: "700", color: THEME.primary },
+
+  scrollContent: { paddingBottom: 60 },
+
+  /* HERO SECTION */
+  heroSection: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    paddingHorizontal: 24,
+    paddingTop: 32,
+    marginBottom: 16,
   },
-  createBtnDisabled: {
-    opacity: 0.5,
+  heroIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: "#F3F4F6", // Cercle gris doux
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 16,
+    marginTop: 4, // Alignement optique avec le texte
   },
-  createBtnText: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: THEME.primary,
-  },
-  scrollContent: {
-    paddingBottom: 40,
+  titleInput: {
+    flex: 1,
+    fontSize: 34, // Très grand pour l'impact
+    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
+    color: THEME.textMain,
+    lineHeight: 40,
   },
 
-  /* IMAGE PICKER */
-  imagePicker: {
-    height: 200,
-    backgroundColor: "#F3F4F6",
-    margin: 20,
-    borderRadius: 20,
-    overflow: "hidden",
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    borderStyle: "dashed",
+  /* INPUTS */
+  inputGroup: { paddingHorizontal: 24, paddingLeft: 88 }, // Alignement sous le titre
+  descInput: {
+    fontSize: 16,
+    color: THEME.textMain,
+    minHeight: 40,
+    textAlignVertical: "top",
   },
-  placeholderContainer: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 12,
-  },
-  iconCircle: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: "#FFFFFF",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  placeholderText: {
-    color: THEME.textSecondary,
-    fontWeight: "600",
-  },
-  coverImage: {
-    width: "100%",
-    height: "100%",
-  },
-  editImageBadge: {
-    position: "absolute",
-    bottom: 12,
-    right: 12,
-    backgroundColor: "rgba(0,0,0,0.6)",
-    padding: 8,
-    borderRadius: 20,
+
+  divider: {
+    height: 8,
+    backgroundColor: "#F3F4F6", // Séparateur épais style "Section"
+    marginVertical: 24,
   },
 
   /* SECTIONS */
-  section: {
-    paddingHorizontal: 24,
-    marginVertical: 8,
-  },
+  section: { paddingHorizontal: 24, marginBottom: 16 },
   label: {
     fontSize: 11,
     fontWeight: "700",
     color: "#9CA3AF",
     letterSpacing: 1.5,
-    marginBottom: 8,
-  },
-  titleInput: {
-    fontSize: 28,
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-    color: THEME.textMain,
-    borderBottomWidth: 1,
-    borderBottomColor: "#E5E7EB",
-    paddingBottom: 8,
-  },
-  descInput: {
-    fontSize: 16,
-    color: THEME.textMain,
-    lineHeight: 24,
-    minHeight: 60,
-  },
-  divider: {
-    height: 8,
-    backgroundColor: "#F3F4F6",
-    marginVertical: 16,
+    marginBottom: 12,
+    textTransform: "uppercase",
   },
 
-  /* PILLS */
-  pillScroll: {
-    marginHorizontal: -24,
-    paddingHorizontal: 24,
-  },
+  /* PILLS (Occasion) */
+  pillScroll: { marginHorizontal: -24, paddingHorizontal: 24 },
   pill: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 20,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 24,
     borderWidth: 1,
     borderColor: THEME.border,
     marginRight: 10,
@@ -404,47 +422,71 @@ const styles = StyleSheet.create({
     backgroundColor: THEME.primary,
     borderColor: THEME.primary,
   },
-  pillText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: THEME.textMain,
-  },
-  pillTextSelected: {
-    color: "#FFFFFF",
-  },
+  pillText: { fontSize: 14, fontWeight: "600", color: THEME.textMain },
+  pillTextSelected: { color: "#FFFFFF" },
 
-  /* ROWS */
-  rowItem: {
+  /* DATE */
+  dateSelector: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: "#F3F4F6",
+    backgroundColor: THEME.surface,
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: THEME.border,
   },
-  rowLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  rowLabel: {
+  dateLeft: { flexDirection: "row", alignItems: "center", gap: 12 },
+  dateText: {
     fontSize: 16,
     fontWeight: "500",
     color: THEME.textMain,
+    textTransform: "capitalize",
   },
-  rowSubLabel: {
-    fontSize: 12,
-    color: THEME.textSecondary,
-    marginTop: 2,
+
+  /* VISIBILITY (Radio List) */
+  visibilityContainer: {
+    gap: 12,
   },
-  rowRight: {
+  visibilityOption: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    backgroundColor: THEME.surface,
+    padding: 16,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: THEME.border,
   },
-  rowValue: {
-    fontSize: 15,
-    color: THEME.primary,
-    fontWeight: "600",
+  visibilitySelected: {
+    borderColor: THEME.primary,
+    backgroundColor: "#F9FAFB",
   },
+  radioCircle: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: THEME.textMain,
+    marginRight: 16,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  radioInner: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: THEME.primary,
+  },
+  visibilityTextContainer: { flex: 1 },
+  visibilityLabel: { fontSize: 15, fontWeight: "600", color: THEME.textMain },
+  visibilityDesc: { fontSize: 13, color: THEME.textSecondary, marginTop: 2 },
+
+  /* Coming Soon Badge */
+  comingSoonBadge: {
+    backgroundColor: "#F3F4F6",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  comingSoonText: { fontSize: 10, fontWeight: "700", color: "#9CA3AF" },
 });

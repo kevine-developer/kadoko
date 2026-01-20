@@ -1,15 +1,14 @@
 import LayoutPagerView from "@/components/layoutPagerView";
 import RenderTabButton from "@/components/Friends/friendProfil/renderTabButton";
-import GiftWishlistCard from "@/components/GiftCard";
+import GiftWishlistCard from "@/components/ProfilUI/GiftCard";
 import ReservedGiftItem from "@/components/ProfilUI/ReservedGiftItem";
-import { getUserById } from "@/lib/getUserById";
-import { getWishlistPhotos } from "@/lib/getWishlistPhotos";
-import { getUserWishlists } from "@/lib/userWishlists";
-import { MOCK_WISHLISTS } from "@/mocks/wishlists.mock";
+import { userService } from "@/lib/services/user-service";
+import { wishlistService } from "@/lib/services/wishlist-service";
+import { WishlistVisibility } from "@/types/gift";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { router, useLocalSearchParams } from "expo-router";
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import {
   Animated,
   Platform,
@@ -37,12 +36,34 @@ export default function FriendProfileScreen() {
   const scrollY = useRef(new Animated.Value(0)).current;
   const { friendId } = useLocalSearchParams<{ friendId: string }>();
 
-  const friendInfo = getUserById(friendId);
-  const friendWishlistsb = getUserWishlists(
-    MOCK_WISHLISTS,
-    friendInfo?.wishlists,
-  );
-  const friendWishesPhotos = getWishlistPhotos(friendWishlistsb);
+  const [friendInfo, setFriendInfo] = useState<any>(null);
+  const [friendWishlists, setFriendWishlists] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadProfileData = async () => {
+      setLoading(true);
+      try {
+        const [userRes, wishlistsRes] = await Promise.all([
+          userService.getUserById(friendId),
+          wishlistService.getUserWishlists(friendId),
+        ]);
+
+        if (userRes.success) {
+          setFriendInfo(userRes.user);
+        }
+        if (wishlistsRes.success) {
+          setFriendWishlists(wishlistsRes.wishlists);
+        }
+      } catch (error) {
+        console.error("Error loading friend profile:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadProfileData();
+  }, [friendId]);
 
   // Animation Header (Parallax & Blur simulation)
   const headerHeight = 320; // Plus grand pour l'effet dramatique
@@ -75,7 +96,11 @@ export default function FriendProfileScreen() {
         style={[styles.headerContainer, { opacity: headerOpacity }]}
       >
         <Animated.Image
-          source={{ uri: friendInfo?.avatarUrl }}
+          source={{
+            uri:
+              friendInfo?.coverUrl ||
+              "https://images.unsplash.com/photo-1557683311-eac922347aa1?w=800",
+          }}
           style={[styles.headerImage, { transform: [{ scale: imageScale }] }]}
         />
         <View style={styles.headerOverlay} />
@@ -112,7 +137,7 @@ export default function FriendProfileScreen() {
             {/* Avatar qui déborde */}
             <View style={styles.avatarWrapper}>
               <Image
-                source={{ uri: friendInfo?.avatarUrl }}
+                source={{ uri: friendInfo?.image }}
                 style={styles.avatar}
                 contentFit="cover"
               />
@@ -122,22 +147,20 @@ export default function FriendProfileScreen() {
             {/* Stats minimalistes */}
             <View style={styles.statsRow}>
               <View style={styles.statItem}>
-                <Text style={styles.statNumber}>{friendWishlistsb.length}</Text>
+                <Text style={styles.statNumber}>{friendWishlists.length}</Text>
                 <Text style={styles.statLabel}>Collections</Text>
               </View>
               <View style={styles.statItem}>
-                <Text style={styles.statNumber}>
-                  {friendInfo?.friends.length}
-                </Text>
-                <Text style={styles.statLabel}>Abonnés</Text>
+                <Text style={styles.statNumber}>-</Text>
+                <Text style={styles.statLabel}>Amis</Text>
               </View>
             </View>
           </View>
 
           <View style={styles.infoSection}>
-            <Text style={styles.name}>{friendInfo?.fullName}</Text>
+            <Text style={styles.name}>{friendInfo?.name}</Text>
             <Text style={styles.username}>
-              @{friendInfo?.email.split("@")[0]}
+              @{friendInfo?.username || friendInfo?.email?.split("@")[0]}
             </Text>
             <Text style={styles.bio}>
               {friendInfo?.description ||
@@ -196,12 +219,20 @@ export default function FriendProfileScreen() {
             {/* PAGE 1 : SES WISHLISTS */}
             <LayoutPagerView pageNumber={0}>
               <View style={styles.contentGrid}>
-                {friendWishesPhotos.map((wishlist) => (
-                  <View key={wishlist.wishlistId} style={{ marginBottom: 20 }}>
-                    <GiftWishlistCard {...wishlist} />
+                {friendWishlists.map((wishlist) => (
+                  <View key={wishlist.id} style={{ marginBottom: 20 }}>
+                    <GiftWishlistCard
+                      wishlistId={wishlist.id}
+                      wishlistTitle={wishlist.title}
+                      totalGifts={wishlist._count?.gifts || 0}
+                      wishlistVisibility={
+                        wishlist.visibility as WishlistVisibility
+                      }
+                      images={[]} // Pas d'images pour le moment via cette route
+                    />
                   </View>
                 ))}
-                {friendWishesPhotos.length === 0 && (
+                {!loading && friendWishlists.length === 0 && (
                   <View style={styles.emptyState}>
                     <Text style={styles.emptyText}>
                       Aucune collection publique.
@@ -234,7 +265,7 @@ export default function FriendProfileScreen() {
                     priority: 5,
                     productUrl: "https://leica.com",
                   }}
-                  ownerName={friendInfo?.fullName}
+                  ownerName={friendInfo?.name}
                   onPurchased={() => {}}
                   eventDate={new Date()}
                 />

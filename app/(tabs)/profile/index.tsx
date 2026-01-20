@@ -1,14 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
-import React, {
-  useRef,
-  useState,
-  useEffect,
-  useCallback,
-  useMemo,
-} from "react";
+import React, { useRef, useState, useCallback, useMemo } from "react";
 import { wishlistService } from "@/lib/services/wishlist-service";
 import { giftService } from "@/lib/services/gift-service";
-import GiftWishlistCard from "@/components/GiftCard";
+import GiftWishlistCard from "@/components/ProfilUI/GiftCard";
 import ReservedGiftItem from "@/components/ProfilUI/ReservedGiftItem";
 import {
   Animated,
@@ -19,7 +13,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router";
 import PagerView from "react-native-pager-view";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { authClient } from "@/lib/auth/auth-client";
@@ -28,6 +22,9 @@ import ProfilCard from "@/components/ProfilUI/ProfilCard";
 import EmptyListTab from "@/components/ProfilUI/ui/EmptyListTab";
 import LayoutPagerView from "@/components/layoutPagerView";
 import HeaderParallax from "@/components/ProfilUI/HeaderParallax";
+import * as ImagePicker from "expo-image-picker";
+import { uploadService } from "@/lib/services/upload-service";
+import { userService } from "@/lib/services/user-service";
 import TopBarSettingQr from "@/components/ProfilUI/TopBarSettingQr";
 import { HEADER_HEIGHT, TABS } from "@/constants/const";
 
@@ -39,16 +36,17 @@ export default function ModernUserProfileScreen() {
   const scrollY = useRef(new Animated.Value(0)).current;
 
   // Récupération de la session réelle
-  const { data: session } = authClient.useSession();
+  const { data: session, refetch } = authClient.useSession();
   const user = session?.user;
-  console.log(user);
 
   // États pour les données réelles
   const [userWishlists, setUserWishlists] = useState<any[]>([]);
   const [reservedGifts, setReservedGifts] = useState<any[]>([]);
   const [purchasedGifts, setPurchasedGifts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
   const loadProfileData = useCallback(async () => {
+    if (!session) return;
     setLoading(true);
     const [wlRes, feedRes] = await Promise.all([
       wishlistService.getMyWishlists(),
@@ -63,13 +61,14 @@ export default function ModernUserProfileScreen() {
       setPurchasedGifts([]);
     }
     setLoading(false);
-  }, []);
-  console.log(userWishlists);
-  useEffect(() => {
-    if (session) {
+  }, [session]);
+
+  // Actualisation quand l'utilisateur revient sur son profil
+  useFocusEffect(
+    useCallback(() => {
       loadProfileData();
-    }
-  }, [session, loadProfileData]);
+    }, [loadProfileData]),
+  );
 
   const wishesMapped = useMemo(() => {
     return userWishlists.map((wl) => ({
@@ -81,6 +80,7 @@ export default function ModernUserProfileScreen() {
     }));
   }, [userWishlists]);
 
+  console.log("userWishlists", userWishlists);
   const handleSettingsPress = () => {
     router.push("../../(screens)/settingsScreen");
   };
@@ -101,6 +101,41 @@ export default function ModernUserProfileScreen() {
   const handleTabPress = (index: number) => {
     setActivePage(index);
     pagerRef.current?.setPage(index);
+  };
+
+  const handleEditAvatar = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets[0].uri) {
+      setLoading(true);
+      try {
+        const imageUrl = await uploadService.uploadImage(
+          result.assets[0].uri,
+          "profiles",
+        );
+        if (imageUrl) {
+          const updateRes = await userService.updateProfile({
+            avatarUrl: imageUrl,
+          });
+          if (updateRes.success) {
+            await refetch(); // Forcer le rafraîchissement de la session Better Auth
+            loadProfileData(); // Recharger les données
+          } else {
+            alert("Erreur lors de la mise à jour du profil");
+          }
+        }
+      } catch (error) {
+        console.error("Avatar upload error:", error);
+        alert("Erreur lors de l'upload");
+      } finally {
+        setLoading(false);
+      }
+    }
   };
 
   const onPageSelected = (e: any) => {
@@ -154,7 +189,7 @@ export default function ModernUserProfileScreen() {
       >
         {/* 3. PROFILE CARD (Overlap & Luxe) */}
         <View style={styles.profileCard}>
-          <ProfilCard user={user} />
+          <ProfilCard user={user} onEditAvatar={handleEditAvatar} />
 
           {/* Stats Minimalistes */}
           <StatsMinimalistes

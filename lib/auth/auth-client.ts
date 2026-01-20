@@ -4,7 +4,7 @@ import * as SecureStore from "expo-secure-store";
 
 export const authClient = createAuthClient({
   baseURL: process.env.EXPO_PUBLIC_API_URL || "http://localhost:3000",
-  disableDefaultFetchPlugins: true,
+  // disableDefaultFetchPlugins: true, // Supprimé pour permettre l'envoi automatique de la session
   plugins: [
     expoClient({
       scheme: "exp",

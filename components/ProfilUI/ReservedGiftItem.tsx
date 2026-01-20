@@ -120,7 +120,7 @@ export default function ReservedGiftItem({
   const handleOpenLink = () => {
     if (gift.productUrl) {
       Linking.openURL(gift.productUrl).catch(() =>
-        Alert.alert("Erreur", "Lien invalide")
+        Alert.alert("Erreur", "Lien invalide"),
       );
     }
   };
@@ -182,7 +182,9 @@ export default function ReservedGiftItem({
           <View style={styles.topRow}>
             <View style={styles.userInfo}>
               <View style={styles.avatarCircle}>
-                <Text style={styles.avatarLetter}>{ownerName.charAt(0)}</Text>
+                <Text style={styles.avatarLetter}>
+                  {ownerName?.charAt(0) || "?"}
+                </Text>
               </View>
               <Text style={styles.userName}>{ownerName}</Text>
             </View>

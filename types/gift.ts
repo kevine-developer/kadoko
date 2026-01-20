@@ -17,7 +17,7 @@ export enum GiftStatus {
 
 export enum GiftPriority {
   ESSENTIAL = "ESSENTIAL",
-  NICE = "NICE",
+  DESIRED = "DESIRED",
   OPTIONAL = "OPTIONAL",
 }
 
@@ -25,6 +25,7 @@ export enum WishlistVisibility {
   PUBLIC = "PUBLIC",
   FRIENDS = "FRIENDS",
   PRIVATE = "PRIVATE",
+  SELECT = "SELECT",
 }
 
 export enum EventType {

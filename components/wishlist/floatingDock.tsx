@@ -48,7 +48,7 @@ const FloatingDockActions = ({ handleAdd, handleEdit, handleDelete }: FloatingDo
           onPress={() => {handleEdit()}}
         >
           <Ionicons
-            name="pencil-outline"
+            name="create-outline"
             size={22}
             color={THEME.textSecondary}
           />
@@ -84,7 +84,7 @@ const FloatingDockActions = ({ handleAdd, handleEdit, handleDelete }: FloatingDo
           onPress={() => {}}
         >
           <Ionicons
-            name="settings-outline"
+            name="mic-outline"
             size={22}
             color={THEME.textSecondary}
           />

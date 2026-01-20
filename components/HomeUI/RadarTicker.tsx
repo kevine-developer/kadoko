@@ -23,7 +23,7 @@ const UPDATES = [
 ];
 const RadarTicker = () => (
   <BlurView
-    intensity={80}
+    intensity={90}
     blurReductionFactor={1}
     style={styles.radarContainer}
   >
@@ -57,8 +57,7 @@ export default RadarTicker
 const styles = StyleSheet.create({
   /* RADAR */
   radarContainer: {
-    marginBottom: 24,
-    paddingTop: 20,
+    paddingTop: 30,
     overflow: "hidden",
   },
   radarContent: {
