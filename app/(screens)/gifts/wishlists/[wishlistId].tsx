@@ -1,12 +1,11 @@
 import ConfirmationModal from "@/components/gift/ConfirmationModal"; // ✅ Import du nouveau modal
-import GiftAddModal from "@/components/gift/GiftAddModal";
 import GiftDetailsModal from "@/components/gift/GiftDetailsModal";
 import GiftItemGroup from "@/components/gift/GiftItemGroup";
 import WishlistEditModal from "@/components/gift/WishlistEditModal";
 import FloatingDockActions from "@/components/wishlist/floatingDock";
 import { Gift } from "@/types/gift";
 import { Ionicons } from "@expo/vector-icons";
-import { router, useLocalSearchParams } from "expo-router";
+import { router, useLocalSearchParams, useFocusEffect } from "expo-router";
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import { wishlistService } from "@/lib/services/wishlist-service";
 import { giftService } from "@/lib/services/gift-service";
@@ -46,7 +45,6 @@ export default function WishlistGroupView() {
   // ✅ NOUVEAUX STATES POUR SUPPRESSION
   const [isDeleteWishlistVisible, setIsDeleteWishlistVisible] = useState(false);
   const [giftToDelete, setGiftToDelete] = useState<Gift | null>(null);
-  const [isAddGiftVisible, setIsAddGiftVisible] = useState(false);
 
   // Animations
   const scrollY = useRef(new Animated.Value(0)).current;
@@ -68,9 +66,12 @@ export default function WishlistGroupView() {
     setLoading(false);
   }, [wishlistId]);
 
-  useEffect(() => {
-    loadWishlist();
-  }, [loadWishlist]);
+  // Actualisation quand l'écran est focus
+  useFocusEffect(
+    useCallback(() => {
+      loadWishlist();
+    }, [loadWishlist]),
+  );
 
   const isOwner = group?.userId === currentUserId;
 
@@ -86,15 +87,24 @@ export default function WishlistGroupView() {
   }, [dockTranslateY, selectedGift]);
 
   // --- HANDLERS ---
-  // ✅ 2. Handler pour l'ajout
-  const handleAddGift = async (newGiftData: any) => {
+  const handleUpdateWishlist = async (updatedData: any) => {
     if (!wishlistId) return;
-    const res = await giftService.addGift(wishlistId, newGiftData);
+    const res = await wishlistService.updateWishlist(wishlistId, updatedData);
     if (res.success) {
       loadWishlist();
-      setIsAddGiftVisible(false);
+      setIsEditModalVisible(false);
     }
   };
+
+  // ✅ 2. Handler pour l'ajout (Redirection comme demandé)
+  const handleAddGift = () => {
+    if (!wishlistId) return;
+    router.push({
+      pathname: "/(screens)/gifts/addGift",
+      params: { wishlistId },
+    });
+  };
+
   const handleDeleteWishlist = async () => {
     if (!wishlistId) return;
     const res = await wishlistService.deleteWishlist(wishlistId);
@@ -234,7 +244,7 @@ export default function WishlistGroupView() {
           ]}
         >
           <FloatingDockActions
-            handleAdd={() => setIsAddGiftVisible(true)}
+            handleAdd={handleAddGift}
             handleEdit={() => setIsEditModalVisible(true)}
             // ✅ Déclenche le modal de suppression de liste
             handleDelete={() => setIsDeleteWishlistVisible(true)}
@@ -255,10 +265,7 @@ export default function WishlistGroupView() {
         wishlist={group}
         visible={isEditModalVisible}
         onClose={() => setIsEditModalVisible(false)}
-        onSave={(data) => {
-          console.log("Update", data);
-          setIsEditModalVisible(false);
-        }}
+        onSave={handleUpdateWishlist}
       />
 
       {/* ✅ MODAL 1 : SUPPRESSION WISHLIST */}
@@ -281,12 +288,6 @@ export default function WishlistGroupView() {
         description={`Voulez-vous vraiment supprimer "${giftToDelete?.title}" de votre liste ?`}
         confirmText="Retirer"
         isDestructive={true}
-      />
-      {/* ✅ 4. Intégration du composant */}
-      <GiftAddModal
-        visible={isAddGiftVisible}
-        onClose={() => setIsAddGiftVisible(false)}
-        onAdd={handleAddGift}
       />
     </View>
   );

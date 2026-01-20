@@ -55,7 +55,7 @@ export const MOCK_WISHLISTS: GiftWishlist[] = [
         imageUrl:
           "https://images.unsplash.com/photo-1653786146814-fc617f0de776?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
         status: GiftStatus.PURCHASED,
-        priority: GiftPriority.NICE,
+        priority: GiftPriority.DESIRED,
         publication: {
           isPublished: true,
         },
@@ -74,7 +74,7 @@ export const MOCK_WISHLISTS: GiftWishlist[] = [
         imageUrl:
           "https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?auto=format&fit=crop&w=800&q=80",
         status: GiftStatus.AVAILABLE,
-        priority: GiftPriority.NICE,
+        priority: GiftPriority.DESIRED,
         publication: {
           isPublished: true,
         },
@@ -121,7 +121,7 @@ export const MOCK_WISHLISTS: GiftWishlist[] = [
         imageUrl:
           "https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?auto=format&fit=crop&w=800&q=80",
         status: GiftStatus.AVAILABLE,
-        priority: GiftPriority.NICE,
+        priority: GiftPriority.DESIRED,
         publication: {
           isPublished: false,
         },
@@ -224,7 +224,7 @@ export const MOCK_WISHLISTS: GiftWishlist[] = [
         imageUrl:
           "https://images.unsplash.com/photo-1611186871348-b1ce696e52c9?auto=format&fit=crop&w=800&q=80",
         status: GiftStatus.PURCHASED,
-        priority: GiftPriority.NICE,
+        priority: GiftPriority.DESIRED,
         purchase: {
           userId: "user-kevine",
           purchasedAt: "2025-12-20T10:00:00.000Z",
@@ -273,7 +273,7 @@ export const MOCK_WISHLISTS: GiftWishlist[] = [
         imageUrl:
           "https://images.unsplash.com/photo-1556905055-8f358a7a47b2?auto=format&fit=crop&w=800&q=80",
         status: GiftStatus.RESERVED,
-        priority: GiftPriority.NICE,
+        priority: GiftPriority.DESIRED,
         reservation: {
           userId: "user-anonymous-01",
           reservedAt: "2026-01-12T18:45:00.000Z",
@@ -394,7 +394,7 @@ export const MOCK_WISHLISTS: GiftWishlist[] = [
         imageUrl:
           "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?auto=format&fit=crop&w=800&q=80",
         status: GiftStatus.RESERVED,
-        priority: GiftPriority.NICE,
+        priority: GiftPriority.DESIRED,
         reservation: {
           userId: "user-thomas",
           reservedAt: "2026-01-22T21:15:00.000Z",

@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
-import { router } from "expo-router";
-import { useMemo, useState } from "react";
+import { router, useFocusEffect } from "expo-router";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import {
   Platform,
   ScrollView,
@@ -11,11 +11,12 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  ActivityIndicator,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-// Mocks
-import { MOCK_USERS } from "@/mocks/users.mock";
+import { userService } from "@/lib/services/user-service";
+import { friendshipService } from "@/lib/services/friendship-service";
 
 // --- THEME LUXE ---
 const THEME = {
@@ -28,68 +29,121 @@ const THEME = {
   success: "#10B981",
 };
 
-// Simulation : Utilisateur connecté (Luna)
-const CURRENT_USER_ID = "user-kevine";
-
-// Simulation : Quelques demandes d'amis (IDs qui ne sont pas dans la liste d'amis de Luna)
-const MOCK_REQUESTS_IDS = ["user-sophie", "user-thomas"];
+// Suppression des MOCKS simulés
 
 export default function UsersListScreen() {
   const insets = useSafeAreaInsets();
   const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [isLoadingSearch, setIsLoadingSearch] = useState(false);
+  const [friends, setFriends] = useState<any[]>([]);
+  const [requests, setRequests] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // 1. Récupérer l'utilisateur courant
-  const currentUser = MOCK_USERS.find((u) => u.id === CURRENT_USER_ID);
-  console.log(currentUser);
-  const myFriendIds = useMemo(() => currentUser?.friends || [], [currentUser]);
-  console.log(myFriendIds);
+  // Debounced Search
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(async () => {
+      if (searchQuery.length >= 2) {
+        setIsLoadingSearch(true);
+        const res = await userService.searchUsers(searchQuery);
+        if (res.success) {
+          setSearchResults(res.users);
+        }
+        setIsLoadingSearch(false);
+      } else {
+        setSearchResults([]);
+      }
+    }, 500);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchQuery]);
+
+  const loadFriendships = useCallback(async () => {
+    setLoading(true);
+    const res = await friendshipService.getMyFriendships();
+    if (res.success) {
+      setFriends(res.friends);
+      setRequests(res.requestsReceived);
+    }
+    setLoading(false);
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadFriendships();
+    }, [loadFriendships]),
+  );
+
+  const handleAddFriend = async (userId: string) => {
+    const res = await friendshipService.sendRequest(userId);
+    if (res.success) {
+      alert("Demande envoyée !");
+      loadFriendships();
+    } else {
+      alert(res.message || "Erreur lors de l'envoi");
+    }
+  };
+
+  const handleAcceptFriend = async (friendshipId: string) => {
+    const res = await friendshipService.acceptRequest(friendshipId);
+    if (res.success) {
+      loadFriendships();
+    }
+  };
+
+  const handleRemoveFriend = async (friendshipId: string) => {
+    const res = await friendshipService.removeFriendship(friendshipId);
+    if (res.success) {
+      loadFriendships();
+    }
+  };
 
   // 2. Filtrer les données
   const data = useMemo(() => {
-    // A. Cas Recherche : On cherche dans TOUT le monde (sauf soi-même)
     if (searchQuery.length > 0) {
       return {
         mode: "SEARCH",
-        items: MOCK_USERS.filter(
-          (u) =>
-            u.id !== CURRENT_USER_ID &&
-            u.fullName.toLowerCase().includes(searchQuery.toLowerCase())
-        ),
+        items: searchResults,
       };
     }
 
-    // B. Cas Défaut : Mes Amis + Demandes
-    const myFriends = MOCK_USERS.filter((u) => myFriendIds.includes(u.id));
-    const myRequests = MOCK_USERS.filter((u) =>
-      MOCK_REQUESTS_IDS.includes(u.id)
-    );
-
     return {
       mode: "FRIENDS",
-      friends: myFriends,
-      requests: myRequests,
+      friends: friends,
+      requests: requests,
     };
-  }, [searchQuery, myFriendIds]);
+  }, [searchQuery, searchResults, friends, requests]);
+
+  const myFriendIds = useMemo(() => friends.map((f) => f.id), [friends]);
 
   // --- COMPOSANTS INTERNES ---
 
   // Carte "Demande d'ami"
-  const RequestCard = ({ user }: { user: (typeof MOCK_USERS)[0] }) => (
+  const RequestCard = ({ user }: { user: any }) => (
     <View style={styles.requestCard}>
       <View style={styles.requestHeader}>
-        <Image source={{ uri: user.avatarUrl }} style={styles.requestAvatar} />
+        <Image
+          source={{ uri: user.avatarUrl || user.image }}
+          style={styles.requestAvatar}
+        />
         <View style={styles.requestInfo}>
-          <Text style={styles.requestName}>{user.fullName}</Text>
+          <Text style={styles.requestName}>{user.name}</Text>
           <Text style={styles.requestMeta}>
             Souhaite rejoindre votre cercle
           </Text>
         </View>
       </View>
       <View style={styles.requestActions}>
-        <TouchableOpacity style={styles.acceptBtn}>
+        <TouchableOpacity
+          style={styles.acceptBtn}
+          onPress={() => handleAcceptFriend(user.friendshipId)}
+        >
           <Text style={styles.acceptText}>Accepter</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.ignoreBtn}>
+        <TouchableOpacity
+          style={styles.ignoreBtn}
+          onPress={() => handleRemoveFriend(user.friendshipId)}
+        >
           <Ionicons name="close" size={18} color={THEME.textSecondary} />
         </TouchableOpacity>
       </View>
@@ -97,13 +151,7 @@ export default function UsersListScreen() {
   );
 
   // Carte "Ami / Utilisateur" (Liste verticale)
-  const UserRow = ({
-    user,
-    isFriend,
-  }: {
-    user: (typeof MOCK_USERS)[0];
-    isFriend?: boolean;
-  }) => (
+  const UserRow = ({ user, isFriend }: { user: any; isFriend?: boolean }) => (
     <TouchableOpacity
       activeOpacity={0.7}
       style={styles.userRowContainer}
@@ -115,9 +163,12 @@ export default function UsersListScreen() {
       }
     >
       <View style={styles.userRowLeft}>
-        <Image source={{ uri: user.avatarUrl }} style={styles.rowAvatar} />
+        <Image
+          source={{ uri: user.avatarUrl || user.image }}
+          style={styles.rowAvatar}
+        />
         <View style={styles.rowText}>
-          <Text style={styles.rowName}>{user.fullName}</Text>
+          <Text style={styles.rowName}>{user.name}</Text>
           <Text style={styles.rowHandle}>
             {isFriend ? "Dans votre cercle" : "Utilisateur"}
           </Text>
@@ -130,6 +181,16 @@ export default function UsersListScreen() {
           styles.rowActionBtn,
           isFriend ? styles.btnOutline : styles.btnSolid,
         ]}
+        onPress={() => {
+          if (isFriend) {
+            router.push({
+              pathname: "/profilFriend/[friendId]",
+              params: { friendId: user.id },
+            });
+          } else {
+            handleAddFriend(user.id);
+          }
+        }}
       >
         {isFriend ? (
           <Text style={styles.btnTextOutline}>Voir</Text>
@@ -142,6 +203,19 @@ export default function UsersListScreen() {
       </TouchableOpacity>
     </TouchableOpacity>
   );
+
+  if (loading && friends.length === 0 && requests.length === 0) {
+    return (
+      <View
+        style={[
+          styles.container,
+          { justifyContent: "center", alignItems: "center" },
+        ]}
+      >
+        <ActivityIndicator size="large" color={THEME.textMain} />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -175,11 +249,13 @@ export default function UsersListScreen() {
             onChangeText={setSearchQuery}
             selectionColor={THEME.textMain}
           />
-          {searchQuery.length > 0 && (
+          {isLoadingSearch ? (
+            <ActivityIndicator size="small" color={THEME.textMain} />
+          ) : searchQuery.length > 0 ? (
             <TouchableOpacity onPress={() => setSearchQuery("")}>
               <Ionicons name="close-circle" size={20} color="#9CA3AF" />
             </TouchableOpacity>
-          )}
+          ) : null}
         </View>
       </View>
 
@@ -197,11 +273,15 @@ export default function UsersListScreen() {
               const isFriend = myFriendIds?.includes(user.id);
               return <UserRow key={user.id} user={user} isFriend={isFriend} />;
             })}
-            {data.items?.length === 0 && (
-              <View style={styles.emptyState}>
-                <Text style={styles.emptyText}>Aucun utilisateur trouvé.</Text>
-              </View>
-            )}
+            {!isLoadingSearch &&
+              data.items?.length === 0 &&
+              searchQuery.length >= 2 && (
+                <View style={styles.emptyState}>
+                  <Text style={styles.emptyText}>
+                    Aucun utilisateur trouvé.
+                  </Text>
+                </View>
+              )}
           </>
         ) : (
           // CAS 2 : MODE PAR DÉFAUT (AMIS + REQUETES)

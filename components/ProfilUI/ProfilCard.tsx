@@ -10,10 +10,20 @@ import { router } from "expo-router";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 
-const ProfilCard = ({ user }: any) => {
+const ProfilCard = ({
+  user,
+  onEditAvatar,
+}: {
+  user: any;
+  onEditAvatar?: () => void;
+}) => {
   return (
     <View style={styles.cardHeader}>
-      <View style={styles.avatarWrapper}>
+      <TouchableOpacity
+        style={styles.avatarWrapper}
+        onPress={onEditAvatar}
+        activeOpacity={0.8}
+      >
         <Image
           source={{
             uri:
@@ -25,7 +35,7 @@ const ProfilCard = ({ user }: any) => {
         <View style={styles.editAvatarBadge}>
           <Ionicons name="pencil" size={10} color="#FFF" />
         </View>
-      </View>
+      </TouchableOpacity>
 
       <View style={styles.identityContainer}>
         <Text style={styles.userName}>{user?.name}</Text>

@@ -67,7 +67,7 @@ export default function TabLayout() {
 
       {/* ACTIVITY */}
       <Tabs.Screen
-        name="FriendsFeedScreen"
+        name="UsersListScreen"
         options={{
           tabBarIcon: ({ focused, color }) => (
             <View style={styles.iconContainer}>

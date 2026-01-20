@@ -1,11 +1,18 @@
 import { authClient } from "../auth/auth-client";
+import { getApiUrl } from "../api-config";
 
 export const giftService = {
   // Récupérer un cadeau par son ID
   getGiftById: async (id: string) => {
     try {
-      const response = await authClient.$fetch(`/gifts/${id}`);
-      return response as unknown as { success: boolean; gift: any };
+      const response = await authClient.$fetch(getApiUrl(`/gifts/${id}`));
+      return (response.data || {
+        success: false,
+        message: "Erreur",
+      }) as unknown as {
+        success: boolean;
+        gift: any;
+      };
     } catch (error) {
       console.error("Error getGiftById:", error);
       return { success: false, message: "Erreur réseau" };
@@ -15,11 +22,20 @@ export const giftService = {
   // Ajouter un cadeau à une liste
   addGift: async (wishlistId: string, data: any) => {
     try {
-      const response = await authClient.$fetch(`/gifts/${wishlistId}`, {
-        method: "POST",
-        body: data,
-      });
-      return response as unknown as { success: boolean; gift: any };
+      const response = await authClient.$fetch(
+        getApiUrl(`/gifts/${wishlistId}`),
+        {
+          method: "POST",
+          body: data,
+        },
+      );
+      return (response.data || {
+        success: false,
+        message: "Erreur",
+      }) as unknown as {
+        success: boolean;
+        gift: any;
+      };
     } catch (error) {
       console.error("Error addGift:", error);
       return { success: false, message: "Erreur d'ajout" };
@@ -29,11 +45,17 @@ export const giftService = {
   // Réserver un cadeau
   reserveGift: async (id: string) => {
     try {
-      const response = await authClient.$fetch(`/gifts/${id}`, {
+      const response = await authClient.$fetch(getApiUrl(`/gifts/${id}`), {
         method: "PUT",
         body: { action: "reserve" },
       });
-      return response as unknown as { success: boolean; gift: any };
+      return (response.data || {
+        success: false,
+        message: "Erreur",
+      }) as unknown as {
+        success: boolean;
+        gift: any;
+      };
     } catch (error) {
       console.error("Error reserveGift:", error);
       return { success: false, message: "Erreur de réservation" };
@@ -43,11 +65,17 @@ export const giftService = {
   // Marquer comme acheté
   purchaseGift: async (id: string) => {
     try {
-      const response = await authClient.$fetch(`/gifts/${id}`, {
+      const response = await authClient.$fetch(getApiUrl(`/gifts/${id}`), {
         method: "PUT",
         body: { action: "purchase" },
       });
-      return response as unknown as { success: boolean; gift: any };
+      return (response.data || {
+        success: false,
+        message: "Erreur",
+      }) as unknown as {
+        success: boolean;
+        gift: any;
+      };
     } catch (error) {
       console.error("Error purchaseGift:", error);
       return { success: false, message: "Erreur d'achat" };
@@ -57,10 +85,13 @@ export const giftService = {
   // Supprimer un cadeau
   deleteGift: async (id: string) => {
     try {
-      const response = await authClient.$fetch(`/gifts/${id}`, {
+      const response = await authClient.$fetch(getApiUrl(`/gifts/${id}`), {
         method: "DELETE",
       });
-      return response as unknown as { success: boolean; message: string };
+      return (response.data || {
+        success: false,
+        message: "Erreur",
+      }) as unknown as { success: boolean; message: string };
     } catch (error) {
       console.error("Error deleteGift:", error);
       return { success: false, message: "Erreur de suppression" };
@@ -70,8 +101,13 @@ export const giftService = {
   // Récupérer le feed
   getFeed: async () => {
     try {
-      const response = await authClient.$fetch("/feed");
-      return response as unknown as {
+      const response = await authClient.$fetch(getApiUrl("/feed"));
+
+      return (response.data || {
+        success: false,
+        inspirations: [],
+        circles: [],
+      }) as unknown as {
         success: boolean;
         inspirations: any[];
         circles: any[];

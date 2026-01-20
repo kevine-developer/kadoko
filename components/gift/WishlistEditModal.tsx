@@ -1,6 +1,12 @@
 import { Ionicons } from "@expo/vector-icons";
 import BottomSheet, { BottomSheetView } from "@gorhom/bottom-sheet";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   Keyboard,
   Platform,
@@ -10,27 +16,61 @@ import {
   TouchableOpacity,
   TouchableWithoutFeedback,
   View,
+  ScrollView,
+  Alert,
 } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import DateTimePickerModal from "react-native-modal-datetime-picker";
 
 import { GiftWishlist, WishlistVisibility } from "@/types/gift";
 
 // --- THEME ---
 const THEME = {
-  background: "#FDFBF7", // Blanc cassé "Bone"
+  background: "#FDFBF7",
   surface: "#FFFFFF",
   textMain: "#111827",
   textSecondary: "#6B7280",
   primary: "#111827",
-  border: "rgba(0,0,0,0.06)",
+  border: "rgba(0,0,0,0.08)",
   danger: "#EF4444",
+  accent: "#F3F4F6",
 };
+
+// --- OPTIONS VISIBILITÉ ---
+const VISIBILITY_OPTIONS = [
+  {
+    id: WishlistVisibility.PUBLIC,
+    label: "Public",
+    description: "Visible par tous via recherche.",
+    icon: "globe-outline",
+  },
+  {
+    id: WishlistVisibility.FRIENDS,
+    label: "Cercle Proche",
+    description: "Visible par vos amis uniquement.",
+    icon: "people-outline",
+  },
+  {
+    id: WishlistVisibility.PRIVATE,
+    label: "Privé",
+    description: "Visible uniquement par vous.",
+    icon: "lock-closed-outline",
+  },
+  {
+    id: WishlistVisibility.SELECT,
+    label: "Spécifique",
+    description: "Partage sélectif (Bientôt).",
+    icon: "person-add-outline",
+    disabled: true,
+  },
+];
 
 interface WishlistEditModalProps {
   wishlist: GiftWishlist | undefined;
   visible: boolean;
   onClose: () => void;
   onSave: (updatedData: Partial<GiftWishlist>) => void;
+  onDelete?: (id: string) => void; // Ajout UX: Suppression
 }
 
 export default function WishlistEditModal({
@@ -40,24 +80,24 @@ export default function WishlistEditModal({
   onSave,
 }: WishlistEditModalProps) {
   const bottomSheetRef = useRef<BottomSheet>(null);
-  
-  // SnapPoints : 90% pour avoir de la place pour le clavier
-  const snapPoints = useMemo(() => ["85%"], []);
+  const snapPoints = useMemo(() => ["92%"], []);
 
   // --- STATE ---
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [visibility, setVisibility] = useState<WishlistVisibility>(WishlistVisibility.PUBLIC);
-  // (Pour la date, on pourrait ajouter un DateTimePicker, ici simulé par un texte)
-  const [dateStr, setDateStr] = useState("");
+  const [visibility, setVisibility] = useState<WishlistVisibility>(
+    WishlistVisibility.PUBLIC,
+  );
+  const [date, setDate] = useState<Date | null>(null);
+  const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
 
-  // Hydrater le formulaire à l'ouverture
+  // Init Data
   useEffect(() => {
     if (visible && wishlist) {
       setTitle(wishlist.title);
       setDescription(wishlist.description || "");
       setVisibility(wishlist.visibility);
-      setDateStr(wishlist.eventDate ? new Date(wishlist.eventDate).toLocaleDateString('fr-FR') : "");
+      setDate(wishlist.eventDate ? new Date(wishlist.eventDate) : null);
       bottomSheetRef.current?.expand();
     } else {
       bottomSheetRef.current?.close();
@@ -69,32 +109,32 @@ export default function WishlistEditModal({
     (index: number) => {
       if (index === -1) onClose();
     },
-    [onClose]
+    [onClose],
   );
 
   const handleSave = () => {
+    if (!title.trim()) return;
     onSave({
       title,
       description,
       visibility,
-      // eventDate: ... logique de date
+      eventDate: date?.toISOString(),
     });
     onClose();
   };
 
-  const handleDismissKeyboard = () => {
-    Keyboard.dismiss();
-  };
 
   return (
-    // PointerEvents box-none permet de cliquer au travers si le sheet est fermé
-    <GestureHandlerRootView style={[StyleSheet.absoluteFill, { zIndex: visible ? 100 : -1 }]} pointerEvents={visible ? "auto" : "none"}>
+    <GestureHandlerRootView
+      style={[StyleSheet.absoluteFill, { zIndex: visible ? 100 : -1 }]}
+      pointerEvents={visible ? "auto" : "none"}
+    >
       {visible && (
-         <TouchableWithoutFeedback onPress={onClose}>
-            <View style={styles.backdrop} />
-         </TouchableWithoutFeedback>
+        <TouchableWithoutFeedback onPress={onClose}>
+          <View style={styles.backdrop} />
+        </TouchableWithoutFeedback>
       )}
-      
+
       <BottomSheet
         ref={bottomSheetRef}
         snapPoints={snapPoints}
@@ -104,99 +144,184 @@ export default function WishlistEditModal({
         handleIndicatorStyle={styles.handle}
         keyboardBlurBehavior="restore"
       >
-        <TouchableWithoutFeedback onPress={handleDismissKeyboard}>
-          <BottomSheetView style={styles.contentContainer}>
-            
-            {/* HEADER */}
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <BottomSheetView style={styles.container}>
+            {/* HEADER MINIMALISTE */}
             <View style={styles.header}>
-              <Text style={styles.headerTitle}>Modifier la collection</Text>
+              <Text style={styles.headerTitle}>Édition</Text>
               <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-                <Ionicons name="close" size={24} color={THEME.textMain} />
+                <Ionicons name="close" size={22} color={THEME.textMain} />
               </TouchableOpacity>
             </View>
 
-            {/* FORMULAIRE */}
-            <View style={styles.form}>
-              
-              {/* TITRE */}
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>TITRE</Text>
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.scrollContent}
+            >
+              {/* SECTION 1 : CONTENU "ÉDITORIAL" */}
+              <View style={styles.heroInputSection}>
+                <Text style={styles.label}>TITRE DE LA COLLECTION</Text>
                 <TextInput
-                  style={styles.input}
+                  style={styles.heroInput}
                   value={title}
                   onChangeText={setTitle}
-                  placeholder="Nom de la liste..."
-                  placeholderTextColor="#9CA3AF"
+                  placeholder="Nom de l'événement"
+                  placeholderTextColor="#D1D5DB"
+                  multiline
                 />
-              </View>
 
-              {/* DESCRIPTION */}
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>DESCRIPTION</Text>
+                {/* Date intégrée élégamment */}
+                <TouchableOpacity
+                  style={styles.dateRow}
+                  onPress={() => setDatePickerVisibility(true)}
+                >
+                  <View style={styles.dateIconBadge}>
+                    <Ionicons
+                      name="calendar"
+                      size={14}
+                      color={THEME.textMain}
+                    />
+                  </View>
+                  <Text
+                    style={[styles.dateText, !date && { color: "#9CA3AF" }]}
+                  >
+                    {date
+                      ? date.toLocaleDateString("fr-FR", {
+                          weekday: "long",
+                          day: "numeric",
+                          month: "long",
+                          year: "numeric",
+                        })
+                      : "Ajouter une date (Optionnel)"}
+                  </Text>
+                  {date && (
+                    <TouchableOpacity
+                      onPress={() => setDate(null)}
+                      style={{ marginLeft: 8 }}
+                    >
+                      <Ionicons name="close-circle" size={16} color="#9CA3AF" />
+                    </TouchableOpacity>
+                  )}
+                </TouchableOpacity>
+
+                <View style={styles.divider} />
+
+                <Text style={styles.label}>NOTE / DESCRIPTION</Text>
                 <TextInput
-                  style={[styles.input, styles.textArea]}
+                  style={styles.descInput}
                   value={description}
                   onChangeText={setDescription}
-                  placeholder="Ajoutez une note ou une description..."
+                  placeholder="Ajoutez quelques mots pour vos proches..."
                   placeholderTextColor="#9CA3AF"
                   multiline
-                  textAlignVertical="top"
+                  scrollEnabled={false}
                 />
               </View>
 
-              {/* VISIBILITÉ (Custom Toggle) */}
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>VISIBILITÉ</Text>
-                <View style={styles.toggleContainer}>
-                  <TouchableOpacity 
-                    style={[styles.toggleBtn, visibility === WishlistVisibility.PUBLIC && styles.toggleBtnActive]}
-                    onPress={() => setVisibility(WishlistVisibility.PUBLIC)}
-                  >
-                    <Ionicons 
-                      name="earth" 
-                      size={16} 
-                      color={visibility === WishlistVisibility.PUBLIC ? "#FFF" : THEME.textMain} 
-                    />
-                    <Text style={[styles.toggleText, visibility === WishlistVisibility.PUBLIC && styles.toggleTextActive]}>Public</Text>
-                  </TouchableOpacity>
+              {/* SECTION 2 : PARAMÈTRES */}
+              <View style={styles.settingsSection}>
+                <Text style={styles.sectionHeader}>Confidentialité</Text>
 
-                  <TouchableOpacity 
-                    style={[styles.toggleBtn, visibility === WishlistVisibility.PRIVATE && styles.toggleBtnActive]}
-                    onPress={() => setVisibility(WishlistVisibility.PRIVATE)}
-                  >
-                     <Ionicons 
-                      name="lock-closed" 
-                      size={16} 
-                      color={visibility === WishlistVisibility.PRIVATE ? "#FFF" : THEME.textMain} 
-                    />
-                    <Text style={[styles.toggleText, visibility === WishlistVisibility.PRIVATE && styles.toggleTextActive]}>Privé</Text>
-                  </TouchableOpacity>
+                <View style={styles.visibilityList}>
+                  {VISIBILITY_OPTIONS.map((option) => {
+                    const isSelected = visibility === option.id;
+                    const isDisabled = option.disabled;
+
+                    return (
+                      <TouchableOpacity
+                        key={option.id}
+                        style={[
+                          styles.visibilityCard,
+                          isSelected && styles.visibilityCardSelected,
+                          isDisabled && styles.visibilityCardDisabled,
+                        ]}
+                        onPress={() => !isDisabled && setVisibility(option.id)}
+                        activeOpacity={isDisabled ? 1 : 0.7}
+                      >
+                        <View style={styles.cardLeft}>
+                          <View
+                            style={[
+                              styles.iconCircle,
+                              isSelected && styles.iconCircleSelected,
+                            ]}
+                          >
+                            <Ionicons
+                              name={option.icon as any}
+                              size={18}
+                              color={isSelected ? "#FFF" : THEME.textMain}
+                            />
+                          </View>
+                          <View>
+                            <Text
+                              style={[
+                                styles.cardTitle,
+                                isSelected && { fontWeight: "700" },
+                              ]}
+                            >
+                              {option.label}
+                            </Text>
+                            <Text style={styles.cardDesc}>
+                              {option.description}
+                            </Text>
+                          </View>
+                        </View>
+
+                        {/* Indicateur de sélection */}
+                        <View style={styles.cardRight}>
+                          {isDisabled ? (
+                            <View style={styles.badgeComingSoon}>
+                              <Text style={styles.badgeText}>Bientôt</Text>
+                            </View>
+                          ) : isSelected ? (
+                            <Ionicons
+                              name="checkmark-circle"
+                              size={22}
+                              color={THEME.textMain}
+                            />
+                          ) : (
+                            <View style={styles.radioEmpty} />
+                          )}
+                        </View>
+                      </TouchableOpacity>
+                    );
+                  })}
                 </View>
               </View>
-              
-               {/* DATE (Mock) */}
-               <View style={styles.inputGroup}>
-                <Text style={styles.label}>DATE DE L&apos;ÉVÉNEMENT</Text>
-                <TouchableOpacity style={styles.dateInput}>
-                    <Text style={styles.dateText}>{dateStr || "Sélectionner une date"}</Text>
-                    <Ionicons name="calendar-outline" size={20} color={THEME.textMain} />
-                </TouchableOpacity>
-              </View>
 
-            </View>
+              <View style={{ height: 120 }} />
+            </ScrollView>
 
-            {/* ACTIONS FOOTER */}
+            {/* FOOTER FLOTTANT */}
             <View style={styles.footer}>
-      
-              <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
+              <TouchableOpacity
+                style={[
+                  styles.saveBtn,
+                  !title.trim() && styles.saveBtnDisabled,
+                ]}
+                onPress={handleSave}
+                disabled={!title.trim()}
+                activeOpacity={0.8}
+              >
                 <Text style={styles.saveText}>Enregistrer</Text>
-                <Ionicons name="checkmark" size={20} color="#FFF" />
+                <Ionicons name="arrow-forward" size={18} color="#FFF" />
               </TouchableOpacity>
             </View>
-
           </BottomSheetView>
         </TouchableWithoutFeedback>
       </BottomSheet>
+
+      <DateTimePickerModal
+        isVisible={isDatePickerVisible}
+        mode="date"
+        date={date || new Date()}
+        onConfirm={(d) => {
+          setDate(d);
+          setDatePickerVisibility(false);
+        }}
+        onCancel={() => setDatePickerVisibility(false)}
+        confirmTextIOS="Valider"
+        cancelTextIOS="Annuler"
+      />
     </GestureHandlerRootView>
   );
 }
@@ -204,7 +329,7 @@ export default function WishlistEditModal({
 const styles = StyleSheet.create({
   backdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.3)',
+    backgroundColor: "rgba(0,0,0,0.3)",
   },
   sheetBackground: {
     backgroundColor: THEME.background,
@@ -216,161 +341,212 @@ const styles = StyleSheet.create({
     elevation: 10,
   },
   handle: {
-    backgroundColor: "#D1D5DB",
+    backgroundColor: "#E5E7EB",
     width: 40,
     marginTop: 10,
   },
+  container: {
+    flex: 1,
+  },
   contentContainer: {
     flex: 1,
+  },
+  scrollContent: {
     paddingHorizontal: 24,
     paddingTop: 10,
   },
 
   /* HEADER */
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 32,
-    marginTop: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 20,
+    paddingHorizontal: 24,
+    paddingTop: 10,
   },
   headerTitle: {
-    fontSize: 24,
-    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
-    color: THEME.textMain,
+    fontSize: 18,
+    fontWeight: "600",
+    color: THEME.textSecondary,
+    textTransform: "uppercase",
+    letterSpacing: 1,
   },
   closeBtn: {
-    padding: 4,
-    backgroundColor: "#E5E7EB",
+    padding: 8,
+    backgroundColor: "#F3F4F6",
     borderRadius: 20,
   },
 
-  /* FORM */
-  form: {
-    gap: 24,
-  },
-  inputGroup: {
-    gap: 8,
+  /* HERO INPUT SECTION */
+  heroInputSection: {
+    marginBottom: 32,
   },
   label: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: "700",
-    color: THEME.textSecondary,
-    letterSpacing: 1,
-    marginBottom: 4,
+    color: "#9CA3AF",
+    letterSpacing: 1.5,
+    marginBottom: 8,
+    textTransform: "uppercase",
   },
-  input: {
-    backgroundColor: THEME.surface,
-    borderWidth: 1,
-    borderColor: THEME.border,
-    borderRadius: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+  heroInput: {
+    fontSize: 34,
+    fontWeight: "400",
+    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
+    color: THEME.textMain,
+    lineHeight: 40,
+    marginBottom: 16,
+  },
+  descInput: {
     fontSize: 16,
     color: THEME.textMain,
+    lineHeight: 24,
+    minHeight: 40,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: "#E5E7EB",
+    marginVertical: 20,
+  },
+
+  /* DATE ROW */
+  dateRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+    backgroundColor: "#FFFFFF",
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: THEME.border,
+  },
+  dateIconBadge: {
+    marginRight: 8,
+  },
+  dateText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: THEME.textMain,
+    textTransform: "capitalize",
+  },
+
+  /* SETTINGS SECTION */
+  settingsSection: {
+    marginBottom: 32,
+  },
+  sectionHeader: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: THEME.textMain,
+    marginBottom: 16,
+    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
+  },
+  visibilityList: {
+    gap: 12,
+  },
+  visibilityCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: THEME.surface,
+    padding: 16,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: THEME.border,
+    // Ombre légère pour effet carte
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.03,
     shadowRadius: 8,
   },
-  textArea: {
-    height: 100,
+  visibilityCardSelected: {
+    borderColor: THEME.textMain, // Bordure noire quand sélectionné
+    backgroundColor: "#F9FAFB",
   },
-  
-  /* DATE INPUT STYLE */
-  dateInput: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      backgroundColor: THEME.surface,
-      borderWidth: 1,
-      borderColor: THEME.border,
-      borderRadius: 16,
-      paddingHorizontal: 16,
-      paddingVertical: 14,
-      shadowColor: "#000",
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.03,
-      shadowRadius: 8,
+  visibilityCardDisabled: {
+    opacity: 0.6,
+    backgroundColor: "#F9FAFB",
   },
-  dateText: {
-      fontSize: 16,
-      color: THEME.textMain,
-  },
-
-  /* TOGGLE VISIBILITY */
-  toggleContainer: {
-    flexDirection: 'row',
-    backgroundColor: "#E5E7EB",
-    borderRadius: 14,
-    padding: 4,
-  },
-  toggleBtn: {
+  cardLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 10,
-    borderRadius: 12,
-    gap: 6,
   },
-  toggleBtnActive: {
-    backgroundColor: THEME.primary,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
+  iconCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#F3F4F6",
+    alignItems: "center",
+    justifyContent: "center",
   },
-  toggleText: {
-    fontSize: 14,
+  iconCircleSelected: {
+    backgroundColor: THEME.textMain,
+  },
+  cardTitle: {
+    fontSize: 15,
     fontWeight: "600",
     color: THEME.textMain,
+    marginBottom: 2,
   },
-  toggleTextActive: {
-    color: "#FFFFFF",
+  cardDesc: {
+    fontSize: 12,
+    color: THEME.textSecondary,
+    
+  },
+  cardRight: {
+    marginLeft: 10,
+  },
+  radioEmpty: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 2,
+    borderColor: "#E5E7EB",
+  },
+  badgeComingSoon: {
+    backgroundColor: "#F3F4F6",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  badgeText: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: "#9CA3AF",
   },
 
-  /* FOOTER ACTIONS */
+
+  /* FOOTER */
   footer: {
-    marginTop: "auto", // Pousse en bas
-    marginBottom: 40,
-    flexDirection: 'row',
-    gap: 16,
-  },
-  deleteBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: "#FEF2F2",
-    borderWidth: 1,
-    borderColor: "#FCA5A5",
-    gap: 8,
-  },
-  deleteText: {
-    color: THEME.danger,
-    fontWeight: "700",
-    fontSize: 15,
+    position: "absolute",
+    bottom: 30,
+    left: 24,
+    right: 24,
   },
   saveBtn: {
-    flex: 2,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     height: 56,
     borderRadius: 28,
-    backgroundColor: THEME.primary,
-    gap: 8,
+    backgroundColor: THEME.primary, // Noir
+    gap: 10,
     shadowColor: THEME.primary,
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.25,
     shadowRadius: 16,
+    elevation: 6,
+  },
+  saveBtnDisabled: {
+    opacity: 0.5,
   },
   saveText: {
     color: "#FFFFFF",
     fontWeight: "700",
-    fontSize: 15,
+    fontSize: 16,
   },
 });
