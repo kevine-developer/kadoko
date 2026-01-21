@@ -61,6 +61,8 @@ export const userService = {
     avatarUrl?: string;
     coverUrl?: string;
     isPublic?: boolean;
+    socialLinks?: any;
+    preferences?: any;
   }) => {
     try {
       const response = await authClient.$fetch(getApiUrl("/auth/users/me"), {
@@ -79,6 +81,26 @@ export const userService = {
     } catch (error) {
       console.error("Error updateProfile:", error);
       return { success: false, message: "Erreur de mise à jour", user: null };
+    }
+  },
+
+  // Supprimer mon propre compte
+  deleteAccount: async (data: { password: string; otp?: string }) => {
+    try {
+      const response = await authClient.$fetch(getApiUrl("/auth/users/me"), {
+        method: "DELETE",
+        body: data,
+      });
+      return (response.data || {
+        success: false,
+        message: "Erreur",
+      }) as unknown as {
+        success: boolean;
+        message: string;
+      };
+    } catch (error) {
+      console.error("Error deleteAccount:", error);
+      return { success: false, message: "Erreur lors de la suppression" };
     }
   },
 };

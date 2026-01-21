@@ -7,149 +7,44 @@ import { authClient } from "@/lib/auth/auth-client";
 import { giftService } from "@/lib/services/gift-service";
 import { wishlistService } from "@/lib/services/wishlist-service";
 import { router, useFocusEffect } from "expo-router";
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { Ionicons } from "@expo/vector-icons";
 import {
-  Animated,
   Platform,
   RefreshControl,
   ScrollView,
   StatusBar,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
-  Dimensions,
 } from "react-native";
 
-// --- THEME ---
-const THEME = {
-  background: "#FDFBF7",
-  skeleton: "#E5E7EB", // Gris doux pour le squelette
-};
-
-// --- COMPOSANT SKELETON (ANIMATION PULSE) ---
-const SkeletonCard = () => {
-  const opacity = useRef(new Animated.Value(0.3)).current;
-
-  useEffect(() => {
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(opacity, {
-          toValue: 0.7,
-          duration: 800,
-          useNativeDriver: true,
-        }),
-        Animated.timing(opacity, {
-          toValue: 0.3,
-          duration: 800,
-          useNativeDriver: true,
-        }),
-      ]),
-    ).start();
-  }, []);
-
-  return (
-    <Animated.View
-      style={[styles.cardContainer, { opacity, marginBottom: 32 }]}
-    >
-      {/* Header Skeleton */}
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          padding: 16,
-          gap: 12,
-        }}
-      >
-        <View
-          style={{
-            width: 40,
-            height: 40,
-            borderRadius: 20,
-            backgroundColor: THEME.skeleton,
-          }}
-        />
-        <View style={{ gap: 6 }}>
-          <View
-            style={{
-              width: 120,
-              height: 14,
-              borderRadius: 4,
-              backgroundColor: THEME.skeleton,
-            }}
-          />
-          <View
-            style={{
-              width: 80,
-              height: 10,
-              borderRadius: 4,
-              backgroundColor: THEME.skeleton,
-            }}
-          />
-        </View>
-      </View>
-
-      {/* Image Skeleton */}
-      <View
-        style={{ height: 320, width: "100%", backgroundColor: THEME.skeleton }}
-      />
-
-      {/* Footer Skeleton */}
-      <View style={{ padding: 20 }}>
-        <View
-          style={{
-            width: "80%",
-            height: 20,
-            borderRadius: 4,
-            backgroundColor: THEME.skeleton,
-            marginBottom: 20,
-          }}
-        />
-        <View
-          style={{
-            height: 50,
-            borderRadius: 25,
-            backgroundColor: THEME.skeleton,
-          }}
-        />
-      </View>
-    </Animated.View>
-  );
-};
+import { Skeleton } from "@/components/ui/Skeleton";
+import { GiftCardSkeleton } from "@/components/ui/SkeletonGroup";
 
 // Structure globale du chargement
 const HomeSkeleton = () => (
   <View style={{ paddingHorizontal: 20, paddingTop: 20 }}>
     {/* Mock du Slider ou Bannière */}
-    <View
-      style={{
-        height: 200,
-        backgroundColor: "#F3F4F6",
-        borderRadius: 24,
-        marginBottom: 40,
-        opacity: 0.5,
-      }}
+    <Skeleton
+      width="100%"
+      height={200}
+      borderRadius={24}
+      style={{ marginBottom: 40 }}
     />
 
     {/* Titre Section */}
-    <View
-      style={{
-        width: 200,
-        height: 24,
-        backgroundColor: "#E5E7EB",
-        borderRadius: 4,
-        marginBottom: 24,
-      }}
+    <Skeleton
+      width={200}
+      height={24}
+      borderRadius={4}
+      style={{ marginBottom: 24 }}
     />
 
     {/* Cartes */}
-    <SkeletonCard />
-    <SkeletonCard />
+    <GiftCardSkeleton />
+    <GiftCardSkeleton />
   </View>
 );
 
@@ -245,7 +140,21 @@ export default function LuxuryFeedScreen() {
         <HeaderHome user={session?.user} />
 
         <View style={{ zIndex: 10 }}>
-          <RadarTicker />
+          {session?.user?.emailVerified ? (
+            <RadarTicker />
+          ) : (
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={() => router.push("/(screens)/settingsScreen")}
+              style={styles.verificationNotice}
+            >
+              <Ionicons name="mail-unread-outline" size={20} color="#FFFFFF" />
+              <Text style={styles.verificationNoticeText}>
+                Veuillez confirmer votre email pour sécuriser votre compte
+              </Text>
+              <Ionicons name="chevron-forward" size={16} color="#FFFFFF" />
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* --- ETAT DE CHARGEMENT INITIAL (SKELETON) --- */}
@@ -285,6 +194,22 @@ const styles = StyleSheet.create({
   },
   feedSection: {
     paddingHorizontal: 20,
+  },
+  verificationNotice: {
+    backgroundColor: "#111827",
+    marginHorizontal: 20,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  verificationNoticeText: {
+    color: "#FFFFFF",
+    fontSize: 13,
+    fontWeight: "600",
+    flex: 1,
   },
   sectionTitle: {
     fontSize: 20,

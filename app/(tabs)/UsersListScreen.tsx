@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
-import { Image } from "expo-image";
-import { router, useFocusEffect } from "expo-router";
+
+import { useFocusEffect } from "expo-router";
 import React, { useEffect, useMemo, useState, useCallback } from "react";
 import {
   Platform,
@@ -17,6 +17,11 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { userService } from "@/lib/services/user-service";
 import { friendshipService } from "@/lib/services/friendship-service";
+import RequestCard from "@/components/UserList/RequestCard";
+import UserRowCard from "@/components/UserList/UserRowCard";
+import EmptyFriend from "@/components/UserList/EmptyFriend";
+import Header from "@/components/UserList/ui/Header";
+import { UserListItemSkeleton } from "@/components/ui/SkeletonGroup";
 
 // --- THEME LUXE ---
 const THEME = {
@@ -38,6 +43,7 @@ export default function UsersListScreen() {
   const [isLoadingSearch, setIsLoadingSearch] = useState(false);
   const [friends, setFriends] = useState<any[]>([]);
   const [requests, setRequests] = useState<any[]>([]);
+  const [sentRequests, setSentRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Debounced Search
@@ -64,6 +70,7 @@ export default function UsersListScreen() {
     if (res.success) {
       setFriends(res.friends);
       setRequests(res.requestsReceived);
+      setSentRequests(res.requestsSent || []);
     }
     setLoading(false);
   }, []);
@@ -77,10 +84,18 @@ export default function UsersListScreen() {
   const handleAddFriend = async (userId: string) => {
     const res = await friendshipService.sendRequest(userId);
     if (res.success) {
-      alert("Demande envoyée !");
       loadFriendships();
     } else {
       alert(res.message || "Erreur lors de l'envoi");
+    }
+  };
+
+  const handleCancelRequest = async (userId: string) => {
+    const res = await friendshipService.cancelRequest(userId);
+    if (res.success) {
+      loadFriendships();
+    } else {
+      alert(res.message || "Erreur lors de l'annulation");
     }
   };
 
@@ -115,104 +130,24 @@ export default function UsersListScreen() {
   }, [searchQuery, searchResults, friends, requests]);
 
   const myFriendIds = useMemo(() => friends.map((f) => f.id), [friends]);
+  const pendingRequestIds = useMemo(
+    () => sentRequests.map((r) => r.receiverId || r.id),
+    [sentRequests],
+  );
 
   // --- COMPOSANTS INTERNES ---
 
-  // Carte "Demande d'ami"
-  const RequestCard = ({ user }: { user: any }) => (
-    <View style={styles.requestCard}>
-      <View style={styles.requestHeader}>
-        <Image
-          source={{ uri: user.avatarUrl || user.image }}
-          style={styles.requestAvatar}
-        />
-        <View style={styles.requestInfo}>
-          <Text style={styles.requestName}>{user.name}</Text>
-          <Text style={styles.requestMeta}>
-            Souhaite rejoindre votre cercle
-          </Text>
-        </View>
-      </View>
-      <View style={styles.requestActions}>
-        <TouchableOpacity
-          style={styles.acceptBtn}
-          onPress={() => handleAcceptFriend(user.friendshipId)}
-        >
-          <Text style={styles.acceptText}>Accepter</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.ignoreBtn}
-          onPress={() => handleRemoveFriend(user.friendshipId)}
-        >
-          <Ionicons name="close" size={18} color={THEME.textSecondary} />
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
-
   // Carte "Ami / Utilisateur" (Liste verticale)
-  const UserRow = ({ user, isFriend }: { user: any; isFriend?: boolean }) => (
-    <TouchableOpacity
-      activeOpacity={0.7}
-      style={styles.userRowContainer}
-      onPress={() =>
-        router.push({
-          pathname: "/profilFriend/[friendId]",
-          params: { friendId: user.id },
-        })
-      }
-    >
-      <View style={styles.userRowLeft}>
-        <Image
-          source={{ uri: user.avatarUrl || user.image }}
-          style={styles.rowAvatar}
-        />
-        <View style={styles.rowText}>
-          <Text style={styles.rowName}>{user.name}</Text>
-          <Text style={styles.rowHandle}>
-            {isFriend ? "Dans votre cercle" : "Utilisateur"}
-          </Text>
-        </View>
-      </View>
-
-      {/* Action contextuelle */}
-      <TouchableOpacity
-        style={[
-          styles.rowActionBtn,
-          isFriend ? styles.btnOutline : styles.btnSolid,
-        ]}
-        onPress={() => {
-          if (isFriend) {
-            router.push({
-              pathname: "/profilFriend/[friendId]",
-              params: { friendId: user.id },
-            });
-          } else {
-            handleAddFriend(user.id);
-          }
-        }}
-      >
-        {isFriend ? (
-          <Text style={styles.btnTextOutline}>Voir</Text>
-        ) : (
-          <>
-            <Text style={styles.btnTextSolid}>Ajouter</Text>
-            <Ionicons name="add" size={14} color="#FFF" />
-          </>
-        )}
-      </TouchableOpacity>
-    </TouchableOpacity>
-  );
 
   if (loading && friends.length === 0 && requests.length === 0) {
     return (
-      <View
-        style={[
-          styles.container,
-          { justifyContent: "center", alignItems: "center" },
-        ]}
-      >
-        <ActivityIndicator size="large" color={THEME.textMain} />
+      <View style={styles.container}>
+        <StatusBar barStyle="dark-content" />
+        <View style={{ paddingTop: 60, paddingHorizontal: 20 }}>
+          {Array.from({ length: 8 }).map((_, i) => (
+            <UserListItemSkeleton key={i} />
+          ))}
+        </View>
       </View>
     );
   }
@@ -223,15 +158,7 @@ export default function UsersListScreen() {
 
       {/* HEADER */}
       <View style={[styles.headerContainer, { paddingTop: insets.top }]}>
-        <View style={styles.headerTop}>
-          <View>
-            <Text style={styles.headerSubtitle}>COMMUNAUTÉ</Text>
-            <Text style={styles.headerTitle}>Mon Cercle</Text>
-          </View>
-          <TouchableOpacity style={styles.inviteBtn}>
-            <Ionicons name="share-outline" size={22} color={THEME.textMain} />
-          </TouchableOpacity>
-        </View>
+        <Header />
 
         {/* SEARCH BAR */}
         <View style={styles.searchWrapper}>
@@ -271,7 +198,17 @@ export default function UsersListScreen() {
             </Text>
             {data.items?.map((user) => {
               const isFriend = myFriendIds?.includes(user.id);
-              return <UserRow key={user.id} user={user} isFriend={isFriend} />;
+              const isPendingAdd = pendingRequestIds?.includes(user.id);
+              return (
+                <UserRowCard
+                  key={user.id}
+                  user={user}
+                  isFriend={isFriend}
+                  isPendingAdd={isPendingAdd}
+                  handleAddFriend={() => handleAddFriend(user.id)}
+                  handleCancelRequest={() => handleCancelRequest(user.id)}
+                />
+              );
             })}
             {!isLoadingSearch &&
               data.items?.length === 0 &&
@@ -301,7 +238,16 @@ export default function UsersListScreen() {
                   style={styles.requestsScroll}
                 >
                   {data.requests.map((req) => (
-                    <RequestCard key={req.id} user={req} />
+                    <RequestCard
+                      key={req.id}
+                      user={req}
+                      handleAcceptFriend={() =>
+                        handleAcceptFriend(req.friendshipId)
+                      }
+                      handleRemoveFriend={() =>
+                        handleRemoveFriend(req.friendshipId)
+                      }
+                    />
                   ))}
                 </ScrollView>
               </View>
@@ -314,22 +260,15 @@ export default function UsersListScreen() {
               </Text>
               {data.friends && data.friends.length > 0 ? (
                 data.friends.map((friend) => (
-                  <UserRow key={friend.id} user={friend} isFriend={true} />
+                  <UserRowCard
+                    key={friend.id}
+                    user={friend}
+                    isFriend={true}
+                    handleAddFriend={() => handleAddFriend(friend.id)}
+                  />
                 ))
               ) : (
-                <View style={styles.emptyState}>
-                  <Ionicons name="people-outline" size={40} color="#D1D5DB" />
-                  <Text style={styles.emptyText}>
-                    Votre cercle est encore vide.
-                  </Text>
-                  <TouchableOpacity
-                    onPress={() => {
-                      /* Logic invite */
-                    }}
-                  >
-                    <Text style={styles.linkText}>Inviter des amis</Text>
-                  </TouchableOpacity>
-                </View>
+                <EmptyFriend />
               )}
             </View>
           </>
@@ -512,66 +451,6 @@ const styles = StyleSheet.create({
     borderColor: THEME.border,
     alignItems: "center",
     justifyContent: "center",
-  },
-
-  /* USER ROWS (Vertical) */
-  userRowContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(0,0,0,0.03)",
-  },
-  userRowLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 14,
-  },
-  rowAvatar: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: "#F3F4F6",
-  },
-  rowText: {
-    justifyContent: "center",
-  },
-  rowName: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: THEME.textMain,
-    marginBottom: 2,
-  },
-  rowHandle: {
-    fontSize: 13,
-    color: THEME.textSecondary,
-  },
-  rowActionBtn: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-  btnSolid: {
-    backgroundColor: THEME.textMain,
-  },
-  btnOutline: {
-    borderWidth: 1,
-    borderColor: THEME.border,
-    backgroundColor: "transparent",
-  },
-  btnTextSolid: {
-    color: "#FFF",
-    fontSize: 12,
-    fontWeight: "700",
-  },
-  btnTextOutline: {
-    color: THEME.textMain,
-    fontSize: 12,
-    fontWeight: "600",
   },
 
   /* EMPTY STATES */

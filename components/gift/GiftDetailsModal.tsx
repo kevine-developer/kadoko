@@ -59,13 +59,21 @@ export default function GiftDetailsBottomSheet({
     }
   }, [visible]);
 
+  const getHostname = (url: string) => {
+    try {
+      return new URL(url).hostname.replace("www.", "");
+    } catch (e) {
+      return url || "Lien";
+    }
+  };
+
   const handleSheetChange = useCallback(
     (index: number) => {
       if (index === -1) {
         onClose();
       }
     },
-    [onClose]
+    [onClose],
   );
 
   const handleOpenLink = () => {
@@ -256,8 +264,8 @@ export default function GiftDetailsBottomSheet({
                     {isPurchased
                       ? "Déjà offert"
                       : isReserved
-                      ? "Réservé"
-                      : "Disponible"}
+                        ? "Réservé"
+                        : "Disponible"}
                   </Text>
                 </View>
               </View>
@@ -278,7 +286,7 @@ export default function GiftDetailsBottomSheet({
                 <View style={styles.linkInfo}>
                   <Text style={styles.linkLabel}>Boutique en ligne</Text>
                   <Text style={styles.linkUrl} numberOfLines={1}>
-                    {new URL(gift.productUrl).hostname.replace("www.", "")}
+                    {getHostname(gift.productUrl)}
                   </Text>
                 </View>
                 <Ionicons name="arrow-forward" size={18} color="#9CA3AF" />

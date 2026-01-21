@@ -52,8 +52,23 @@ export default function AddGiftScreen() {
   const [priority, setPriority] = useState("");
   const [acceptsSecondHand, setAcceptsSecondHand] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [urlError, setUrlError] = useState(false);
 
   // --- HANDLERS ---
+  const validateUrl = (text: string) => {
+    setUrl(text);
+    if (!text) {
+      setUrlError(false);
+      return;
+    }
+    try {
+      new URL(text.startsWith("http") ? text : `https://${text}`);
+      setUrlError(false);
+    } catch (e) {
+      setUrlError(true);
+    }
+  };
+
   const pickImage = async () => {
     // ✅ CORRECTION ICI : Utilisation de MediaType.Images
     let result = await ImagePicker.launchImageLibraryAsync({
@@ -83,9 +98,11 @@ export default function AddGiftScreen() {
         }
       }
 
+      const finalUrl = url && !url.startsWith("http") ? `https://${url}` : url;
+
       const payload = {
         title,
-        productUrl: url,
+        productUrl: finalUrl,
         imageUrl: finalImageUrl,
         estimatedPrice: price ? parseFloat(price) : null,
         priority: priority || "DESIRED",
@@ -142,22 +159,30 @@ export default function AddGiftScreen() {
           showsVerticalScrollIndicator={false}
         >
           {/* 1. URL INPUT */}
-          <View style={styles.urlInputContainer}>
+          <View
+            style={[
+              styles.urlInputContainer,
+              urlError && { borderColor: THEME.danger },
+            ]}
+          >
             <Ionicons
               name="link-outline"
               size={20}
-              color={THEME.textSecondary}
+              color={urlError ? THEME.danger : THEME.textSecondary}
             />
             <TextInput
               style={styles.urlInput}
               placeholder="Coller un lien (Amazon, Etsy...)"
               placeholderTextColor="#9CA3AF"
               value={url}
-              onChangeText={setUrl}
+              onChangeText={validateUrl}
               autoCapitalize="none"
               autoCorrect={false}
             />
           </View>
+          {urlError && (
+            <Text style={styles.errorText}>Vérifiez le format du lien</Text>
+          )}
 
           {/* 2. IMAGE PICKER */}
           <TouchableOpacity
@@ -509,5 +534,13 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: THEME.textSecondary,
     lineHeight: 16,
+  },
+  errorText: {
+    color: THEME.danger,
+    fontSize: 12,
+    marginTop: -16,
+    marginBottom: 16,
+    marginLeft: 4,
+    fontWeight: "600",
   },
 });

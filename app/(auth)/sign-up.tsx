@@ -17,6 +17,7 @@ import BtnSocial from "@/components/auth/btnSocial";
 import FooterAuth from "@/components/auth/footerAuth";
 import LegalModal from "@/components/auth/LegalModal";
 import LayoutAuth from "@/components/auth/LayoutAuth";
+import { FormError } from "@/components/auth/FormError";
 
 // --- THEME LUXE ---
 const THEME = {
@@ -39,6 +40,29 @@ export default function SignUp() {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [serverError, setServerError] = useState<string | null>(null);
+  const [errors, setErrors] = useState<{
+    name?: string;
+    email?: string;
+    password?: string;
+  }>({});
+
+  const validate = () => {
+    let newErrors: { name?: string; email?: string; password?: string } = {};
+    setServerError(null);
+
+    if (!fullName.trim()) newErrors.name = "Le nom est requis";
+    if (!email.trim()) newErrors.email = "L'adresse email est requise";
+    else if (!/\S+@\S+\.\S+/.test(email))
+      newErrors.email = "Adresse email invalide";
+
+    if (!password) newErrors.password = "Le mot de passe est requis";
+    else if (password.length < 8)
+      newErrors.password = "Au moins 8 caractères requis";
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   // États pour la Modal Juridique
   const [legalModalVisible, setLegalModalVisible] = useState(false);
@@ -61,18 +85,10 @@ export default function SignUp() {
 
   const handleSignUp = async () => {
     // Validation basique
-    if (!fullName || !email || !password) {
-      showErrorToast("Veuillez remplir tous les champs");
-      return;
-    }
+    if (!validate()) return;
 
     if (!agreedToTerms) {
       showErrorToast("Veuillez accepter les conditions d'utilisation");
-      return;
-    }
-
-    if (password.length < 8) {
-      showErrorToast("Le mot de passe doit contenir au moins 8 caractères");
       return;
     }
 
@@ -86,22 +102,35 @@ export default function SignUp() {
       });
 
       if (response.success) {
-        showSuccessToast(response.message);
-        // Redirection vers l'écran principal
-        router.replace("/(tabs)");
+        showSuccessToast(response.message || "Inscription réussie !");
+        // Redirection vers l'écran de vérification OTP
+        router.push({
+          pathname: "/(auth)/verify-otp",
+          params: { email: email.trim() },
+        });
       } else {
-        showErrorToast(response.message || "Erreur lors de l'inscription");
+        setServerError(response.message || "Erreur lors de l'inscription");
       }
-    } catch (error) {
-      console.error("Erreur lors de l'inscription:", error);
-      showErrorToast("Une erreur est survenue");
+    } catch {
+      setServerError("Une erreur est survenue");
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleSocialLogin = (provider: string) => {
-    console.log(`Inscription avec ${provider}`);
+  const handleSocialLogin = async (provider: string) => {
+    if (provider === "Google") {
+      setIsLoading(true);
+      try {
+        await authService.signInWithSocial("google");
+      } catch {
+        setServerError("Erreur de connexion avec Google");
+      } finally {
+        setIsLoading(false);
+      }
+    } else {
+      console.log(`Inscription avec ${provider} non implémentée`);
+    }
   };
 
   return (
@@ -109,13 +138,20 @@ export default function SignUp() {
       <LayoutAuth>
         {/* Titre */}
         <HeaderAuth title="Rejoignez le cercle." subtitle="NOUVEAU MEMBRE" />
+
+        <FormError message={serverError} />
+
         <View style={styles.inputGroup}>
           {/* Nom */}
           <InputCustom
             icon="person-outline"
             placeholder="Nom complet"
             value={fullName}
-            onChangeText={setFullName}
+            onChangeText={(t) => {
+              setFullName(t);
+              if (errors.name) setErrors({ ...errors, name: undefined });
+            }}
+            error={errors.name}
           />
 
           {/* Email */}
@@ -123,9 +159,13 @@ export default function SignUp() {
             icon="mail-outline"
             placeholder="Adresse email"
             value={email}
-            onChangeText={setEmail}
+            onChangeText={(t) => {
+              setEmail(t);
+              if (errors.email) setErrors({ ...errors, email: undefined });
+            }}
             keyboardType="email-address"
             autoCapitalize="none"
+            error={errors.email}
           />
 
           {/* Mot de passe */}
@@ -133,9 +173,14 @@ export default function SignUp() {
             icon="lock-closed-outline"
             placeholder="Créer un mot de passe"
             value={password}
-            onChangeText={setPassword}
+            onChangeText={(t) => {
+              setPassword(t);
+              if (errors.password)
+                setErrors({ ...errors, password: undefined });
+            }}
             secureTextEntry={!showPassword}
             showPassword={() => setShowPassword(!showPassword)}
+            error={errors.password}
           />
         </View>
 

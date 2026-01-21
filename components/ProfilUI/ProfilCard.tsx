@@ -44,7 +44,7 @@ const ProfilCard = ({
 
       <TouchableOpacity
         style={styles.editProfileBtn}
-        onPress={() => router.push("/(screens)/settingsScreen")}
+        onPress={() => router.push("/(screens)/editProfileScreen")}
       >
         <Text style={styles.editProfileText}>Éditer</Text>
       </TouchableOpacity>
