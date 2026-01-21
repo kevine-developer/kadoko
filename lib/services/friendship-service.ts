@@ -67,6 +67,26 @@ export const friendshipService = {
   },
 
   /**
+   * Annuler une demande d'ami envoyée (via l'ID de l'utilisateur destinataire)
+   */
+  cancelRequest: async (userId: string) => {
+    try {
+      const friendshipsRes = await friendshipService.getMyFriendships();
+      if (!friendshipsRes.success) return friendshipsRes;
+
+      const request = friendshipsRes.requestsSent.find(
+        (r: any) => r.receiverId === userId || r.id === userId,
+      );
+      if (!request) return { success: false, message: "Demande non trouvée" };
+
+      return await friendshipService.removeFriendship(request.friendshipId);
+    } catch (error) {
+      console.error("Error cancelRequest:", error);
+      return { success: false, message: "Erreur réseau" };
+    }
+  },
+
+  /**
    * Supprimer une amitié ou refuser une demande
    */
   removeFriendship: async (friendshipId: string) => {
@@ -81,6 +101,24 @@ export const friendshipService = {
     } catch (error) {
       console.error("Error removeFriendship:", error);
       return { success: false, message: "Erreur réseau" };
+    }
+  },
+
+  /**
+   * Récupérer les cadeaux réservés par moi pour un ami spécifique
+   */
+  getFriendReservations: async (friendId: string) => {
+    try {
+      const response = await authClient.$fetch(
+        getApiUrl(`/friendships/reservations/${friendId}`),
+      );
+      return (response.data || { success: false, gifts: [] }) as unknown as {
+        success: boolean;
+        gifts: any[];
+      };
+    } catch (error) {
+      console.error("Error getFriendReservations:", error);
+      return { success: false, gifts: [] };
     }
   },
 };

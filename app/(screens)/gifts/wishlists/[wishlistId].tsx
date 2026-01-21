@@ -3,6 +3,8 @@ import GiftDetailsModal from "@/components/gift/GiftDetailsModal";
 import GiftItemGroup from "@/components/gift/GiftItemGroup";
 import WishlistEditModal from "@/components/gift/WishlistEditModal";
 import FloatingDockActions from "@/components/wishlist/floatingDock";
+import { Skeleton } from "@/components/ui/Skeleton";
+import { GiftGridSkeleton } from "@/components/ui/SkeletonGroup";
 import { Gift } from "@/types/gift";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams, useFocusEffect } from "expo-router";
@@ -123,6 +125,43 @@ export default function WishlistGroupView() {
       }
     }
   };
+
+  if (loading && !group) {
+    return (
+      <View style={styles.container}>
+        <StatusBar barStyle="dark-content" />
+        {/* Navbar Placeholder */}
+        <Animated.View
+          style={[
+            styles.navbar,
+            { height: 50 + insets.top, paddingTop: insets.top },
+          ]}
+        >
+          <View style={styles.navBorder} />
+        </Animated.View>
+
+        {/* Header Skeleton */}
+        <View style={{ paddingTop: 100, paddingHorizontal: 24 }}>
+          <View style={{ flexDirection: "row", gap: 12, marginBottom: 20 }}>
+            <Skeleton width={80} height={24} borderRadius={6} />
+            <Skeleton width={80} height={24} borderRadius={6} />
+          </View>
+          <Skeleton
+            width="70%"
+            height={40}
+            borderRadius={8}
+            style={{ marginBottom: 16 }}
+          />
+          <Skeleton width="100%" height={60} borderRadius={8} />
+        </View>
+
+        {/* Grid Skeleton */}
+        <View style={{ marginTop: 40 }}>
+          <GiftGridSkeleton count={6} />
+        </View>
+      </View>
+    );
+  }
 
   if (!group) return null;
 

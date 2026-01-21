@@ -3,12 +3,13 @@ import RenderTabButton from "@/components/Friends/friendProfil/renderTabButton";
 import GiftWishlistCard from "@/components/ProfilUI/GiftCard";
 import ReservedGiftItem from "@/components/ProfilUI/ReservedGiftItem";
 import { userService } from "@/lib/services/user-service";
+import { friendshipService } from "@/lib/services/friendship-service";
 import { wishlistService } from "@/lib/services/wishlist-service";
 import { WishlistVisibility } from "@/types/gift";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { router, useLocalSearchParams } from "expo-router";
-import React, { useRef, useState, useEffect } from "react";
+import React, { useRef, useState, useEffect, useCallback } from "react";
 import {
   Animated,
   Platform,
@@ -38,32 +39,67 @@ export default function FriendProfileScreen() {
 
   const [friendInfo, setFriendInfo] = useState<any>(null);
   const [friendWishlists, setFriendWishlists] = useState<any[]>([]);
+  const [reservedGifts, setReservedGifts] = useState<any[]>([]);
+  const [friendshipStatus, setFriendshipStatus] = useState<{
+    isFriend: boolean;
+    isPendingSent: boolean;
+    isPendingReceived: boolean;
+    friendshipId?: string;
+  }>({
+    isFriend: false,
+    isPendingSent: false,
+    isPendingReceived: false,
+  });
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const loadProfileData = async () => {
-      setLoading(true);
-      try {
-        const [userRes, wishlistsRes] = await Promise.all([
+  const loadProfileData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [userRes, wishlistsRes, friendshipsRes, reservationsRes] =
+        await Promise.all([
           userService.getUserById(friendId),
           wishlistService.getUserWishlists(friendId),
+          friendshipService.getMyFriendships(),
+          friendshipService.getFriendReservations(friendId),
         ]);
 
-        if (userRes.success) {
-          setFriendInfo(userRes.user);
-        }
-        if (wishlistsRes.success) {
-          setFriendWishlists(wishlistsRes.wishlists);
-        }
-      } catch (error) {
-        console.error("Error loading friend profile:", error);
-      } finally {
-        setLoading(false);
+      if (userRes.success) {
+        setFriendInfo(userRes.user);
       }
-    };
+      if (wishlistsRes.success) {
+        setFriendWishlists(wishlistsRes.wishlists);
+      }
+      if (reservationsRes.success) {
+        setReservedGifts(reservationsRes.gifts);
+      }
 
-    loadProfileData();
+      if (friendshipsRes.success) {
+        const isFriend = friendshipsRes.friends.some((f) => f.id === friendId);
+        const pendingSent = friendshipsRes.requestsSent.find(
+          (r) => r.receiverId === friendId || r.id === friendId,
+        );
+        const pendingReceived = friendshipsRes.requestsReceived.find(
+          (r) => r.id === friendId,
+        );
+
+        setFriendshipStatus({
+          isFriend,
+          isPendingSent: !!pendingSent,
+          isPendingReceived: !!pendingReceived,
+          friendshipId:
+            pendingSent?.friendshipId || pendingReceived?.friendshipId,
+        });
+      }
+    } catch (error) {
+      console.error("Error loading friend profile:", error);
+    } finally {
+      setLoading(false);
+    }
   }, [friendId]);
+
+  useEffect(() => {
+    loadProfileData();
+  }, [loadProfileData]);
 
   // Animation Header (Parallax & Blur simulation)
   const headerHeight = 320; // Plus grand pour l'effet dramatique
@@ -170,13 +206,78 @@ export default function FriendProfileScreen() {
 
           {/* 4. ACTION BUTTONS (Noirs & Élégants) */}
           <View style={styles.actionRow}>
-            <TouchableOpacity style={styles.primaryBtn}>
-              <Text style={styles.primaryBtnText}>Suivre</Text>
-            </TouchableOpacity>
+            {friendshipStatus.isFriend ? (
+              <TouchableOpacity
+                style={styles.secondaryBtn}
+                onPress={async () => {
+                  // Optionnel : Supprimer l'ami ?
+                  // Pour l'instant on laisse "Amis"
+                }}
+              >
+                <Text style={styles.secondaryBtnText}>Amis</Text>
+              </TouchableOpacity>
+            ) : friendshipStatus.isPendingSent ? (
+              <TouchableOpacity
+                style={styles.secondaryBtn}
+                onPress={async () => {
+                  const res = await friendshipService.cancelRequest(friendId);
+                  if (res.success) {
+                    loadProfileData();
+                  } else {
+                    alert(res.message || "Erreur lors de l'annulation");
+                  }
+                }}
+              >
+                <Text style={styles.secondaryBtnText}>Annuler la demande</Text>
+              </TouchableOpacity>
+            ) : friendshipStatus.isPendingReceived ? (
+              <>
+                <TouchableOpacity
+                  style={styles.primaryBtn}
+                  onPress={async () => {
+                    const res = await friendshipService.acceptRequest(
+                      friendshipStatus.friendshipId!,
+                    );
+                    if (res.success) {
+                      loadProfileData();
+                    }
+                  }}
+                >
+                  <Text style={styles.primaryBtnText}>Accepter</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.secondaryBtn}
+                  onPress={async () => {
+                    const res = await friendshipService.removeFriendship(
+                      friendshipStatus.friendshipId!,
+                    );
+                    if (res.success) {
+                      loadProfileData();
+                    }
+                  }}
+                >
+                  <Text style={styles.secondaryBtnText}>Refuser</Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <TouchableOpacity
+                style={styles.primaryBtn}
+                onPress={async () => {
+                  const res = await friendshipService.sendRequest(friendId);
+                  if (res.success) {
+                    loadProfileData();
+                  }
+                }}
+              >
+                <Text style={styles.primaryBtnText}>Ajouter</Text>
+              </TouchableOpacity>
+            )}
 
-            <TouchableOpacity style={styles.secondaryBtn}>
-              <Text style={styles.secondaryBtnText}>Message</Text>
-            </TouchableOpacity>
+            {!friendshipStatus.isPendingReceived && (
+              <TouchableOpacity style={styles.secondaryBtn}>
+                <Text style={styles.secondaryBtnText}>Message</Text>
+              </TouchableOpacity>
+            )}
 
             <TouchableOpacity style={styles.iconActionBtn}>
               <Ionicons name="share-outline" size={20} color="#111827" />
@@ -255,20 +356,22 @@ export default function FriendProfileScreen() {
                     Visible uniquement par vous.
                   </Text>
                 </View>
-                <ReservedGiftItem
-                  gift={{
-                    id: "1",
-                    title: "Leica Q2 Monochrom",
-                    imageUrl:
-                      "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=800",
-                    estimatedPrice: 5500,
-                    priority: 5,
-                    productUrl: "https://leica.com",
-                  }}
-                  ownerName={friendInfo?.name}
-                  onPurchased={() => {}}
-                  eventDate={new Date()}
-                />
+
+                {reservedGifts.map((gift) => (
+                  <ReservedGiftItem
+                    key={gift.id}
+                    gift={gift}
+                    ownerName={friendInfo?.name}
+                    onPurchased={() => loadProfileData()}
+                    eventDate={new Date()} // Optionnel
+                  />
+                ))}
+
+                {reservedGifts.length === 0 && (
+                  <View style={styles.emptyState}>
+                    <Text style={styles.emptyText}>Aucun cadeau réservé.</Text>
+                  </View>
+                )}
               </View>
             </LayoutPagerView>
 
@@ -278,24 +381,75 @@ export default function FriendProfileScreen() {
                 <View style={styles.aboutCard}>
                   <View style={styles.aboutRow}>
                     <Text style={styles.aboutLabel}>Membre depuis</Text>
-                    <Text style={styles.aboutValue}>2024</Text>
+                    <Text style={styles.aboutValue}>
+                      {friendInfo?.createdAt
+                        ? new Date(friendInfo.createdAt).getFullYear()
+                        : "2024"}
+                    </Text>
                   </View>
                   <View style={styles.divider} />
                   <View style={styles.aboutRow}>
                     <Text style={styles.aboutLabel}>Localisation</Text>
-                    <Text style={styles.aboutValue}>Paris, 75003</Text>
+                    <Text style={styles.aboutValue}>
+                      {friendInfo?.location || "Non spécifiée"}
+                    </Text>
                   </View>
                   <View style={styles.divider} />
-                  <View style={styles.aboutRow}>
-                    <Text style={styles.aboutLabel}>Liens</Text>
-                    <Text
-                      style={[
-                        styles.aboutValue,
-                        { textDecorationLine: "underline" },
-                      ]}
-                    >
-                      instagram.com
-                    </Text>
+                  <View
+                    style={[
+                      styles.aboutRow,
+                      {
+                        flexDirection: "column",
+                        alignItems: "flex-start",
+                        gap: 12,
+                      },
+                    ]}
+                  >
+                    <Text style={styles.aboutLabel}>Réseaux Sociaux</Text>
+                    <View style={styles.socialGrid}>
+                      {friendInfo?.socialLinks &&
+                      Array.isArray(friendInfo.socialLinks) &&
+                      friendInfo.socialLinks.length > 0 ? (
+                        friendInfo.socialLinks.map((link: any, idx: number) => {
+                          let iconName: any = "link";
+                          const platform = link.platform?.toLowerCase();
+                          if (platform?.includes("instagram"))
+                            iconName = "logo-instagram";
+                          if (platform?.includes("tiktok"))
+                            iconName = "logo-tiktok";
+                          if (
+                            platform?.includes("twitter") ||
+                            platform?.includes("x")
+                          )
+                            iconName = "logo-twitter";
+                          if (platform?.includes("facebook"))
+                            iconName = "logo-facebook";
+
+                          return (
+                            <TouchableOpacity
+                              key={idx}
+                              style={styles.socialItem}
+                              onPress={() => {
+                                /* Ouvrir URL */
+                              }}
+                            >
+                              <Ionicons
+                                name={iconName}
+                                size={20}
+                                color="#111827"
+                              />
+                              <Text style={styles.socialText}>
+                                {link.platform || "Lien"}
+                              </Text>
+                            </TouchableOpacity>
+                          );
+                        })
+                      ) : (
+                        <Text style={styles.emptyBio}>
+                          Aucun lien configuré.
+                        </Text>
+                      )}
+                    </View>
                   </View>
                 </View>
               </View>
@@ -591,5 +745,31 @@ const styles = StyleSheet.create({
   divider: {
     height: 1,
     backgroundColor: "#F3F4F6",
+  },
+  /* Social Links */
+  socialGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 12,
+    marginTop: 4,
+  },
+  socialItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F3F4F6",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 16,
+    gap: 8,
+  },
+  socialText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#111827",
+  },
+  emptyBio: {
+    fontSize: 14,
+    color: "#9CA3AF",
+    fontStyle: "italic",
   },
 });

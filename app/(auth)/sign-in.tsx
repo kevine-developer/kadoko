@@ -9,10 +9,10 @@ import {
   View,
 } from "react-native";
 import { authService } from "../../lib/auth/auth-service";
-import { showErrorToast} from "../../lib/toast";
 import InputCustom from "@/components/auth/input-custom";
 import HeaderAuth from "@/components/auth/headerAuth";
 import FooterAuth from "@/components/auth/footerAuth";
+import { FormError } from "@/components/auth/FormError";
 import BtnSocial from "@/components/auth/btnSocial";
 import DividerConnect from "@/components/auth/dividerConnect";
 import LayoutAuth from "@/components/auth/LayoutAuth";
@@ -35,13 +35,23 @@ export default function SignIn() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [serverError, setServerError] = useState<string | null>(null);
+  const [errors, setErrors] = useState<{ email?: string; password?: string }>(
+    {},
+  );
+
+  const validate = () => {
+    let newErrors: { email?: string; password?: string } = {};
+    setServerError(null); // Clear previous server error on new validation
+    if (!email.trim()) newErrors.email = "L'adresse email est requise";
+    if (!password) newErrors.password = "Le mot de passe est requis";
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleLogin = async () => {
     // Validation basique
-    if (!email || !password) {
-      showErrorToast("Veuillez remplir tous les champs");
-      return;
-    }
+    if (!validate()) return;
 
     setIsLoading(true);
 
@@ -54,24 +64,37 @@ export default function SignIn() {
       if (response.success) {
         router.replace("/(tabs)");
       } else {
-        showErrorToast(response.message || "Erreur de connexion");
+        setServerError(response.message || "Erreur de connexion");
       }
-    } catch (error) {
-      console.error("Erreur lors de la connexion:", error);
-      showErrorToast("Une erreur est survenue");
+    } catch {
+      setServerError("Une erreur est survenue");
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleSocialLogin = (provider: string) => {
-    console.log(`Login avec ${provider}`);
+  const handleSocialLogin = async (provider: string) => {
+    if (provider === "Google") {
+      setIsLoading(true);
+      try {
+        await authService.signInWithSocial("google");
+      } catch {
+        setServerError("Erreur de connexion avec Google");
+      } finally {
+        setIsLoading(false);
+      }
+    } else {
+      console.log(`Login avec ${provider} non implémenté`);
+    }
   };
 
   return (
     <LayoutAuth>
       {/* Titre */}
       <HeaderAuth title="Connectez-vous." subtitle="BON RETOUR" />
+
+      <FormError message={serverError} />
+
       {/* Champs de saisie */}
       <View style={styles.inputGroup}>
         {/* Email */}
@@ -80,9 +103,13 @@ export default function SignIn() {
           icon="mail-outline"
           placeholder="Adresse email"
           value={email}
-          onChangeText={setEmail}
+          onChangeText={(t) => {
+            setEmail(t);
+            if (errors.email) setErrors({ ...errors, email: undefined });
+          }}
           keyboardType="email-address"
           autoCapitalize="none"
+          error={errors.email}
         />
 
         {/* Mot de passe */}
@@ -90,12 +117,19 @@ export default function SignIn() {
           icon="lock-closed-outline"
           placeholder="Mot de passe"
           value={password}
-          onChangeText={setPassword}
+          onChangeText={(t) => {
+            setPassword(t);
+            if (errors.password) setErrors({ ...errors, password: undefined });
+          }}
           secureTextEntry={!showPassword}
           showPassword={() => setShowPassword(!showPassword)}
+          error={errors.password}
         />
 
-        <TouchableOpacity style={styles.forgotBtn}>
+        <TouchableOpacity
+          style={styles.forgotBtn}
+          onPress={() => router.push("/forgot-password")}
+        >
           <Text style={styles.forgotText}>Mot de passe oublié ?</Text>
         </TouchableOpacity>
       </View>

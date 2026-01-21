@@ -88,6 +88,21 @@ class AuthService {
   }
 
   /**
+   * Connecte un utilisateur via un fournisseur social (Google, etc.)
+   */
+  async signInWithSocial(provider: "google" | "facebook"): Promise<void> {
+    try {
+      await authClient.signIn.social({
+        provider,
+        callbackURL: "/(tabs)",
+      });
+    } catch (error) {
+      console.error(`Erreur signin social (${provider}):`, error);
+      throw error;
+    }
+  }
+
+  /**
    * Déconnecte l'utilisateur
    */
   async signOut(): Promise<{ success: boolean; message: string }> {
@@ -133,6 +148,59 @@ class AuthService {
       return {
         success: false,
         message: "Erreur lors de la récupération de la session",
+      };
+    }
+  }
+
+  /**
+   * Demande de réinitialisation de mot de passe
+   */
+  async forgotPassword(
+    email: string,
+  ): Promise<{ success: boolean; message: string }> {
+    try {
+      // On appelle la route personnalisée du backend
+      const response = (await authClient.$fetch("/forgot-password", {
+        method: "POST",
+        body: { email },
+      })) as any;
+
+      return {
+        success: true,
+        message: response.message || "Un code de vérification a été envoyé",
+      };
+    } catch (error) {
+      console.error("Erreur forgotPassword:", error);
+      return {
+        success: false,
+        message: "Une erreur est survenue lors de la demande",
+      };
+    }
+  }
+
+  /**
+   * Réinitialiser le mot de passe avec le code OTP
+   */
+  async resetPassword(
+    email: string,
+    otp: string,
+    newPassword: string,
+  ): Promise<{ success: boolean; message: string }> {
+    try {
+      const response = (await authClient.$fetch("/reset-password", {
+        method: "POST",
+        body: { email, otp, newPassword },
+      })) as any;
+
+      return {
+        success: true,
+        message: response.message || "Mot de passe réinitialisé avec succès",
+      };
+    } catch (error) {
+      console.error("Erreur resetPassword:", error);
+      return {
+        success: false,
+        message: "Code invalide ou expiré",
       };
     }
   }

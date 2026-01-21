@@ -27,6 +27,10 @@ import { uploadService } from "@/lib/services/upload-service";
 import { userService } from "@/lib/services/user-service";
 import TopBarSettingQr from "@/components/ProfilUI/TopBarSettingQr";
 import { HEADER_HEIGHT, TABS } from "@/constants/const";
+import {
+  ProfileHeaderSkeleton,
+  WishlistCardSkeleton,
+} from "@/components/ui/SkeletonGroup";
 
 export default function ModernUserProfileScreen() {
   const router = useRouter();
@@ -80,7 +84,6 @@ export default function ModernUserProfileScreen() {
     }));
   }, [userWishlists]);
 
-  console.log("userWishlists", userWishlists);
   const handleSettingsPress = () => {
     router.push("../../(screens)/settingsScreen");
   };
@@ -189,14 +192,20 @@ export default function ModernUserProfileScreen() {
       >
         {/* 3. PROFILE CARD (Overlap & Luxe) */}
         <View style={styles.profileCard}>
-          <ProfilCard user={user} onEditAvatar={handleEditAvatar} />
+          {loading ? (
+            <ProfileHeaderSkeleton />
+          ) : (
+            <>
+              <ProfilCard user={user} onEditAvatar={handleEditAvatar} />
 
-          {/* Stats Minimalistes */}
-          <StatsMinimalistes
-            userWishlists={userWishlists}
-            reservedGifts={reservedGifts}
-            purchasedGifts={purchasedGifts}
-          />
+              {/* Stats Minimalistes */}
+              <StatsMinimalistes
+                userWishlists={userWishlists}
+                reservedGifts={reservedGifts}
+                purchasedGifts={purchasedGifts}
+              />
+            </>
+          )}
         </View>
 
         {/* 4. TABS FLOTTANTS (Style Menu) */}
@@ -209,15 +218,14 @@ export default function ModernUserProfileScreen() {
         </View>
 
         {loading && (
-          <Text
-            style={{
-              textAlign: "center",
-              marginVertical: 20,
-              color: "#9CA3AF",
-            }}
-          >
-            Chargement de vos collections...
-          </Text>
+          <View style={styles.gridContainer}>
+            <View style={{ marginBottom: 16 }}>
+              <WishlistCardSkeleton />
+            </View>
+            <View style={{ marginBottom: 16 }}>
+              <WishlistCardSkeleton />
+            </View>
+          </View>
         )}
 
         {/* 5. CONTENT AREA */}

@@ -4,6 +4,8 @@ import {
   View,
   TextInputProps,
   TouchableOpacity,
+  Text,
+  Platform,
 } from "react-native";
 import React from "react";
 import { Ionicons } from "@expo/vector-icons";
@@ -28,6 +30,7 @@ interface InputCustomProps {
   autoCapitalize?: TextInputProps["autoCapitalize"];
   secureTextEntry?: boolean;
   showPassword?: () => void;
+  error?: string;
 }
 const InputCustom = ({
   icon,
@@ -38,34 +41,42 @@ const InputCustom = ({
   autoCapitalize,
   secureTextEntry,
   showPassword,
+  error,
 }: InputCustomProps) => {
   return (
-    <View style={styles.inputWrapper}>
-      <Ionicons
-        name={icon}
-        size={20}
-        color="#9CA3AF"
-        style={styles.inputIcon}
-      />
-      <TextInput
-        placeholder={placeholder}
-        placeholderTextColor="#9CA3AF"
-        style={styles.input}
-        keyboardType={keyboardType}
-        autoCapitalize={autoCapitalize}
-        secureTextEntry={secureTextEntry}
-        value={value}
-        onChangeText={onChangeText}
-      />
-      {showPassword && (
-        <TouchableOpacity onPress={showPassword} style={styles.eyeBtn}>
-          <Ionicons
-            name={secureTextEntry ? "eye-off-outline" : "eye-outline"}
-            size={20}
-            color="#6B7280"
-          />
-        </TouchableOpacity>
-      )}
+    <View style={styles.container}>
+      <View
+        style={[styles.inputWrapper, error ? styles.inputWrapperError : null]}
+      >
+        <Ionicons
+          name={icon}
+          size={20}
+          color="#9CA3AF"
+          style={styles.inputIcon}
+        />
+        <TextInput
+          placeholder={placeholder}
+          placeholderTextColor="#9CA3AF"
+          style={styles.input}
+          keyboardType={keyboardType}
+          autoCapitalize={autoCapitalize}
+          secureTextEntry={secureTextEntry}
+          value={value}
+          onChangeText={(text) => {
+            onChangeText && onChangeText(text);
+          }}
+        />
+        {showPassword && (
+          <TouchableOpacity onPress={showPassword} style={styles.eyeBtn}>
+            <Ionicons
+              name={secureTextEntry ? "eye-off-outline" : "eye-outline"}
+              size={20}
+              color="#6B7280"
+            />
+          </TouchableOpacity>
+        )}
+      </View>
+      {error && <Text style={styles.errorText}>{error}</Text>}
     </View>
   );
 };
@@ -83,6 +94,19 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: THEME.border,
     // Légère ombre interne simulée par border
+  },
+  inputWrapperError: {
+    borderColor: "#EF4444",
+    backgroundColor: "#FEF2F2",
+  },
+  container: {
+    marginBottom: 0,
+  },
+  errorText: {
+    color: "#EF4444",
+    fontSize: 12,
+    marginTop: 4,
+    marginLeft: 4,
   },
   inputIcon: {
     marginRight: 12,

@@ -87,6 +87,7 @@ export default function CreateWishlistScreen() {
   const [eventType, setEventType] = useState("BIRTHDAY");
   const [visibility, setVisibility] = useState("PUBLIC");
   const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<{ title?: string }>({});
 
   // Date
   const [date, setDate] = useState<Date | null>(null);
@@ -94,7 +95,7 @@ export default function CreateWishlistScreen() {
 
   const handleCreate = async () => {
     if (!title.trim()) {
-      Alert.alert("Erreur", "Veuillez donner un titre à votre collection.");
+      setErrors({ title: "Veuillez donner un titre à votre collection." });
       return;
     }
 
@@ -178,10 +179,26 @@ export default function CreateWishlistScreen() {
               placeholderTextColor="#9CA3AF"
               multiline
               value={title}
-              onChangeText={setTitle}
+              onChangeText={(t) => {
+                setTitle(t);
+                if (errors.title) setErrors({});
+              }}
               autoFocus
             />
           </View>
+          {errors.title && (
+            <Text
+              style={{
+                color: "#EF4444",
+                paddingHorizontal: 24,
+                marginTop: -8,
+                marginBottom: 16,
+                fontSize: 13,
+              }}
+            >
+              {errors.title}
+            </Text>
+          )}
 
           {/* 2. DESCRIPTION */}
           <View style={styles.inputGroup}>

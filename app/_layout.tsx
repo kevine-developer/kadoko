@@ -10,6 +10,8 @@ import "react-native-reanimated";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { authClient } from "@/lib/auth/auth-client";
 import { useIsFirstLaunch } from "@/hooks/use-is-first-launch";
+import OfflineModal from "@/components/Network/OfflineModal";
+import ServerErrorModal from "@/components/Network/ServerErrorModal";
 
 export const unstable_settings = {
   anchor: "(tabs)",
@@ -43,6 +45,8 @@ export default function RootLayout() {
       </Stack>
 
       <StatusBar style="auto" />
+      <OfflineModal />
+      <ServerErrorModal />
     </ThemeProvider>
   );
 }
