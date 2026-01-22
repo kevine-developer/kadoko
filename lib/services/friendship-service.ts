@@ -1,4 +1,4 @@
-import { authClient } from "../auth/auth-client";
+import { authClient } from "@/features/auth";
 import { getApiUrl } from "../api-config";
 
 export const friendshipService = {

@@ -19,7 +19,11 @@ import {
   ScrollView,
 } from "react-native-gesture-handler";
 
+import { giftService } from "@/lib/services/gift-service";
+import { authClient } from "@/features/auth";
+
 import { Gift } from "@/types/gift";
+import { socketService } from "@/lib/services/socket";
 
 // --- THEME LUXE ---
 const THEME = {
@@ -40,16 +44,47 @@ interface GiftDetailsBottomSheetProps {
   visible: boolean;
   onClose: () => void;
   isOwner?: boolean;
+  onActionSuccess?: () => void;
 }
+
+// removed import line
 
 export default function GiftDetailsBottomSheet({
   gift,
   visible,
   onClose,
   isOwner = false,
+  onActionSuccess,
 }: GiftDetailsBottomSheetProps) {
+  const { data: session } = authClient.useSession();
   const bottomSheetRef = useRef<BottomSheet>(null);
   const snapPoints = useMemo(() => ["60%", "92%"], []);
+
+  // Local state for real-time updates
+  const [localGift, setLocalGift] = React.useState<Gift | null>(gift);
+
+  useEffect(() => {
+    setLocalGift(gift);
+  }, [gift]);
+
+  useEffect(() => {
+    if (!gift) return;
+
+    const handleGiftUpdate = (updatedGift: Gift) => {
+      if (updatedGift.id === gift.id) {
+        setLocalGift(updatedGift);
+        // On ne déclenche pas onActionSuccess ici pour éviter de fermer le modal ou recharger intempestivement
+        // Mais si le parent a besoin de savoir, on pourrait le notifier.
+      }
+    };
+
+    socketService.connect();
+    socketService.on("gift:updated", handleGiftUpdate);
+
+    return () => {
+      socketService.off("gift:updated", handleGiftUpdate);
+    };
+  }, [gift]);
 
   useEffect(() => {
     if (visible) {
@@ -62,7 +97,7 @@ export default function GiftDetailsBottomSheet({
   const getHostname = (url: string) => {
     try {
       return new URL(url).hostname.replace("www.", "");
-    } catch (e) {
+    } catch {
       return url || "Lien";
     }
   };
@@ -77,31 +112,36 @@ export default function GiftDetailsBottomSheet({
   );
 
   const handleOpenLink = () => {
-    if (gift?.productUrl) {
-      Linking.openURL(gift.productUrl).catch(console.error);
+    if (localGift?.productUrl) {
+      Linking.openURL(localGift.productUrl).catch(console.error);
     }
   };
 
   const handleShare = async () => {
-    if (!gift) return;
+    if (!localGift) return;
     try {
-      const message = `Regarde cette trouvaille : ${gift.title}`;
-      await Share.share({ message, title: gift.title, url: gift.productUrl });
+      const message = `Regarde cette trouvaille : ${localGift.title}`;
+      await Share.share({
+        message,
+        title: localGift.title,
+        url: localGift.productUrl,
+      });
     } catch (error) {
       console.error("Erreur partage:", error);
     }
   };
 
-  if (!gift) return null;
+  if (!localGift) return null;
 
   // --- ANALYSE DES ÉTATS ---
+  // --- ANALYSE DES ÉTATS ---
   const isReserved =
-    gift.status === "RESERVED" ||
-    (gift.reservation && !!gift.reservation.userId);
+    localGift.status === "RESERVED" || !!localGift.reservedById;
   const isPurchased =
-    gift.status === "PURCHASED" || (gift.purchase && !!gift.purchase.userId);
+    localGift.status === "PURCHASED" || !!localGift.purchasedById;
   const isTaken = isReserved || isPurchased;
-  const isPublished = gift.publication?.isPublished ?? false;
+  const isDraft = !localGift.isPublished;
+  const isReserver = localGift.reservedById === session?.user?.id;
 
   // Configuration UX pour le Visiteur (Non-Propriétaire)
   let visitorActionConfig: {
@@ -127,28 +167,45 @@ export default function GiftDetailsBottomSheet({
       textStyle: styles.disabledButtonTextWhite,
     };
   } else if (isReserved) {
-    visitorActionConfig = {
-      label: "Actuellement réservé",
-      icon: "lock-closed",
-      disabled: true,
-      style: styles.warningButtonDisabled,
-      textStyle: styles.disabledButtonTextWhite,
-    };
+    if (isReserver) {
+      visitorActionConfig = {
+        label: "Je retire",
+        icon: "close-circle-outline",
+        disabled: false,
+        style: styles.removeBtn,
+        textStyle: styles.removeBtnText,
+      };
+    } else {
+      visitorActionConfig = {
+        label: "Actuellement réservé",
+        icon: "lock-closed",
+        disabled: true,
+        style: styles.warningButtonDisabled,
+        textStyle: styles.disabledButtonTextWhite,
+      };
+    }
   }
 
   // Action Principale (Visiteur)
-  const handleVisitorAction = () => {
+  const handleVisitorAction = async () => {
     if (visitorActionConfig.disabled) return;
-    console.log("Action: Lancer le flux de réservation");
-    // TODO: Navigation vers écran de réservation ou appel API
+    if (isReserved && isReserver) {
+      const res = await giftService.releaseGift(localGift.id);
+      if (res.success) onActionSuccess?.();
+    } else if (!isTaken) {
+      const res = await giftService.reserveGift(localGift.id);
+      if (res.success) onActionSuccess?.();
+    }
   };
 
   // Action Principale (Propriétaire)
-  const handleOwnerAction = () => {
-    if (!isPublished) {
-      console.log("Action: Publier");
+  const handleOwnerAction = async () => {
+    if (isDraft) {
+      const res = await giftService.publishGift(localGift.id);
+      if (res.success) onActionSuccess?.();
     } else {
-      handleShare();
+      const res = await giftService.unpublishGift(localGift.id);
+      if (res.success) onActionSuccess?.();
     }
   };
 
@@ -168,9 +225,9 @@ export default function GiftDetailsBottomSheet({
         <BottomSheetView style={styles.container}>
           {/* --- HEADER IMAGE --- */}
           <View style={styles.imageWrapper}>
-            {gift.imageUrl ? (
+            {localGift.imageUrl ? (
               <Image
-                source={{ uri: gift.imageUrl }}
+                source={{ uri: localGift.imageUrl }}
                 style={styles.image}
                 contentFit="cover"
                 transition={400}
@@ -228,25 +285,25 @@ export default function GiftDetailsBottomSheet({
                     style={[
                       styles.dot,
                       {
-                        backgroundColor: isPublished
+                        backgroundColor: !isDraft
                           ? THEME.success
                           : THEME.textSecondary,
                       },
                     ]}
                   />
                   <Text style={styles.publicationText}>
-                    {isPublished ? "EN LIGNE" : "BROUILLON"}
+                    {!isDraft ? "DANS LE FIL D'ACCUEIL" : "HORS FIL D'ACCUEIL"}
                   </Text>
                 </View>
               )}
 
-              <Text style={styles.title}>{gift.title}</Text>
+              <Text style={styles.title}>{localGift.title}</Text>
 
               <View style={styles.metaRow}>
-                {gift.estimatedPrice && (
+                {localGift.estimatedPrice && (
                   <View style={styles.priceTag}>
                     <Text style={styles.priceText}>
-                      {gift.estimatedPrice} €
+                      {localGift.estimatedPrice} €
                     </Text>
                   </View>
                 )}
@@ -269,12 +326,39 @@ export default function GiftDetailsBottomSheet({
                   </Text>
                 </View>
               </View>
+
+              {/* Affichage de qui a réservé/acheté */}
+              {(isReserved || isPurchased) &&
+                (localGift.reservedBy || localGift.purchasedBy) && (
+                  <View style={styles.reserverRow}>
+                    <Image
+                      source={{
+                        uri: isPurchased
+                          ? localGift.purchasedBy?.image
+                          : localGift.reservedBy?.image,
+                      }}
+                      style={styles.reserverAvatar}
+                    />
+                    <Text style={styles.reserverTextInfo}>
+                      {isPurchased ? "Offert par " : "Réservé par "}
+                      <Text style={styles.reserverName}>
+                        {isPurchased
+                          ? localGift.purchasedBy?.id === session?.user?.id
+                            ? "vous"
+                            : localGift.purchasedBy?.name
+                          : localGift.reservedBy?.id === session?.user?.id
+                            ? "vous"
+                            : localGift.reservedBy?.name}
+                      </Text>
+                    </Text>
+                  </View>
+                )}
             </View>
 
             <View style={styles.divider} />
 
             {/* --- LIEN PRODUIT --- */}
-            {gift.productUrl && (
+            {localGift.productUrl && (
               <TouchableOpacity
                 style={styles.linkCard}
                 onPress={handleOpenLink}
@@ -286,7 +370,7 @@ export default function GiftDetailsBottomSheet({
                 <View style={styles.linkInfo}>
                   <Text style={styles.linkLabel}>Boutique en ligne</Text>
                   <Text style={styles.linkUrl} numberOfLines={1}>
-                    {getHostname(gift.productUrl)}
+                    {getHostname(localGift.productUrl || "")}
                   </Text>
                 </View>
                 <Ionicons name="arrow-forward" size={18} color="#9CA3AF" />
@@ -297,7 +381,7 @@ export default function GiftDetailsBottomSheet({
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>À propos</Text>
               <Text style={styles.description}>
-                {gift.description ||
+                {localGift.description ||
                   "Aucune description fournie pour cet objet."}
               </Text>
             </View>
@@ -325,11 +409,11 @@ export default function GiftDetailsBottomSheet({
 
               {/* BOUTON PRINCIPAL (Contextuel) */}
               {isOwner ? (
-                // PROPRIÉTAIRE : Publier ou Partager
+                // PROPRIÉTAIRE : Mettre en avant ou Retirer du fil
                 <TouchableOpacity
                   style={[
                     styles.primaryButton,
-                    isPublished ? styles.publishedBtn : styles.draftBtn,
+                    !isDraft ? styles.publishedBtn : styles.draftBtn,
                   ]}
                   onPress={handleOwnerAction}
                   activeOpacity={0.8}
@@ -337,15 +421,15 @@ export default function GiftDetailsBottomSheet({
                   <Text
                     style={[
                       styles.primaryButtonText,
-                      isPublished && { color: THEME.textMain },
+                      !isDraft && { color: THEME.textMain },
                     ]}
                   >
-                    {isPublished ? "Partager" : "Publier"}
+                    {!isDraft ? "Retirer du fil" : "Mettre en avant"}
                   </Text>
                   <Ionicons
-                    name={isPublished ? "share-social" : "cloud-upload"}
+                    name={!isDraft ? "eye-off-outline" : "paper-plane-outline"}
                     size={20}
-                    color={isPublished ? THEME.textMain : "#FFF"}
+                    color={!isDraft ? THEME.textMain : "#FFF"}
                   />
                 </TouchableOpacity>
               ) : (
@@ -363,7 +447,11 @@ export default function GiftDetailsBottomSheet({
                     <Ionicons
                       name={visitorActionConfig.icon}
                       size={20}
-                      color="#FFF"
+                      color={
+                        visitorActionConfig.style === styles.removeBtn
+                          ? THEME.textMain
+                          : "#FFF"
+                      }
                     />
                   )}
                 </TouchableOpacity>
@@ -654,12 +742,55 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
 
-  // Owner styles
   draftBtn: { backgroundColor: "#111827" },
   publishedBtn: {
     backgroundColor: "#F3F4F6",
     borderWidth: 1,
     borderColor: "#E5E7EB",
     shadowOpacity: 0,
+  },
+  removeBtn: {
+    flex: 2,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: THEME.textMain,
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 8,
+  },
+  removeBtnText: {
+    color: THEME.textMain,
+    fontWeight: "600",
+    fontSize: 15,
+  },
+  reserverRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginTop: 16,
+    backgroundColor: "#F9FAFB",
+    padding: 10,
+    borderRadius: 14,
+    alignSelf: "flex-start",
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.02)",
+  },
+  reserverAvatar: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: "#E5E7EB",
+  },
+  reserverTextInfo: {
+    fontSize: 13,
+    color: "#6B7280",
+    fontWeight: "500",
+  },
+  reserverName: {
+    fontWeight: "700",
+    color: "#111827",
   },
 });

@@ -1,7 +1,6 @@
 import { StyleSheet, Text, View } from "react-native";
 import React from "react";
 
-
 interface DividerConnectProps {
   text: string;
 }
@@ -18,7 +17,8 @@ const DividerConnect = ({ text }: DividerConnectProps) => {
 
 export default DividerConnect;
 
-const styles = StyleSheet.create({  /* --- DIVIDER --- */
+const styles = StyleSheet.create({
+  /* --- DIVIDER --- */
   dividerContainer: {
     flexDirection: "row",
     alignItems: "center",

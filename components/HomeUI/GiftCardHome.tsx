@@ -25,21 +25,18 @@ const GiftCardHome = ({ item }: { item: any }) => {
 
   // Gestion intelligente de la navigation
   const handleMainAction = () => {
-    if (item.isReserved) {
-      // SI RÉSERVÉ -> On redirige vers la Wishlist parente pour voir d'autres idées
-      // Assure-toi que 'item.wishlistId' est bien passé dans tes données feedPosts
+    if (item.isReserved || item.isPurchased) {
+      // SI RÉSERVÉ ou OFFERT -> On redirige vers la Wishlist parente
       router.push({
         pathname: "/gifts/wishlists/[wishlistId]",
         params: { wishlistId: item.wishlistId },
       });
-      console.log("Wishlist ID: ", item.wishlistId);
     } else {
-      // SI DISPO -> On va sur le détail du cadeau pour le réserver
+      // SI DISPO -> On va sur le détail du cadeau
       router.push({
         pathname: "/gifts/[giftId]",
         params: { giftId: item.id },
       });
-      console.log("Gift ID: ", item.id);
     }
   };
 
@@ -96,12 +93,18 @@ const GiftCardHome = ({ item }: { item: any }) => {
           <Text style={styles.priceText}>{item.product.price}€</Text>
         </View>
 
-        {/* Overlay Réservé */}
-        {item.isReserved && (
+        {/* Overlay Statut */}
+        {(item.isReserved || item.isPurchased) && (
           <View style={styles.reservedOverlay}>
             <View style={styles.reservedBadge}>
-              <Ionicons name="lock-closed" size={16} color="#FFF" />
-              <Text style={styles.reservedText}>DÉJÀ OFFERT</Text>
+              <Ionicons
+                name={item.isPurchased ? "gift" : "lock-closed"}
+                size={16}
+                color="#FFF"
+              />
+              <Text style={styles.reservedText}>
+                {item.isPurchased ? "DÉJÀ OFFERT" : "RÉSERVÉ"}
+              </Text>
             </View>
           </View>
         )}
@@ -113,35 +116,71 @@ const GiftCardHome = ({ item }: { item: any }) => {
           <Text style={styles.productTitle} numberOfLines={2}>
             {item.product.name}
           </Text>
+
+          {/* Affichage de qui a pris le cadeau */}
+          {(item.isReserved || item.isPurchased) &&
+            (item.reservedBy || item.purchasedBy) && (
+              <View style={styles.reserverRow}>
+                <Image
+                  source={{
+                    uri: item.isPurchased
+                      ? item.purchasedBy?.image
+                      : item.reservedBy?.image,
+                  }}
+                  style={styles.reserverAvatar}
+                />
+                <Text style={styles.reserverTextInfo}>
+                  {item.isPurchased ? "Offert par " : "Réservé par "}
+                  <Text style={styles.reserverName}>
+                    {item.isPurchased
+                      ? item.isMyPurchase
+                        ? "vous"
+                        : item.purchasedBy?.name
+                      : item.isMyReservation
+                        ? "vous"
+                        : item.reservedBy?.name}
+                  </Text>
+                </Text>
+              </View>
+            )}
         </View>
 
         <View style={styles.actionRow}>
           {/* BOUTON D'ACTION INTELLIGENT */}
           <TouchableOpacity
             style={[
-              item.isReserved ? styles.secondaryBtn : styles.mainBtn, // Changement de style
+              item.isReserved || item.isPurchased
+                ? styles.secondaryBtn
+                : styles.mainBtn,
             ]}
             activeOpacity={0.8}
             onPress={handleMainAction}
           >
-            {/* Changement de texte et d'icône */}
             <Text
               style={[
-                item.isReserved ? styles.secondaryBtnText : styles.mainBtnText,
+                item.isReserved || item.isPurchased
+                  ? styles.secondaryBtnText
+                  : styles.mainBtnText,
               ]}
             >
-              {item.isReserved ? "Voir la collection" : "Réserver ce cadeau"}
+              {item.isReserved || item.isPurchased
+                ? "Voir la collection"
+                : "Réserver ce cadeau"}
             </Text>
 
             <Ionicons
-              name={item.isReserved ? "list-outline" : "arrow-forward"}
-              size={item.isReserved ? 16 : 14}
-              color={item.isReserved ? THEME.black : "#FFF"}
+              name={
+                item.isReserved || item.isPurchased
+                  ? "list-outline"
+                  : "arrow-forward"
+              }
+              size={item.isReserved || item.isPurchased ? 16 : 14}
+              color={item.isReserved || item.isPurchased ? THEME.black : "#FFF"}
             />
           </TouchableOpacity>
 
-          {/* Share Btn (seulement si dispo, sinon on garde le focus sur le bouton liste) */}
-          {!item.isReserved && (
+          {/* Share Btn */}
+          {!(item.isReserved || item.isPurchased) && (
             <TouchableOpacity style={styles.shareBtn}>
               <Ionicons name="share-outline" size={20} color={THEME.black} />
             </TouchableOpacity>
@@ -344,5 +383,30 @@ const styles = StyleSheet.create({
     borderColor: "#E5E7EB",
     alignItems: "center",
     justifyContent: "center",
+  },
+  reserverRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginTop: 12,
+    backgroundColor: "#F9FAFB",
+    padding: 8,
+    borderRadius: 12,
+    alignSelf: "flex-start",
+  },
+  reserverAvatar: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: "#E5E7EB",
+  },
+  reserverTextInfo: {
+    fontSize: 12,
+    color: "#6B7280",
+    fontWeight: "500",
+  },
+  reserverName: {
+    fontWeight: "700",
+    color: "#111827",
   },
 });

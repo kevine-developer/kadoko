@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
+import { showErrorToast, showSuccessToast } from "../../lib/toast";
 import {
   ActivityIndicator,
   StyleSheet,
@@ -8,16 +9,17 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { authService } from "../../lib/auth/auth-service";
-import { showErrorToast, showSuccessToast } from "../../lib/toast";
-import HeaderAuth from "@/components/auth/headerAuth";
-import InputCustom from "@/components/auth/input-custom";
-import DividerConnect from "@/components/auth/dividerConnect";
-import BtnSocial from "@/components/auth/btnSocial";
-import FooterAuth from "@/components/auth/footerAuth";
-import LegalModal from "@/components/auth/LegalModal";
-import LayoutAuth from "@/components/auth/LayoutAuth";
-import { FormError } from "@/components/auth/FormError";
+import {
+  authService,
+  HeaderAuth,
+  InputCustom,
+  DividerConnect,
+  BtnSocial,
+  FooterAuth,
+  LegalModal,
+  LayoutAuth,
+  FormError,
+} from "@/features/auth";
 
 // --- THEME LUXE ---
 const THEME = {
@@ -103,11 +105,8 @@ export default function SignUp() {
 
       if (response.success) {
         showSuccessToast(response.message || "Inscription réussie !");
-        // Redirection vers l'écran de vérification OTP
-        router.push({
-          pathname: "/(auth)/verify-otp",
-          params: { email: email.trim() },
-        });
+        // Redirection directe vers l'accueil (OTP supprimé)
+        router.replace("/");
       } else {
         setServerError(response.message || "Erreur lors de l'inscription");
       }

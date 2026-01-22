@@ -6,7 +6,7 @@ import {
   View,
 } from "react-native";
 import React from "react";
-import ImageHeader from "./imageHeader";
+import ImageHeader from "./ImageHeader";
 import { StatusBar } from "expo-status-bar";
 
 // --- THEME LUXE ---

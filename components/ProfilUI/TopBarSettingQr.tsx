@@ -4,12 +4,16 @@ import { Ionicons } from "@expo/vector-icons";
 
 interface TopBarSettingQrProps {
   handleSettingsPress: () => void;
+  onQrPress?: () => void;
 }
 
-const TopBarSettingQr = ({ handleSettingsPress }: TopBarSettingQrProps) => {
+const TopBarSettingQr = ({
+  handleSettingsPress,
+  onQrPress,
+}: TopBarSettingQrProps) => {
   return (
     <View style={styles.navActions}>
-      <TouchableOpacity style={styles.iconButtonBlur}>
+      <TouchableOpacity style={styles.iconButtonBlur} onPress={onQrPress}>
         <Ionicons name="qr-code-outline" size={20} color="#FFF" />
       </TouchableOpacity>
       <TouchableOpacity

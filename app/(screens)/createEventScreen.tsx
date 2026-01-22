@@ -53,11 +53,15 @@ const VISIBILITY_OPTIONS = [
     desc: "Visible uniquement par vos amis.",
   },
   {
+    id: "SELECT",
+    label: "Spécifique",
+    desc: "Partager avec certains utilisateurs.",
+  },
+  {
     id: "PRIVATE",
     label: "Privé",
     desc: "Visible uniquement par vous.",
   },
-  // "SELECT" sera implémenté plus tard, on peut le masquer ou le griser
 ];
 
 // Mapping pour les icônes dynamiques (Ionicons)
@@ -304,24 +308,6 @@ export default function CreateWishlistScreen() {
                   </TouchableOpacity>
                 );
               })}
-
-              {/* Option Grisée pour plus tard */}
-              <View style={[styles.visibilityOption, { opacity: 0.5 }]}>
-                <View
-                  style={[styles.radioCircle, { borderColor: "#E5E7EB" }]}
-                />
-                <View style={styles.visibilityTextContainer}>
-                  <Text style={[styles.visibilityLabel, { color: "#9CA3AF" }]}>
-                    Spécifique
-                  </Text>
-                  <Text style={styles.visibilityDesc}>
-                    Partager avec certains utilisateurs
-                  </Text>
-                </View>
-                <View style={styles.comingSoonBadge}>
-                  <Text style={styles.comingSoonText}>Bientôt</Text>
-                </View>
-              </View>
             </View>
           </View>
 

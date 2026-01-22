@@ -1,4 +1,4 @@
-import { authClient } from "../auth/auth-client";
+import { authClient } from "@/features/auth";
 import { getApiUrl } from "../api-config";
 
 export const giftService = {
@@ -46,7 +46,7 @@ export const giftService = {
   reserveGift: async (id: string) => {
     try {
       const response = await authClient.$fetch(getApiUrl(`/gifts/${id}`), {
-        method: "PUT",
+        method: "PATCH",
         body: { action: "reserve" },
       });
       return (response.data || {
@@ -66,7 +66,7 @@ export const giftService = {
   purchaseGift: async (id: string) => {
     try {
       const response = await authClient.$fetch(getApiUrl(`/gifts/${id}`), {
-        method: "PUT",
+        method: "PATCH",
         body: { action: "purchase" },
       });
       return (response.data || {
@@ -79,6 +79,86 @@ export const giftService = {
     } catch (error) {
       console.error("Error purchaseGift:", error);
       return { success: false, message: "Erreur d'achat" };
+    }
+  },
+
+  // Mettre à jour un cadeau
+  updateGift: async (id: string, data: any) => {
+    try {
+      const response = await authClient.$fetch(getApiUrl(`/gifts/${id}`), {
+        method: "PATCH",
+        body: data,
+      });
+      return (response.data || {
+        success: false,
+        message: "Erreur",
+      }) as unknown as {
+        success: boolean;
+        gift: any;
+      };
+    } catch (error) {
+      console.error("Error updateGift:", error);
+      return { success: false, message: "Erreur de mise à jour" };
+    }
+  },
+
+  // Publier un cadeau
+  publishGift: async (id: string) => {
+    try {
+      const response = await authClient.$fetch(getApiUrl(`/gifts/${id}`), {
+        method: "PATCH",
+        body: { action: "publish" },
+      });
+      return (response.data || {
+        success: false,
+        message: "Erreur",
+      }) as unknown as {
+        success: boolean;
+        gift: any;
+      };
+    } catch (error) {
+      console.error("Error publishGift:", error);
+      return { success: false, message: "Erreur de publication" };
+    }
+  },
+
+  // Dépublier un cadeau
+  unpublishGift: async (id: string) => {
+    try {
+      const response = await authClient.$fetch(getApiUrl(`/gifts/${id}`), {
+        method: "PATCH",
+        body: { action: "unpublish" },
+      });
+      return (response.data || {
+        success: false,
+        message: "Erreur",
+      }) as unknown as {
+        success: boolean;
+        gift: any;
+      };
+    } catch (error) {
+      console.error("Error unpublishGift:", error);
+      return { success: false, message: "Erreur de dépublication" };
+    }
+  },
+
+  // Libérer un cadeau (annuler réservation)
+  releaseGift: async (id: string) => {
+    try {
+      const response = await authClient.$fetch(getApiUrl(`/gifts/${id}`), {
+        method: "PATCH",
+        body: { action: "release" },
+      });
+      return (response.data || {
+        success: false,
+        message: "Erreur",
+      }) as unknown as {
+        success: boolean;
+        gift: any;
+      };
+    } catch (error) {
+      console.error("Error releaseGift:", error);
+      return { success: false, message: "Erreur de libération" };
     }
   },
 

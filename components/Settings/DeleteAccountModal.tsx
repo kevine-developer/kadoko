@@ -19,6 +19,7 @@ interface DeleteAccountModalProps {
   isLoading?: boolean;
   email: string;
   requireOtp?: boolean;
+  hasPassword?: boolean; // Nouveau : indique si l'utilisateur a un mot de passe
 }
 
 const DeleteAccountModal = ({
@@ -28,18 +29,20 @@ const DeleteAccountModal = ({
   isLoading = false,
   email,
   requireOtp = false,
+  hasPassword = true, // Par défaut true pour sécurité
 }: DeleteAccountModalProps) => {
   const [password, setPassword] = useState("");
   const [otp, setOtp] = useState("");
   const [isResending, setIsResending] = useState(false);
 
-  const isValid = password.length > 0 && (!requireOtp || otp.length === 6);
+  const isValid =
+    (!hasPassword || password.length > 0) && (!requireOtp || otp.length === 6);
 
   const handleResendOtp = async () => {
     setIsResending(true);
     try {
       // Import dynamique pour éviter les dépendances circulaires ou charger seulement si nécessaire
-      const { authClient } = await import("@/lib/auth/auth-client");
+      const { authClient } = await import("@/features/auth");
       await authClient.emailOtp.sendVerificationOtp({
         email,
         type: "email-verification",
@@ -81,19 +84,30 @@ const DeleteAccountModal = ({
             </View>
 
             <View style={styles.form}>
-              <View style={styles.inputSection}>
-                <Text style={styles.inputLabel}>
-                  Confirmer avec votre mot de passe
-                </Text>
-                <TextInput
-                  style={styles.input}
-                  value={password}
-                  onChangeText={setPassword}
-                  placeholder="Mot de passe"
-                  secureTextEntry
-                  placeholderTextColor="#9CA3AF"
-                />
-              </View>
+              {hasPassword && (
+                <View style={styles.inputSection}>
+                  <Text style={styles.inputLabel}>
+                    Confirmer avec votre mot de passe
+                  </Text>
+                  <TextInput
+                    style={styles.input}
+                    value={password}
+                    onChangeText={setPassword}
+                    placeholder="Mot de passe"
+                    secureTextEntry
+                    placeholderTextColor="#9CA3AF"
+                  />
+                </View>
+              )}
+
+              {!hasPassword && (
+                <View style={styles.inputSection}>
+                  <Text style={styles.confirmationText}>
+                    Vous êtes sur le point de supprimer votre compte connecté
+                    via un réseau social. Cette action est irréversible.
+                  </Text>
+                </View>
+              )}
 
               {requireOtp && (
                 <View style={styles.inputSection}>
@@ -275,5 +289,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "700",
     color: "#FFFFFF",
+  },
+  confirmationText: {
+    fontSize: 14,
+    color: "#6B7280",
+    lineHeight: 20,
+    textAlign: "center",
   },
 });

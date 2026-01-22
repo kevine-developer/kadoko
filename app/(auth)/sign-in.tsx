@@ -8,14 +8,16 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { authService } from "../../lib/auth/auth-service";
-import InputCustom from "@/components/auth/input-custom";
-import HeaderAuth from "@/components/auth/headerAuth";
-import FooterAuth from "@/components/auth/footerAuth";
-import { FormError } from "@/components/auth/FormError";
-import BtnSocial from "@/components/auth/btnSocial";
-import DividerConnect from "@/components/auth/dividerConnect";
-import LayoutAuth from "@/components/auth/LayoutAuth";
+import {
+  authService,
+  InputCustom,
+  HeaderAuth,
+  FooterAuth,
+  FormError,
+  BtnSocial,
+  DividerConnect,
+  LayoutAuth,
+} from "@/features/auth";
 
 // --- THEME LUXE ---
 const THEME = {
@@ -62,7 +64,7 @@ export default function SignIn() {
       });
 
       if (response.success) {
-        router.replace("/(tabs)");
+        router.replace("/");
       } else {
         setServerError(response.message || "Erreur de connexion");
       }

@@ -1,5 +1,41 @@
-import { authClient } from "../auth/auth-client";
+import { authClient } from "@/features/auth";
 import { getApiUrl } from "../api-config";
+
+// ============================================
+// TYPES
+// ============================================
+
+export interface PrivateInfo {
+  clothing?: {
+    topSize?: string;
+    bottomSize?: string;
+    shoeSize?: string;
+  };
+  jewelry?: {
+    ringSize?: string;
+    preference?: "GOLD" | "SILVER" | "BOTH" | "NONE";
+  };
+  diet?: {
+    allergies?: string[];
+    preferences?: string[];
+  };
+  delivery?: {
+    type?: "HOME" | "RELAY" | "OFFICE";
+    address?: {
+      street?: string;
+      city?: string;
+      postalCode?: string;
+      country?: string;
+      additionalInfo?: string;
+    };
+    relayName?: string;
+    instructions?: string;
+  };
+}
+
+// ============================================
+// HELPERS
+// ============================================
 
 export const userService = {
   // Récupérer le profil complet de l'utilisateur connecté
@@ -30,6 +66,22 @@ export const userService = {
     }
   },
 
+  // Récupérer un profil par username (Pour Deep Link)
+  getUserByUsername: async (username: string) => {
+    try {
+      const response = await authClient.$fetch(
+        getApiUrl(`/auth/users/profile/${username}`),
+      );
+      return (response.data || { success: false, user: null }) as unknown as {
+        success: boolean;
+        user: any;
+      };
+    } catch (error) {
+      console.error("Error getUserByUsername:", error);
+      return { success: false, user: null };
+    }
+  },
+
   // Rechercher des utilisateurs
   searchUsers: async (query: string) => {
     try {
@@ -53,6 +105,49 @@ export const userService = {
     }
   },
 
+  // Vérifier la disponibilité d'un nom d'utilisateur
+  checkUsernameAvailability: async (username: string) => {
+    try {
+      const response = await authClient.$fetch(
+        getApiUrl(
+          `/auth/users/check-availability?username=${encodeURIComponent(username)}`,
+        ),
+      );
+      return (response.data || {
+        success: false,
+        available: false,
+      }) as unknown as {
+        success: boolean;
+        available: boolean;
+        error?: string;
+      };
+    } catch (error) {
+      console.error("Error checkUsernameAvailability:", error);
+      return { success: false, available: false };
+    }
+  },
+
+  // Récupérer des suggestions de noms d'utilisateur
+  getUsernameSuggestions: async (username: string) => {
+    try {
+      const response = await authClient.$fetch(
+        getApiUrl(
+          `/auth/users/suggestions?username=${encodeURIComponent(username)}`,
+        ),
+      );
+      return (response.data || {
+        success: false,
+        suggestions: [],
+      }) as unknown as {
+        success: boolean;
+        suggestions: string[];
+      };
+    } catch (error) {
+      console.error("Error getUsernameSuggestions:", error);
+      return { success: false, suggestions: [] };
+    }
+  },
+
   // Mettre à jour le profil de l'utilisateur connecté
   updateProfile: async (data: {
     name?: string;
@@ -66,7 +161,7 @@ export const userService = {
   }) => {
     try {
       const response = await authClient.$fetch(getApiUrl("/auth/users/me"), {
-        method: "PUT",
+        method: "PATCH",
         body: data,
       });
       return (response.data || {
@@ -101,6 +196,48 @@ export const userService = {
     } catch (error) {
       console.error("Error deleteAccount:", error);
       return { success: false, message: "Erreur lors de la suppression" };
+    }
+  },
+
+  // Mettre à jour les informations privées
+  updatePrivateInfo: async (data: PrivateInfo) => {
+    try {
+      const response = await authClient.$fetch(
+        getApiUrl("/auth/users/me/private-info"),
+        {
+          method: "PATCH",
+          body: JSON.stringify(data),
+          headers: {
+            "Content-Type": "application/json",
+          },
+        },
+      );
+      return (response.data || { success: false }) as unknown as {
+        success: boolean;
+        privateInfo?: PrivateInfo;
+      };
+    } catch (error) {
+      console.error("Error updatePrivateInfo:", error);
+      return { success: false };
+    }
+  },
+
+  // Récupérer les informations privées d'un utilisateur (si ami)
+  getPrivateInfo: async (userId: string) => {
+    try {
+      const response = await authClient.$fetch(
+        getApiUrl(`/auth/users/${userId}`),
+      );
+      return (response.data || {
+        success: false,
+        privateInfo: null,
+      }) as unknown as {
+        success: boolean;
+        user?: any;
+      };
+    } catch (error) {
+      console.error("Error getPrivateInfo:", error);
+      return { success: false, privateInfo: null };
     }
   },
 };

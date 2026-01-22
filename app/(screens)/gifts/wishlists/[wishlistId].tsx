@@ -11,7 +11,7 @@ import { router, useLocalSearchParams, useFocusEffect } from "expo-router";
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import { wishlistService } from "@/lib/services/wishlist-service";
 import { giftService } from "@/lib/services/gift-service";
-import { authClient } from "@/lib/auth/auth-client";
+import { authClient } from "@/features/auth";
 import {
   Animated,
   Dimensions,
@@ -196,9 +196,23 @@ export default function WishlistGroupView() {
             </View>
           )}
           <View style={[styles.metaBadge, styles.metaBadgeOutline]}>
-            <View style={styles.dot} />
+            <View
+              style={[
+                styles.dot,
+                {
+                  backgroundColor:
+                    group.visibility === "PUBLIC" ? "#10B981" : "#F59E0B",
+                },
+              ]}
+            />
             <Text style={styles.metaText}>
-              {isOwner ? "MA LISTE" : "PUBLIC"}
+              {group.visibility === "PUBLIC"
+                ? "PUBLIQUE"
+                : group.visibility === "FRIENDS"
+                  ? "CERCLE PROCHE"
+                  : group.visibility === "SELECT"
+                    ? "SPÉCIFIQUE"
+                    : "PRIVÉ"}
             </Text>
           </View>
         </View>
@@ -298,6 +312,7 @@ export default function WishlistGroupView() {
         visible={selectedGift !== null}
         onClose={() => setSelectedGift(null)}
         isOwner={isOwner}
+        onActionSuccess={loadWishlist}
       />
 
       <WishlistEditModal

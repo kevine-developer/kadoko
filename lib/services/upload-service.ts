@@ -1,5 +1,5 @@
 import * as FileSystem from "expo-file-system/legacy";
-import { authClient } from "../auth/auth-client";
+import { authClient } from "@/features/auth";
 import { getApiUrl } from "../api-config";
 
 export const uploadService = {

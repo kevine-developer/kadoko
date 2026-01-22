@@ -4,7 +4,9 @@ import { Image } from "expo-image";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useState, useEffect, useCallback } from "react";
 import { giftService } from "@/lib/services/gift-service";
-import { authClient } from "@/lib/auth/auth-client";
+import { authClient } from "@/features/auth";
+import { socketService } from "@/lib/services/socket";
+import { Gift } from "@/types/gift";
 import {
   Dimensions,
   Linking,
@@ -42,6 +44,7 @@ const openLink = async (url?: string) => {
 export default function GiftDetailView() {
   const { giftId } = useLocalSearchParams<{ giftId: string }>();
   const insets = useSafeAreaInsets();
+  const { data: session } = authClient.useSession();
 
   const [giftData, setGiftData] = useState<any>(null);
 
@@ -54,10 +57,25 @@ export default function GiftDetailView() {
 
   useEffect(() => {
     loadGift();
-  }, [loadGift]);
 
-  const gift = giftData; // Temporaire
+    // Connexion Socket
+    const handleGiftUpdate = (updatedGift: Gift) => {
+      if (updatedGift.id === giftId) {
+        setGiftData(updatedGift);
+      }
+    };
+
+    socketService.connect();
+    socketService.on("gift:updated", handleGiftUpdate);
+
+    return () => {
+      socketService.off("gift:updated", handleGiftUpdate);
+    };
+  }, [loadGift, giftId]);
+
+  const gift = giftData;
   const group = giftData?.wishlist;
+  const isOwner = group?.userId === session?.user?.id;
 
   if (!gift || !group) {
     return (
@@ -74,6 +92,7 @@ export default function GiftDetailView() {
     !isPurchased &&
     (gift.status === "RESERVED" ||
       (gift.reservation && !!gift.reservation.userId));
+  const isDraft = !gift.isPublished;
 
   // Configuration dynamique selon l'état
   let statusConfig: {
@@ -84,6 +103,7 @@ export default function GiftDetailView() {
     buttonIcon: keyof typeof Ionicons.glyphMap;
     isButtonDisabled: boolean;
     buttonStyle: ViewStyle;
+    action?: () => void;
   } = {
     label: "DISPONIBLE",
     color: THEME.textMain,
@@ -92,9 +112,29 @@ export default function GiftDetailView() {
     buttonIcon: "bag-handle-outline" as keyof typeof Ionicons.glyphMap,
     isButtonDisabled: false,
     buttonStyle: styles.primaryBtn,
+    action: async () => {
+      const res = await giftService.reserveGift(giftId);
+      if (res.success) loadGift();
+    },
   };
 
-  if (isPurchased) {
+  if (isDraft) {
+    statusConfig = {
+      label: "HORS FIL D'ACCUEIL",
+      color: THEME.textSecondary,
+      priceColor: THEME.textSecondary,
+      buttonText: isOwner ? "Mettre en avant" : "Non publié",
+      buttonIcon: "paper-plane-outline",
+      isButtonDisabled: !isOwner,
+      buttonStyle: isOwner ? styles.primaryBtn : styles.secondaryBtn,
+      action: isOwner
+        ? async () => {
+            const res = await giftService.publishGift(giftId);
+            if (res.success) loadGift();
+          }
+        : undefined,
+    };
+  } else if (isPurchased) {
     statusConfig = {
       label: "DÉJÀ OFFERT",
       color: THEME.success,
@@ -105,14 +145,33 @@ export default function GiftDetailView() {
       buttonStyle: styles.successBtn,
     };
   } else if (isReserved) {
+    const isReserver = gift.reservedById === session?.user?.id;
     statusConfig = {
       label: "RÉSERVÉ",
       color: THEME.warning,
       priceColor: THEME.warning,
-      buttonText: "Actuellement réservé",
-      buttonIcon: "time-outline",
-      isButtonDisabled: true,
-      buttonStyle: styles.warningBtn,
+      buttonText: isReserver ? "Je retire" : "Actuellement réservé",
+      buttonIcon: isReserver ? "close-circle-outline" : "time-outline",
+      isButtonDisabled: !isReserver,
+      buttonStyle: isReserver ? styles.removeBtn : styles.warningBtn,
+      action: isReserver
+        ? async () => {
+            const res = await giftService.releaseGift(giftId);
+            if (res.success) loadGift();
+          }
+        : undefined,
+    };
+  } else if (isOwner) {
+    statusConfig = {
+      ...statusConfig,
+      label: "DANS LE FIL D'ACCUEIL",
+      buttonText: "Retirer du fil",
+      buttonIcon: "eye-off-outline",
+      buttonStyle: styles.removeBtn,
+      action: async () => {
+        const res = await giftService.unpublishGift(giftId);
+        if (res.success) loadGift();
+      },
     };
   }
 
@@ -198,6 +257,33 @@ export default function GiftDetailView() {
             </View>
 
             <Text style={styles.title}>{gift.title}</Text>
+
+            {/* Affichage de qui a réservé/acheté */}
+            {(isReserved || isPurchased) &&
+              (gift.reservedBy || gift.purchasedBy) && (
+                <View style={styles.reserverRow}>
+                  <Image
+                    source={{
+                      uri: isPurchased
+                        ? gift.purchasedBy?.image
+                        : gift.reservedBy?.image,
+                    }}
+                    style={styles.reserverAvatar}
+                  />
+                  <Text style={styles.reserverTextInfo}>
+                    {isPurchased ? "Offert par " : "Réservé par "}
+                    <Text style={styles.reserverName}>
+                      {isPurchased
+                        ? gift.purchasedBy?.id === session?.user?.id
+                          ? "vous"
+                          : gift.purchasedBy?.name
+                        : gift.reservedBy?.id === session?.user?.id
+                          ? "vous"
+                          : gift.reservedBy?.name}
+                    </Text>
+                  </Text>
+                </View>
+              )}
 
             {gift.productUrl && (
               <TouchableOpacity
@@ -286,25 +372,32 @@ export default function GiftDetailView() {
 
           {/* Bouton Principal : État Dynamique */}
           <TouchableOpacity
-            style={[statusConfig.buttonStyle, { flex: 2 }]} // flex 2 pour largeur
+            style={[statusConfig.buttonStyle, { flex: 2 }]}
             activeOpacity={statusConfig.isButtonDisabled ? 1 : 0.9}
             disabled={statusConfig.isButtonDisabled}
-            onPress={async () => {
-              if (!isReserved && !isPurchased) {
-                const res = await giftService.reserveGift(giftId);
-                if (res.success) loadGift();
-              }
-            }}
+            onPress={() => statusConfig.action?.()}
           >
             <Text
               style={[
                 styles.primaryBtnText,
-                (isReserved || isPurchased) && { color: "#FFF" }, // Texte blanc pour boutons colorés
+                statusConfig.buttonStyle === styles.removeBtn &&
+                  styles.removeBtnText,
+                (isReserved || isPurchased) && {
+                  color: "#FFF",
+                },
               ]}
             >
               {statusConfig.buttonText}
             </Text>
-            <Ionicons name={statusConfig.buttonIcon} size={18} color="#FFF" />
+            <Ionicons
+              name={statusConfig.buttonIcon}
+              size={18}
+              color={
+                statusConfig.buttonStyle === styles.removeBtn
+                  ? THEME.textMain
+                  : "#FFF"
+              }
+            />
           </TouchableOpacity>
         </View>
       </View>
@@ -340,7 +433,7 @@ const styles = StyleSheet.create({
     height: "100%",
   },
   imageDimmed: {
-    opacity: 0.8, // Assombrit un peu si indisponible
+    opacity: 0.8,
   },
   placeholderImage: {
     width: "100%",
@@ -368,9 +461,6 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.2)",
     alignItems: "center",
     justifyContent: "center",
-    backdropFilter: "blur(12px)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.1)",
   },
 
   /* CONTENT SHEET */
@@ -399,7 +489,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 20,
     elevation: 8,
-    borderWidth: 2, // Bordure un peu plus visible pour la couleur de statut
+    borderWidth: 2,
     transform: [{ rotate: "3deg" }],
   },
   priceValue: {
@@ -447,10 +537,37 @@ const styles = StyleSheet.create({
   },
   linkText: {
     fontSize: 14,
-    fontWeight: "600",
     color: THEME.textMain,
+    fontWeight: "600",
+    textDecorationLine: "underline",
   },
-
+  reserverRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginTop: 12,
+    backgroundColor: "#F9FAFB",
+    padding: 10,
+    borderRadius: 14,
+    alignSelf: "flex-start",
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.02)",
+  },
+  reserverAvatar: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: "#E5E7EB",
+  },
+  reserverTextInfo: {
+    fontSize: 13,
+    color: "#6B7280",
+    fontWeight: "500",
+  },
+  reserverName: {
+    fontWeight: "700",
+    color: "#111827",
+  },
   /* EVENT CARD */
   eventCard: {
     flexDirection: "row",
@@ -526,7 +643,6 @@ const styles = StyleSheet.create({
     borderTopColor: "rgba(0,0,0,0.05)",
     paddingTop: 16,
     paddingHorizontal: 24,
-    backdropFilter: "blur(20px)",
   },
   actionRow: {
     flexDirection: "row",
@@ -549,10 +665,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: THEME.textMain,
   },
-
-  // Style commun boutons principaux
   primaryBtn: {
-    // Disponible
     backgroundColor: THEME.textMain,
     borderRadius: 28,
     flexDirection: "row",
@@ -564,8 +677,20 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 16,
   },
+  removeBtn: {
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: THEME.textMain,
+    borderRadius: 28,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  removeBtnText: {
+    color: THEME.textMain,
+  },
   warningBtn: {
-    // Réservé
     backgroundColor: THEME.warning,
     borderRadius: 28,
     flexDirection: "row",
@@ -575,7 +700,6 @@ const styles = StyleSheet.create({
     opacity: 0.9,
   },
   successBtn: {
-    // Acheté
     backgroundColor: THEME.success,
     borderRadius: 28,
     flexDirection: "row",
@@ -584,7 +708,6 @@ const styles = StyleSheet.create({
     gap: 8,
     opacity: 0.9,
   },
-
   primaryBtnText: {
     fontSize: 15,
     fontWeight: "600",

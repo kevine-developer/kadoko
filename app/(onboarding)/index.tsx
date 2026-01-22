@@ -102,7 +102,7 @@ export default function OnboardingScreen() {
   const completeOnboarding = async () => {
     setHasLaunched();
     // Redirection vers Auth ou Home
-    router.push("../(auth)/sign-in");
+    router.push("/(auth)/sign-up");
   };
 
   return (

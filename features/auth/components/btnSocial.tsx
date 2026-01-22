@@ -17,10 +17,7 @@ interface BtnSocialProps {
 }
 const BtnSocial = ({ handleSocialLogin, icon, label }: BtnSocialProps) => {
   return (
-    <TouchableOpacity
-      style={styles.socialBtn}
-      onPress={handleSocialLogin}
-    >
+    <TouchableOpacity style={styles.socialBtn} onPress={handleSocialLogin}>
       <Ionicons name={icon} size={22} color={THEME.textMain} />
       <Text style={styles.socialText}>{label}</Text>
     </TouchableOpacity>
@@ -29,7 +26,8 @@ const BtnSocial = ({ handleSocialLogin, icon, label }: BtnSocialProps) => {
 
 export default BtnSocial;
 
-const styles = StyleSheet.create({  socialBtn: {
+const styles = StyleSheet.create({
+  socialBtn: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
@@ -49,4 +47,5 @@ const styles = StyleSheet.create({  socialBtn: {
     fontSize: 14,
     fontWeight: "600",
     color: THEME.textMain,
-  },});
+  },
+});
