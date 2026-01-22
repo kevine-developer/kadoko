@@ -3,11 +3,11 @@ import FriendsWishlistSlider from "@/components/HomeUI/FriendsWishlistSlider";
 import GiftCardHome from "@/components/HomeUI/GiftCardHome";
 import HeaderHome from "@/components/HomeUI/HeaderHome";
 import RadarTicker from "@/components/HomeUI/RadarTicker";
-import { authClient } from "@/lib/auth/auth-client";
+import { authClient } from "@/features/auth";
 import { giftService } from "@/lib/services/gift-service";
 import { wishlistService } from "@/lib/services/wishlist-service";
 import { router, useFocusEffect } from "expo-router";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import {
   Platform,
@@ -44,11 +44,12 @@ const HomeSkeleton = () => (
 
     {/* Cartes */}
     <GiftCardSkeleton />
-    <GiftCardSkeleton />
   </View>
 );
 
 // --- ECRAN PRINCIPAL ---
+
+import { socketService } from "@/lib/services/socket";
 
 export default function LuxuryFeedScreen() {
   const [inspirations, setInspirations] = useState<any[]>([]);
@@ -92,6 +93,28 @@ export default function LuxuryFeedScreen() {
     useCallback(() => {
       loadFeed();
       loadMyWishlists();
+
+      // Socket pour mises à jour temps réel
+      const handleGiftUpdate = (updatedGift: any) => {
+        setInspirations((prev) =>
+          prev.map((item) => {
+            if (item.id === updatedGift.id) {
+              // On met à jour l'item tout en gardant les propriétés calculées si besoin,
+              // mais ici updatedGift contient tout ce qu'il faut grâce au backend includes.
+              // On doit juste s'assurer que la structure match.
+              return { ...item, ...updatedGift };
+            }
+            return item;
+          }),
+        );
+      };
+
+      socketService.connect();
+      socketService.on("gift:updated", handleGiftUpdate);
+
+      return () => {
+        socketService.off("gift:updated", handleGiftUpdate);
+      };
     }, [loadFeed, loadMyWishlists]),
   );
 
@@ -115,9 +138,15 @@ export default function LuxuryFeedScreen() {
       },
       wishlistId: gift.wishlistId,
       context: gift.wishlist?.title || "Liste perso",
-      isReserved: gift.status !== "AVAILABLE",
+      status: gift.status,
+      isReserved: gift.status === "RESERVED",
+      isPurchased: gift.status === "PURCHASED",
+      reservedBy: gift.reservedBy,
+      purchasedBy: gift.purchasedBy,
+      isMyReservation: gift.reservedById === session?.user?.id,
+      isMyPurchase: gift.purchasedById === session?.user?.id,
     }));
-  }, [inspirations]);
+  }, [inspirations, session?.user?.id]);
 
   return (
     <View style={styles.container}>
@@ -163,20 +192,35 @@ export default function LuxuryFeedScreen() {
         ) : (
           <>
             {/* CONTENU CHARGÉ */}
-            {myWishlists.length > 0 ? (
+
+            {/* 1. Cercle Proche (Amis/Listes partagées) */}
+            {circles.length > 0 && (
               <FriendsWishlistSlider wishlists={circles} />
-            ) : (
+            )}
+
+            {/* 2. Bannière de création (si aucune liste perso) */}
+            {myWishlists.length === 0 && (
               <CreateWishlistBanner
                 onPress={() => router.push("/(screens)/createEventScreen")}
               />
             )}
 
+            {/* 3. Fil d'Inspirations (Public et Amis) */}
             <View style={styles.feedSection}>
               <Text style={styles.sectionTitle}>Inspirations du moment</Text>
 
-              {feedPosts.map((post) => (
-                <GiftCardHome key={post.id} item={post} />
-              ))}
+              {feedPosts.length > 0 ? (
+                feedPosts.map((post) => (
+                  <GiftCardHome key={post.id} item={post} />
+                ))
+              ) : (
+                <View style={styles.emptyFeed}>
+                  <Ionicons name="gift-outline" size={48} color="#D1D5DB" />
+                  <Text style={styles.emptyFeedText}>
+                    Aucune inspiration pour le moment.
+                  </Text>
+                </View>
+              )}
             </View>
           </>
         )}
@@ -230,5 +274,16 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.04,
     shadowRadius: 24,
     elevation: 2,
+  },
+  emptyFeed: {
+    paddingVertical: 60,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 16,
+  },
+  emptyFeedText: {
+    color: "#9CA3AF",
+    fontSize: 14,
+    fontWeight: "500",
   },
 });

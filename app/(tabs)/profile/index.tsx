@@ -16,7 +16,7 @@ import {
 import { useRouter, useFocusEffect } from "expo-router";
 import PagerView from "react-native-pager-view";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { authClient } from "@/lib/auth/auth-client";
+import { authClient } from "@/features/auth";
 import StatsMinimalistes from "@/components/ProfilUI/StatsMinimalistes";
 import ProfilCard from "@/components/ProfilUI/ProfilCard";
 import EmptyListTab from "@/components/ProfilUI/ui/EmptyListTab";
@@ -26,6 +26,7 @@ import * as ImagePicker from "expo-image-picker";
 import { uploadService } from "@/lib/services/upload-service";
 import { userService } from "@/lib/services/user-service";
 import TopBarSettingQr from "@/components/ProfilUI/TopBarSettingQr";
+import { showErrorToast } from "@/lib/toast";
 import { HEADER_HEIGHT, TABS } from "@/constants/const";
 import {
   ProfileHeaderSkeleton,
@@ -41,7 +42,7 @@ export default function ModernUserProfileScreen() {
 
   // Récupération de la session réelle
   const { data: session, refetch } = authClient.useSession();
-  const user = session?.user;
+  const user = session?.user as any;
 
   // États pour les données réelles
   const [userWishlists, setUserWishlists] = useState<any[]>([]);
@@ -178,7 +179,20 @@ export default function ModernUserProfileScreen() {
       {/* 2. TOP BAR */}
       <View style={[styles.navBar, { top: insets.top }]}>
         <View />
-        <TopBarSettingQr handleSettingsPress={handleSettingsPress} />
+        <TopBarSettingQr
+          handleSettingsPress={handleSettingsPress}
+          onQrPress={() => {
+            const hasUsername = user?.username && user.username.length >= 3;
+            if (!hasUsername) {
+              showErrorToast(
+                "Veuillez définir un pseudo avant de partager votre profil.",
+              );
+              router.push("/(screens)/usernameSetupScreen");
+            } else {
+              router.push("/(screens)/shareProfileScreen");
+            }
+          }}
+        />
       </View>
 
       <ScrollView
@@ -204,6 +218,25 @@ export default function ModernUserProfileScreen() {
                 reservedGifts={reservedGifts}
                 purchasedGifts={purchasedGifts}
               />
+
+              {!user?.username && (
+                <TouchableOpacity
+                  style={styles.usernameAlert}
+                  activeOpacity={0.8}
+                  onPress={() => router.push("/(screens)/usernameSetupScreen")}
+                >
+                  <View style={styles.alertIcon}>
+                    <Ionicons name="at-circle" size={24} color="#111827" />
+                  </View>
+                  <View style={styles.alertTextContent}>
+                    <Text style={styles.alertTitle}>Définir un pseudo</Text>
+                    <Text style={styles.alertSubtitle}>
+                      Obligatoire pour partager votre profil.
+                    </Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
+                </TouchableOpacity>
+              )}
             </>
           )}
         </View>
@@ -219,9 +252,6 @@ export default function ModernUserProfileScreen() {
 
         {loading && (
           <View style={styles.gridContainer}>
-            <View style={{ marginBottom: 16 }}>
-              <WishlistCardSkeleton />
-            </View>
             <View style={{ marginBottom: 16 }}>
               <WishlistCardSkeleton />
             </View>
@@ -334,6 +364,43 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 32,
     elevation: 6,
+  },
+  usernameAlert: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F9FAFB",
+    padding: 16,
+    borderRadius: 20,
+    marginTop: 20,
+    borderWidth: 1,
+    borderColor: "#F3F4F6",
+  },
+  alertIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: "#FFF",
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  alertTextContent: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  alertTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#111827",
+  },
+  alertSubtitle: {
+    fontSize: 13,
+    color: "#6B7280",
+    marginTop: 2,
   },
   /* --- TABS --- */
   tabsContainer: {

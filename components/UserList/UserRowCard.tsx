@@ -13,6 +13,7 @@ const THEME = {
   accent: "#111827",
   border: "rgba(0,0,0,0.06)",
   success: "#10B981",
+  danger: "#EF4444",
   disabledBg: "#F3F4F6",
   disabledText: "#9CA3AF",
 };
@@ -23,6 +24,7 @@ interface UserRowCardProps {
   isPendingAdd?: boolean; // ✅ Nouvel état : Demande en attente
   handleAddFriend: () => void;
   handleCancelRequest?: () => void;
+  handleRemoveFriend?: () => void;
 }
 
 const UserRowCard = ({
@@ -31,11 +33,17 @@ const UserRowCard = ({
   isPendingAdd,
   handleAddFriend,
   handleCancelRequest,
+  handleRemoveFriend,
 }: UserRowCardProps) => {
   // Logique d'affichage dynamique du bouton
   const renderButtonContent = () => {
     if (isFriend) {
-      return <Text style={styles.btnTextOutline}>Voir</Text>;
+      return (
+        <>
+          <Text style={styles.btnTextDelete}>Retirer</Text>
+          <Ionicons name="trash-outline" size={14} color={THEME.danger} />
+        </>
+      );
     }
     if (isPendingAdd) {
       return (
@@ -55,7 +63,7 @@ const UserRowCard = ({
 
   // Styles dynamiques du bouton
   const getButtonStyle = () => {
-    if (isFriend) return styles.btnOutline;
+    if (isFriend) return styles.btnOutlineDelete;
     if (isPendingAdd) return styles.btnPending;
     return styles.btnSolid;
   };
@@ -96,10 +104,7 @@ const UserRowCard = ({
         onPress={(e) => {
           e.stopPropagation(); // Empêche d'ouvrir le profil au clic sur le bouton
           if (isFriend) {
-            router.push({
-              pathname: "/profilFriend/[friendId]",
-              params: { friendId: user.id },
-            });
+            handleRemoveFriend?.();
           } else if (isPendingAdd) {
             handleCancelRequest?.();
           } else {
@@ -201,6 +206,17 @@ const styles = StyleSheet.create({
   },
   btnTextPending: {
     color: THEME.disabledText, // Gris foncé
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  // Style 4: Delete (Red Outline)
+  btnOutlineDelete: {
+    borderWidth: 1,
+    borderColor: THEME.danger,
+    backgroundColor: "transparent",
+  },
+  btnTextDelete: {
+    color: THEME.danger,
     fontSize: 12,
     fontWeight: "600",
   },

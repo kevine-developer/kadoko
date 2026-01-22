@@ -1,8 +1,14 @@
-import { ActivityIndicator, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
-import React from 'react'
-import WebView from 'react-native-webview';
-import { Ionicons } from '@expo/vector-icons';
-
+import {
+  ActivityIndicator,
+  Modal,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import React from "react";
+import WebView from "react-native-webview";
+import { Ionicons } from "@expo/vector-icons";
 
 // --- THEME LUXE ---
 const THEME = {
@@ -22,12 +28,7 @@ interface LegalModalProps {
   title: string;
 }
 
-const LegalModal = ({
-  visible,
-  onClose,
-  url,
-  title,
-}: LegalModalProps) => {
+const LegalModal = ({ visible, onClose, url, title }: LegalModalProps) => {
   return (
     <Modal
       visible={visible}
@@ -60,7 +61,7 @@ const LegalModal = ({
   );
 };
 
-export default LegalModal
+export default LegalModal;
 
 const styles = StyleSheet.create({
   /* MODAL STYLES */
@@ -94,4 +95,4 @@ const styles = StyleSheet.create({
   primaryBtnDisabled: {
     opacity: 0.6,
   },
-})
+});

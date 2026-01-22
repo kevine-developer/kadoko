@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import React, { useState, useRef, useEffect } from "react";
+import { showErrorToast, showSuccessToast } from "../../lib/toast";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -12,12 +13,13 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { authService } from "../../lib/auth/auth-service";
-import { showErrorToast, showSuccessToast } from "../../lib/toast";
-import HeaderAuth from "@/components/auth/headerAuth";
-import LayoutAuth from "@/components/auth/LayoutAuth";
-import InputCustom from "@/components/auth/input-custom";
-import { FormError } from "@/components/auth/FormError";
+import {
+  authService,
+  HeaderAuth,
+  LayoutAuth,
+  InputCustom,
+  FormError,
+} from "@/features/auth";
 
 const THEME = {
   background: "#FDFBF7",
@@ -126,7 +128,7 @@ export default function ForgotPasswordScreen() {
     }
   };
 
-  // ÉTAPE 2 : Valider l'OTP
+  // ÉTAPE 2 : Valider l'OTP (format uniquement, pas d'appel API)
   const handleVerifyOTP = async () => {
     const otpCode = otp.join("");
     if (otpCode.length !== 6) {
@@ -134,34 +136,22 @@ export default function ForgotPasswordScreen() {
       return;
     }
 
-    setIsLoading(true);
-    try {
-      // Vérifier que le code OTP est valide avant de passer à l'étape 2
-      const response = await authService.resetPassword(
-        email,
-        otpCode,
-        "temp123456",
-      );
-
-      // Si le code est invalide, on aura une erreur
-      if (!response.success && response.message.includes("invalide")) {
-        setServerError("Code invalide ou expiré");
-        setIsLoading(false);
-        return;
-      }
-
-      // Code valide, on passe à l'étape 3
-      showSuccessToast("Code vérifié !");
-      setStep(3);
-    } catch {
-      setServerError("Code invalide");
-    } finally {
-      setIsLoading(false);
-    }
+    // On passe directement à l'étape 3 sans vérifier le code
+    // La vérification se fera lors de la réinitialisation finale
+    showSuccessToast("Code saisi !");
+    setStep(3);
   };
 
   // ÉTAPE 3 : Réinitialiser le mot de passe
+  const isSubmitting = useRef(false);
+
   const handleResetPassword = async () => {
+    // Empêcher les doubles soumissions
+    if (isSubmitting.current || isLoading) {
+      console.log("[RESET] Soumission déjà en cours, ignoré");
+      return;
+    }
+
     const newErrors: any = {};
     if (!newPassword || newPassword.length < 8) {
       newErrors.password =
@@ -177,24 +167,34 @@ export default function ForgotPasswordScreen() {
       return;
     }
 
+    isSubmitting.current = true;
     setIsLoading(true);
+
     try {
       const otpCode = otp.join("");
+      console.log("[RESET] Envoi de la requête de réinitialisation");
+
       const response = await authService.resetPassword(
         email,
         otpCode,
         newPassword,
       );
+
       if (response.success) {
         showSuccessToast("Mot de passe mis à jour !");
         router.replace("/sign-in");
       } else {
         setServerError(response.message);
       }
-    } catch {
+    } catch (error) {
+      console.error("[RESET] Erreur:", error);
       setServerError("Erreur serveur");
     } finally {
       setIsLoading(false);
+      // Attendre un peu avant de permettre une nouvelle soumission
+      setTimeout(() => {
+        isSubmitting.current = false;
+      }, 1000);
     }
   };
 

@@ -1,0 +1,11 @@
+node_modules
+.expo
+dist
+web-build
+.env
+.git
+.vscode
+**.md
+Dockerfile
+ios
+android

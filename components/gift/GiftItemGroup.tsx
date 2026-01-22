@@ -47,6 +47,8 @@ function GiftItemGroup({
     gift.status === "PURCHASED" || (gift.purchase && !!gift.purchase.userId);
   const isTaken = isReserved || isPurchased;
 
+  const isDraft = !gift.isPublished;
+
   // Définition du texte et de la couleur du badge
   let statusLabel = "";
   let statusColor = THEME.textSecondary;
@@ -57,6 +59,9 @@ function GiftItemGroup({
   } else if (isReserved) {
     statusLabel = "RÉSERVÉ";
     statusColor = THEME.warning;
+  } else if (isDraft && isOwner) {
+    statusLabel = "HORS FIL";
+    statusColor = THEME.textSecondary;
   }
 
   return (
@@ -70,7 +75,7 @@ function GiftItemGroup({
         {gift.imageUrl ? (
           <Image
             source={gift.imageUrl}
-            style={styles.image}
+            style={[styles.image, isDraft && styles.imageDimmed]}
             contentFit="cover"
             transition={400}
           />
@@ -81,7 +86,9 @@ function GiftItemGroup({
         )}
 
         {/* Overlay sombre si l'objet est pris (Indication visuelle d'indisponibilité) */}
-        {isTaken && <View style={styles.takenOverlay} />}
+        {(isTaken || (isDraft && isOwner)) && (
+          <View style={[styles.takenOverlay, isDraft && { opacity: 0.1 }]} />
+        )}
       </View>
 
       {/* 2. ACTIONS & STATUTS (Top) */}
@@ -97,12 +104,18 @@ function GiftItemGroup({
 
         {/* Zone Droite : Soit Suppression, Soit Statut */}
         <View style={styles.topRightActions}>
-          {/* Affiche le statut si pris */}
-          {isTaken && (
+          {/* Affiche le statut si pris ou draft owner */}
+          {(isTaken || (isDraft && isOwner)) && (
             <View style={[styles.badgeBase, styles.statusBadge]}>
-              {/* Petit cadenas ou check */}
+              {/* Petit cadenas ou check ou plume */}
               <Ionicons
-                name={isPurchased ? "checkmark-circle" : "lock-closed"}
+                name={
+                  isPurchased
+                    ? "checkmark-circle"
+                    : isReserved
+                      ? "lock-closed"
+                      : "pencil-outline"
+                }
                 size={10}
                 color={statusColor}
               />
@@ -176,6 +189,9 @@ const styles = StyleSheet.create({
     width: "100%",
     height: "100%",
     backgroundColor: THEME.placeholder,
+  },
+  imageDimmed: {
+    opacity: 0.6,
   },
   placeholderContainer: {
     flex: 1,

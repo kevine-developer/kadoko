@@ -79,8 +79,17 @@ export interface Gift {
   status: GiftStatus;
   priority?: GiftPriority;
 
-  reservation?: GiftReservation;
-  purchase?: GiftPurchase;
+  reservation?: GiftReservation; // Legacy
+  purchase?: GiftPurchase; // Legacy
+
+  reservedById?: string;
+  purchasedById?: string;
+
+  reservedBy?: { id: string; name: string; image?: string };
+  purchasedBy?: { id: string; name: string; image?: string };
+
+  isPublished: boolean;
+  publishedAt?: ISODateString;
 
   notes?: string;
 

@@ -265,6 +265,9 @@ export default function UsersListScreen() {
                     user={friend}
                     isFriend={true}
                     handleAddFriend={() => handleAddFriend(friend.id)}
+                    handleRemoveFriend={() =>
+                      handleRemoveFriend(friend.friendshipId)
+                    }
                   />
                 ))
               ) : (

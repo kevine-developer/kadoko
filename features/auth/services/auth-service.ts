@@ -4,7 +4,7 @@ import type {
   SignInRequest,
   AuthResponse,
   UserPublic,
-} from "../../types/api-types";
+} from "../types/index";
 
 /**
  * Service d'authentification utilisant Better Auth

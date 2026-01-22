@@ -39,7 +39,11 @@ const ProfilCard = ({
 
       <View style={styles.identityContainer}>
         <Text style={styles.userName}>{user?.name}</Text>
-        <Text style={styles.userHandle}>@{user?.email?.split("@")[0]}</Text>
+        {user?.username ? (
+          <Text style={styles.userHandle}>@{user.username}</Text>
+        ) : (
+          <Text style={styles.noHandle}>Sans pseudo</Text>
+        )}
       </View>
 
       <TouchableOpacity
@@ -100,6 +104,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#9CA3AF",
     letterSpacing: 0.5,
+  },
+  noHandle: {
+    fontSize: 12,
+    color: "#EF4444",
+    fontWeight: "600",
+    fontStyle: "italic",
+    opacity: 0.8,
   },
   editProfileBtn: {
     paddingHorizontal: 16,

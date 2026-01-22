@@ -1,4 +1,4 @@
-import { authClient } from "../auth/auth-client";
+import { authClient } from "@/features/auth";
 import { getApiUrl } from "../api-config";
 
 export const wishlistService = {
@@ -96,7 +96,7 @@ export const wishlistService = {
   ) => {
     try {
       const response = await authClient.$fetch(getApiUrl(`/wishlists/${id}`), {
-        method: "PUT",
+        method: "PATCH",
         body: data,
       });
       return (response.data || {

@@ -31,9 +31,6 @@ export const GiftCardSkeleton = () => {
 export const ProfileHeaderSkeleton = () => {
   return (
     <View style={styles.profileContainer}>
-      {/* Cover */}
-      <Skeleton width="100%" height={150} borderRadius={0} />
-
       <View style={{ paddingHorizontal: 20, marginTop: -40 }}>
         {/* Avatar */}
         <View style={styles.avatarWrapper}>

@@ -123,7 +123,21 @@ export default function GiftWishlistCard({
     });
   };
 
-  const isPrivate = wishlistVisibility === WishlistVisibility.PRIVATE;
+  const getVisibilityInfo = () => {
+    switch (wishlistVisibility) {
+      case WishlistVisibility.PRIVATE:
+        return { label: "PRIVÉE", icon: "lock-closed-outline" };
+      case WishlistVisibility.FRIENDS:
+        return { label: "CERCLE PROCHE", icon: "people-outline" };
+      case WishlistVisibility.SELECT:
+        return { label: "SPÉCIFIQUE", icon: "options-outline" };
+      case WishlistVisibility.PUBLIC:
+      default:
+        return { label: "PUBLIQUE", icon: "globe-outline" };
+    }
+  };
+
+  const { label, icon } = getVisibilityInfo();
 
   return (
     <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
@@ -149,13 +163,12 @@ export default function GiftWishlistCard({
           {/* Statut minimaliste */}
           <View style={styles.statusRow}>
             <Ionicons
-              name={isPrivate ? "lock-closed-outline" : "globe-outline"}
-              size={10}
+              name={icon as any}
+              size={11}
               color={THEME.textSecondary}
+              style={{ opacity: 0.8 }}
             />
-            <Text style={styles.statusText}>
-              {isPrivate ? "PRIVÉE" : "PUBLIQUE"}
-            </Text>
+            <Text style={styles.statusText}>{label}</Text>
           </View>
 
           <Text style={styles.title} numberOfLines={1}>

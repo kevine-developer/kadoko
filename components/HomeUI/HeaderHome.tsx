@@ -1,4 +1,5 @@
-import { Image } from "expo-image";
+import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import React from "react";
 import {
   Platform,
@@ -11,6 +12,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const HeaderHome = ({ user }: any) => {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
+
   return (
     <View style={[styles.headerContainer, { paddingTop: insets.top + 10 }]}>
       <View>
@@ -23,8 +26,14 @@ const HeaderHome = ({ user }: any) => {
           Gift<Text style={styles.headerTitleItalic}>Flow</Text>
         </Text>
       </View>
-      <TouchableOpacity style={styles.headerAvatarBtn}>
-        <Image source={user?.image} style={styles.headerAvatar} />
+      <TouchableOpacity
+        style={styles.headerAvatarBtn}
+        onPress={() => router.push("/(screens)/notificationsScreen")}
+      >
+        <View style={styles.notificationCircle}>
+          <Ionicons name="notifications-outline" size={24} color="#111827" />
+          <View style={styles.notificationBadge} />
+        </View>
       </TouchableOpacity>
     </View>
   );
@@ -62,17 +71,31 @@ const styles = StyleSheet.create({
   },
   headerAvatarBtn: {
     position: "relative",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
   },
-  headerAvatar: {
+  notificationCircle: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    borderWidth: 2,
+    backgroundColor: "#FFFFFF",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 3,
+  },
+  notificationBadge: {
+    position: "absolute",
+    top: 12,
+    right: 12,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#EF4444",
+    borderWidth: 1.5,
     borderColor: "#FFF",
   },
 });
