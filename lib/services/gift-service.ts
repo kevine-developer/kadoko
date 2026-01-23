@@ -197,4 +197,23 @@ export const giftService = {
       return { success: false, inspirations: [], circles: [] };
     }
   },
+
+  // Récupérer mes réservations
+  getMyReservations: async () => {
+    try {
+      const response = await authClient.$fetch(
+        getApiUrl("/gifts/reservations/me"),
+      );
+      return (response.data || {
+        success: false,
+        gifts: [],
+      }) as unknown as {
+        success: boolean;
+        gifts: any[];
+      };
+    } catch (error) {
+      console.error("Error getMyReservations:", error);
+      return { success: false, gifts: [] };
+    }
+  },
 };

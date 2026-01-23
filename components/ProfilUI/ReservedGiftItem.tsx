@@ -31,15 +31,14 @@ export default function ReservedGiftItem({
   gift,
   ownerName,
   onPurchased, // Callback quand on passe de Réservé -> Acheté
+  onUnreserve, // Callback pour annuler la réservation
   eventDate,
 }: any) {
   // --- DÉTECTION DU STATUT ---
   // On suppose que gift.status contient 'RESERVED' ou 'PURCHASED'
   // Ou on vérifie la présence d'un objet purchase
-  const isPurchased =
-    gift.status === "PURCHASED" ||
-    (gift.purchase && !!gift.purchase.purchasedAt);
-  const purchaseDate = gift.purchase?.purchasedAt;
+  const isPurchased = gift.status === "PURCHASED" || !!gift.purchasedAt;
+  const purchaseDate = gift.purchasedAt;
 
   // --- ÉTATS LOCAUX ---
   const [timeRemaining, setTimeRemaining] = useState("");
@@ -277,7 +276,10 @@ export default function ReservedGiftItem({
                     />
                   </TouchableOpacity>
 
-                  <TouchableOpacity style={[styles.iconBtn, styles.trashBtn]}>
+                  <TouchableOpacity
+                    style={[styles.iconBtn, styles.trashBtn]}
+                    onPress={onUnreserve}
+                  >
                     <Ionicons
                       name="trash-outline"
                       size={16}

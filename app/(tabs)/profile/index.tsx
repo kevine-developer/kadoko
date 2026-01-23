@@ -53,17 +53,22 @@ export default function ModernUserProfileScreen() {
   const loadProfileData = useCallback(async () => {
     if (!session) return;
     setLoading(true);
-    const [wlRes, feedRes] = await Promise.all([
+    const [wlRes, resRes] = await Promise.all([
       wishlistService.getMyWishlists(),
-      giftService.getFeed(), // Pour l'instant on prend du feed ou on pourrait avoir une route /me/gifts
+      giftService.getMyReservations(),
     ]);
 
     if (wlRes.success) setUserWishlists(wlRes.wishlists);
-    // Filtrer les cadeaux réservés/offerts par l'utilisateur (sera amélioré avec une route dédiée)
-    if (feedRes.success) {
-      // En attendant une route dédiée /users/me/activities
-      setReservedGifts([]);
-      setPurchasedGifts([]);
+    if (resRes.success) {
+      setReservedGifts(resRes.gifts);
+      // On peut aussi filtrer les achetés ici si on veut, ou ajouter une route dédiée
+      setPurchasedGifts(
+        resRes.gifts.filter((g: any) => g.status === "PURCHASED"),
+      );
+      // Et ne garder que les réservés pour le tab reserved
+      setReservedGifts(
+        resRes.gifts.filter((g: any) => g.status === "RESERVED"),
+      );
     }
     setLoading(false);
   }, [session]);
@@ -144,6 +149,20 @@ export default function ModernUserProfileScreen() {
 
   const onPageSelected = (e: any) => {
     setActivePage(e.nativeEvent.position);
+  };
+
+  const handlePurchaseGift = async (giftId: string) => {
+    const res = await giftService.purchaseGift(giftId);
+    if (res.success) {
+      loadProfileData();
+    }
+  };
+
+  const handleUnreserveGift = async (giftId: string) => {
+    const res = await giftService.releaseGift(giftId);
+    if (res.success) {
+      loadProfileData();
+    }
   };
 
   // --- RENDERERS ---
@@ -274,7 +293,8 @@ export default function ModernUserProfileScreen() {
                     <ReservedGiftItem
                       gift={gift}
                       ownerName={gift.wishlist?.user?.name || "Inconnu"}
-                      onPurchased={() => {}}
+                      onPurchased={() => handlePurchaseGift(gift.id)}
+                      onUnreserve={() => handleUnreserveGift(gift.id)}
                       eventDate={gift.wishlist?.eventDate}
                     />
                   </View>
@@ -314,6 +334,7 @@ export default function ModernUserProfileScreen() {
                       gift={gift}
                       ownerName={gift.wishlist?.user?.name || "Inconnu"}
                       onPurchased={() => {}}
+                      onUnreserve={() => {}}
                       eventDate={gift.wishlist?.eventDate}
                     />
                   </View>

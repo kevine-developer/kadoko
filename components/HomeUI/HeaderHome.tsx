@@ -10,6 +10,8 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { NotificationBadge } from "../notifications/NotificationBadge";
+
 const HeaderHome = ({ user }: any) => {
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -28,11 +30,11 @@ const HeaderHome = ({ user }: any) => {
       </View>
       <TouchableOpacity
         style={styles.headerAvatarBtn}
-        onPress={() => router.push("/(screens)/notificationsScreen")}
+        onPress={() => router.push("/(screens)/notifications")}
       >
         <View style={styles.notificationCircle}>
           <Ionicons name="notifications-outline" size={24} color="#111827" />
-          <View style={styles.notificationBadge} />
+          <NotificationBadge />
         </View>
       </TouchableOpacity>
     </View>

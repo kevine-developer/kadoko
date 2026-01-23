@@ -22,6 +22,7 @@ import {
 
 import { Skeleton } from "@/components/ui/Skeleton";
 import { GiftCardSkeleton } from "@/components/ui/SkeletonGroup";
+import { socketService } from "@/lib/services/socket";
 
 // Structure globale du chargement
 const HomeSkeleton = () => (
@@ -48,8 +49,6 @@ const HomeSkeleton = () => (
 );
 
 // --- ECRAN PRINCIPAL ---
-
-import { socketService } from "@/lib/services/socket";
 
 export default function LuxuryFeedScreen() {
   const [inspirations, setInspirations] = useState<any[]>([]);
