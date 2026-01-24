@@ -11,6 +11,7 @@ import {
 import * as Haptics from "expo-haptics";
 
 import { Gift } from "@/types/gift";
+import { authClient } from "@/features/auth";
 
 // --- THEME ÉDITORIAL COHÉRENT ---
 const THEME = {
@@ -21,40 +22,36 @@ const THEME = {
   accent: "#AF9062", // Or brossé
   border: "rgba(0,0,0,0.08)",
   success: "#4A6741", // Vert forêt luxe
-  error: "#C34A4A",
 };
 
-type GiftItemProps = {
+type GuestGiftCardProps = {
   gift: Gift;
   onPress: (gift: Gift) => void;
-  onRemove?: (gift: Gift) => void;
-  isOwner?: boolean;
 };
 
-function GiftItemGroup({
-  gift,
-  onPress,
-  onRemove,
-  isOwner = false,
-}: GiftItemProps) {
-  // Logique des statuts
-  const isReserved =
-    gift.status === "RESERVED" ||
-    (gift.reservation && !!gift.reservation.userId);
+function GuestGiftCard({ gift, onPress }: GuestGiftCardProps) {
+  const { data: session } = authClient.useSession();
+
+  // Logique des statuts étendue
+  const isReceived = gift.status === "RECEIVED";
   const isPurchased =
-    gift.status === "PURCHASED" || (gift.purchase && !!gift.purchase.userId);
-  const isTaken = isReserved || isPurchased;
-  const isDraft = !gift.isPublished;
+    (gift.status === "PURCHASED" ||
+      (gift.purchase && !!gift.purchase.userId)) &&
+    !isReceived;
+  const isReserved =
+    (gift.status === "RESERVED" ||
+      (gift.reservation && !!gift.reservation.userId)) &&
+    !isPurchased &&
+    !isReceived;
+  const isReservedByMe =
+    gift.reservedById === session?.user?.id ||
+    gift.reservation?.userId === session?.user?.id;
+
+  const isTaken = isReserved || isPurchased || isReceived;
 
   const handlePress = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     onPress(gift);
-  };
-
-  const handleRemove = (e: any) => {
-    e.stopPropagation();
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-    onRemove?.(gift);
   };
 
   return (
@@ -78,42 +75,64 @@ function GiftItemGroup({
           </View>
         )}
 
-        {/* OVERLAY D'INDISPONIBILITÉ (Soyeux) */}
-        {isTaken && <View style={styles.takenOverlay} />}
+        {/* OVERLAY D'INDISPONIBILITÉ (Voile soie) */}
+        {isTaken && (
+          <View style={styles.takenOverlay}>
+            <View style={styles.takenLabel}>
+              <Text style={styles.takenLabelText}>
+                {isReceived
+                  ? "PIÈCE REÇUE"
+                  : isPurchased
+                    ? "ACQUISE"
+                    : isReservedByMe
+                      ? "RÉSERVÉE PAR VOUS"
+                      : "RÉSERVÉE"}
+              </Text>
+            </View>
+          </View>
+        )}
 
-        {/* BADGE DE PRIX (Discret, style étiquette) */}
+        {/* BADGE DE PRIX */}
         {gift.estimatedPrice && (
           <View style={styles.priceTag}>
             <Text style={styles.priceText}>{gift.estimatedPrice}€</Text>
           </View>
         )}
-
-        {/* BOUTON SUPPRIMER (Seulement pour Owner) */}
-        {isOwner && !isTaken && (
-          <TouchableOpacity style={styles.removeCircle} onPress={handleRemove}>
-            <Ionicons name="close" size={14} color={THEME.textMain} />
-          </TouchableOpacity>
-        )}
       </View>
 
       {/* 2. INFORMATIONS ÉDITORIALES */}
       <View style={styles.infoSection}>
-        {/* STATUT (Petit point + Label espacé) */}
-        {isTaken || (isDraft && isOwner) ? (
+        {/* STATUT */}
+        {isReservedByMe ? (
+          <View style={styles.statusRow}>
+            <View style={[styles.dot, { backgroundColor: THEME.accent }]} />
+            <Text style={[styles.statusLabel, { color: THEME.accent }]}>
+              VOTRE RÉSERVATION
+            </Text>
+          </View>
+        ) : isTaken ? (
           <View style={styles.statusRow}>
             <View
               style={[
                 styles.dot,
-                { backgroundColor: isPurchased ? THEME.success : THEME.accent },
+                {
+                  backgroundColor: isReceived
+                    ? THEME.success
+                    : THEME.textSecondary,
+                },
               ]}
             />
             <Text
               style={[
                 styles.statusLabel,
-                { color: isPurchased ? THEME.success : THEME.accent },
+                { color: isReceived ? THEME.success : THEME.textSecondary },
               ]}
             >
-              {isPurchased ? "ACQUIS" : isReserved ? "RÉSERVÉ" : "BROUILLON"}
+              {isReceived
+                ? "OFFERT ET REÇU"
+                : isPurchased
+                  ? "PIÈCE ACQUISE"
+                  : "DÉJÀ RÉSERVÉ"}
             </Text>
           </View>
         ) : (
@@ -130,7 +149,7 @@ function GiftItemGroup({
 
         {/* LIGNE DE DÉTAIL FINALE */}
         <View style={styles.footerRow}>
-          <Text style={styles.detailLink}>DÉTAILS</Text>
+          <Text style={styles.detailLink}>DÉCOUVRIR</Text>
           <View style={styles.hairline} />
         </View>
       </View>
@@ -138,19 +157,17 @@ function GiftItemGroup({
   );
 }
 
-export default memo(GiftItemGroup);
+export default memo(GuestGiftCard);
 
 const styles = StyleSheet.create({
   container: {
     width: "100%",
     backgroundColor: "transparent",
   },
-
-  /* IMAGE FRAME */
   imageFrame: {
     width: "100%",
-    aspectRatio: 0.9, // Format légèrement vertical plus luxe
-    borderRadius: 0, // Rectangulaire pour le look galerie
+    aspectRatio: 0.9,
+    borderRadius: 0,
     overflow: "hidden",
     backgroundColor: "#F2F2F7",
     borderWidth: 1,
@@ -171,10 +188,24 @@ const styles = StyleSheet.create({
   },
   takenOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(253, 251, 247, 0.2)", // Voile soie
+    backgroundColor: "rgba(253, 251, 247, 0.4)",
+    alignItems: "center",
+    justifyContent: "center",
   },
-
-  /* BADGES DANS L'IMAGE */
+  takenLabel: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    backgroundColor: THEME.surface,
+    borderWidth: 0.5,
+    borderColor: THEME.accent,
+  },
+  takenLabelText: {
+    color: THEME.accent,
+    fontWeight: "900",
+    letterSpacing: 1,
+    fontSize: 7,
+    textTransform: "uppercase",
+  },
   priceTag: {
     position: "absolute",
     bottom: 0,
@@ -182,7 +213,6 @@ const styles = StyleSheet.create({
     backgroundColor: THEME.surface,
     paddingHorizontal: 10,
     paddingVertical: 5,
-    borderTopRightRadius: 0,
     borderWidth: 1,
     borderColor: THEME.border,
   },
@@ -192,21 +222,6 @@ const styles = StyleSheet.create({
     color: THEME.textMain,
     letterSpacing: -0.5,
   },
-  removeCircle: {
-    position: "absolute",
-    top: 8,
-    right: 8,
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    backgroundColor: "rgba(255,255,255,0.9)",
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 0.5,
-    borderColor: THEME.border,
-  },
-
-  /* INFO SECTION */
   infoSection: {
     paddingVertical: 12,
     paddingHorizontal: 2,
@@ -242,8 +257,6 @@ const styles = StyleSheet.create({
     fontStyle: "italic",
     opacity: 0.7,
   },
-
-  /* FOOTER */
   footerRow: {
     flexDirection: "row",
     alignItems: "center",

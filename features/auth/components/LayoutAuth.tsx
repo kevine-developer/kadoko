@@ -60,7 +60,7 @@ const styles = StyleSheet.create({
     // Suppression des arrondis massifs pour un look rectangulaire plus prestigieux
     borderRadius: 0,
     paddingHorizontal: 32, // Marges plus larges style magazine
-    paddingTop: 45,
+    paddingTop: 5,
     minHeight: SCREEN_HEIGHT * 0.6, // Prend 60% de l'écran par défaut
     // Ombre de contact ultra-subtile
     shadowColor: "#000",

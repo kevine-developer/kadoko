@@ -11,7 +11,6 @@ import {
   TextInput,
   TouchableOpacity,
   View,
-  Alert,
   ActivityIndicator,
 } from "react-native";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
@@ -21,6 +20,7 @@ import { MotiView } from "moti";
 
 // Services
 import { wishlistService } from "@/lib/services/wishlist-service";
+import { showSuccessToast, showErrorToast } from "@/lib/toast";
 
 // --- THEME ÉDITORIAL COHÉRENT ---
 const THEME = {
@@ -94,12 +94,13 @@ export default function CreateWishlistScreen() {
 
       if (res.success) {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        showSuccessToast("Collection créée avec succès");
         router.back();
       } else {
-        Alert.alert("Erreur", res.message);
+        showErrorToast(res.message || "Erreur de création");
       }
-    } catch (error) {
-      console.error(error);
+    } catch {
+      showErrorToast("Une erreur est survenue");
     } finally {
       setLoading(false);
     }

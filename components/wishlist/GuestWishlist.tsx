@@ -14,8 +14,8 @@ import { MotiView } from "moti";
 import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
 
-import GiftDetailsModal from "@/components/gift/GiftDetailsModal";
-import GiftItemGroup from "@/components/gift/GiftItemGroup";
+import GuestGiftDetailsModal from "@/components/gift/GuestGiftDetailsModal";
+import GuestGiftCard from "@/components/gift/GuestGiftCard";
 
 const { width } = Dimensions.get("window");
 const ITEM_WIDTH = (width - 60) / 2;
@@ -137,24 +137,22 @@ export default function GuestWishlist({
         ListHeaderComponent={<ListHeader />}
         renderItem={({ item }) => (
           <View style={{ width: ITEM_WIDTH, marginBottom: 25 }}>
-            <GiftItemGroup
+            <GuestGiftCard
               gift={item}
               onPress={(gift) => {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                 setSelectedGift(gift);
               }}
-              isOwner={false}
             />
           </View>
         )}
       />
 
       {/* MODALS */}
-      <GiftDetailsModal
+      <GuestGiftDetailsModal
         gift={selectedGift}
         visible={selectedGift !== null}
         onClose={() => setSelectedGift(null)}
-        isOwner={false}
         onActionSuccess={onRefresh}
       />
     </View>

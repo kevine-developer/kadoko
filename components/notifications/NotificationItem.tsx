@@ -12,7 +12,7 @@ import * as Haptics from "expo-haptics";
 import { Notification } from "../../lib/services/notification-service";
 import { Ionicons } from "@expo/vector-icons";
 
-// --- THEME ÉDITORIAL ---
+// --- THEME ÉDITORIAL COHÉRENT ---
 const THEME = {
   background: "#FDFBF7",
   surface: "#FFFFFF",
@@ -21,6 +21,7 @@ const THEME = {
   accent: "#AF9062", // Or brossé
   border: "rgba(0,0,0,0.06)",
   unreadBg: "rgba(175, 144, 98, 0.03)", // Teinte or très légère
+  danger: "#C34A4A", // Rouge brique luxe
 };
 
 interface NotificationItemProps {
@@ -59,7 +60,7 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
 
   const handleDelete = (e: any) => {
     e.stopPropagation();
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
     onDelete(notification.id);
   };
 
@@ -73,10 +74,11 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
       onPress={handlePress}
       activeOpacity={0.7}
     >
-      {/* Indicateur de lecture "Or brossé" */}
+      {/* Indicateur de lecture "Or brossé" - Sceau de confidentialité */}
       {isUnread && <View style={styles.unreadStrip} />}
 
       <View style={styles.contentRow}>
+        {/* Avatar format Galerie (Carré) */}
         <Image
           source={{
             uri: notification.actor?.image || "https://i.pravatar.cc/150",
@@ -97,13 +99,21 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
             )}
           </Text>
           <Text style={styles.timeText}>
-            {getTimeAgo(notification.createdAt)}
+            {getTimeAgo(notification.createdAt).toUpperCase()}
           </Text>
         </View>
 
-        <View style={styles.actions}>
-          <TouchableOpacity onPress={handleDelete} style={styles.deleteBtn}>
-            <Ionicons name="trash-outline" size={16} color="#FF3B30" />
+        <View style={styles.actionArea}>
+          <TouchableOpacity
+            onPress={handleDelete}
+            style={styles.deleteCircle}
+            activeOpacity={0.5}
+          >
+            <Ionicons
+              name="close-outline"
+              size={14}
+              color={THEME.textSecondary}
+            />
           </TouchableOpacity>
           <Ionicons name="chevron-forward" size={12} color={THEME.border} />
         </View>
@@ -114,7 +124,7 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    paddingVertical: 18,
+    paddingVertical: 20,
     paddingHorizontal: 25,
     borderBottomWidth: 1,
     borderBottomColor: THEME.border,
@@ -127,8 +137,8 @@ const styles = StyleSheet.create({
   unreadStrip: {
     position: "absolute",
     left: 0,
-    top: 15,
-    bottom: 15,
+    top: 20,
+    bottom: 20,
     width: 3,
     backgroundColor: THEME.accent,
   },
@@ -138,9 +148,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 0, // Style Galerie/Editorial
+    width: 46,
+    height: 46,
+    borderRadius: 0, // Architecture luxe : carré
     backgroundColor: "#F2F2F7",
     borderWidth: 0.5,
     borderColor: THEME.border,
@@ -154,7 +164,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: THEME.textMain,
     lineHeight: 20,
-    letterSpacing: -0.2,
+    letterSpacing: -0.1,
   },
   actorName: {
     fontWeight: "700",
@@ -163,21 +173,26 @@ const styles = StyleSheet.create({
   giftTitle: {
     fontStyle: "italic",
     color: THEME.textSecondary,
+    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
   },
   timeText: {
-    fontSize: 11,
+    fontSize: 9,
     color: THEME.textSecondary,
-    marginTop: 4,
-    fontWeight: "600",
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
+    marginTop: 6,
+    fontWeight: "800",
+    letterSpacing: 1.2, // Style étiquette luxe
   },
-  actions: {
+  actionArea: {
     flexDirection: "row",
     alignItems: "center",
+    gap: 8,
   },
-  deleteBtn: {
-    padding: 8,
-    marginRight: 4,
+  deleteCircle: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: "rgba(0,0,0,0.03)",
+    alignItems: "center",
+    justifyContent: "center",
   },
 });

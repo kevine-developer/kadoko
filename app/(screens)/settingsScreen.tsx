@@ -7,7 +7,6 @@ import {
   Text,
   TouchableOpacity,
   View,
-  Alert,
   Image,
   Platform,
 } from "react-native";
@@ -16,6 +15,13 @@ import * as Haptics from "expo-haptics";
 import { MotiView } from "moti";
 import { authClient } from "@/features/auth";
 import SettingRow from "@/components/Settings/SettingRow";
+import { getApiUrl } from "@/lib/api-config";
+import { showErrorToast, showCustomAlert } from "@/lib/toast";
+
+interface LinkedAccount {
+  provider: string;
+  linkedAt: string;
+}
 
 const THEME = {
   background: "#FDFBF7",
@@ -35,14 +41,62 @@ export default function SettingsScreen() {
   const user = session?.user as any;
 
   const [isPublic, setIsPublic] = useState(user?.isPublic ?? true);
+  const [linkedAccounts, setLinkedAccounts] = useState<LinkedAccount[]>([]);
 
   useEffect(() => {
     if (user?.isPublic !== undefined) setIsPublic(user.isPublic);
-  }, [user?.isPublic]);
+
+    const fetchLinkedAccounts = async () => {
+      if (!user) return;
+      try {
+        const res = await authClient.$fetch<{
+          success: boolean;
+          accounts: LinkedAccount[];
+        }>(getApiUrl("/auth/accounts"));
+        if (res.data?.success) {
+          setLinkedAccounts(res.data.accounts);
+        }
+      } catch {
+        console.log("Error fetching accounts");
+      }
+    };
+
+    fetchLinkedAccounts();
+  }, [user]);
+
+  const handleLinkGoogle = async () => {
+    // Règle métier : Si email Gmail, on doit lier le même
+    if (user?.email?.endsWith("@gmail.com")) {
+      showCustomAlert(
+        "Synchronisation Google",
+        `Puisque votre email est ${user.email}, vous devez utiliser le compte Google associé à cette adresse exacte.`,
+        [
+          { text: "Annuler", style: "cancel" },
+          {
+            text: "J'ai compris",
+            onPress: performGoogleLink,
+          },
+        ],
+      );
+    } else {
+      performGoogleLink();
+    }
+  };
+
+  const performGoogleLink = async () => {
+    try {
+      await authClient.signIn.social({
+        provider: "google",
+        callbackURL: "/(screens)/settingsScreen", // On revient ici
+      });
+    } catch {
+      showErrorToast("Impossible de lancer la liaison Google");
+    }
+  };
 
   const handleLogout = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    Alert.alert("Déconnexion", "Souhaitez-vous quitter votre session ?", [
+    showCustomAlert("Déconnexion", "Souhaitez-vous quitter votre session ?", [
       { text: "Annuler", style: "cancel" },
       {
         text: "Se déconnecter",
@@ -69,7 +123,7 @@ export default function SettingsScreen() {
         <TouchableOpacity onPress={() => router.back()} style={styles.navBtn}>
           <Ionicons name="chevron-back" size={26} color={THEME.textMain} />
         </TouchableOpacity>
-        <Text style={styles.navTitle}>PRÉFÉRENCES</Text>
+        <Text style={styles.navTitle}>PARAMÈTRES</Text>
         <View style={{ width: 44 }} />
       </View>
 
@@ -77,16 +131,6 @@ export default function SettingsScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* TITRE HERO */}
-        <MotiView
-          from={{ opacity: 0, translateY: 10 }}
-          animate={{ opacity: 1, translateY: 0 }}
-          style={styles.heroSection}
-        >
-          <Text style={styles.heroTitle}>Paramètres.</Text>
-          <View style={styles.titleDivider} />
-        </MotiView>
-
         {/* CARTE PROFIL LUXE */}
         <TouchableOpacity
           style={styles.profileCard}
@@ -165,6 +209,33 @@ export default function SettingsScreen() {
             switchValue={isPublic}
             onSwitchChange={(val: boolean) => setIsPublic(val)}
             isLast
+          />
+        </SettingsSection>
+
+        <SettingsSection title="Comptes liés">
+          <SettingRow
+            label="Google"
+            subLabel={
+              linkedAccounts.some((a) => a.provider === "google")
+                ? "Compte synchronisé"
+                : "Synchroniser pour une connexion rapide"
+            }
+            icon="logo-google"
+            onPress={
+              linkedAccounts.some((a) => a.provider === "google")
+                ? undefined
+                : handleLinkGoogle
+            }
+            badge={
+              linkedAccounts.some((a) => a.provider === "google")
+                ? "LIÉ"
+                : undefined
+            }
+            badgeColor={
+              linkedAccounts.some((a) => a.provider === "google")
+                ? "#34C759"
+                : undefined
+            }
           />
         </SettingsSection>
 

@@ -10,7 +10,6 @@ class FirstLaunchStore {
   private isFirstLaunch: boolean = false;
   private isLoading: boolean = true;
   private listeners: Set<Listener> = new Set();
-  private isInitialized: boolean = false;
 
   private constructor() {
     this.init();
@@ -32,7 +31,6 @@ class FirstLaunchStore {
       this.isFirstLaunch = false;
     } finally {
       this.isLoading = false;
-      this.isInitialized = true;
       this.notify();
     }
   }

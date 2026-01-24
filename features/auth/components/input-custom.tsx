@@ -99,7 +99,7 @@ export default InputCustom;
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 25,
+    marginBottom: 10,
     width: "100%",
   },
   miniLabel: {

@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { router } from "expo-router";
-import React, { useState, useRef } from "react";
+import React, { useRef } from "react";
 import {
   Platform,
   StyleSheet,
@@ -11,6 +11,7 @@ import {
   Animated,
 } from "react-native";
 import * as Haptics from "expo-haptics";
+import { shareGift } from "@/lib/share";
 
 // --- THEME ÉDITORIAL COHÉRENT ---
 const THEME = {
@@ -24,7 +25,6 @@ const THEME = {
 };
 
 const GiftCardHome = ({ item }: { item: any }) => {
-  const [liked, setLiked] = useState(false);
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
   const handlePressIn = () => {
@@ -42,125 +42,127 @@ const GiftCardHome = ({ item }: { item: any }) => {
     }).start();
   };
 
-  const toggleLike = () => {
+  const handleShare = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setLiked(!liked);
+    await shareGift(item.id, item.product.name);
   };
 
   const handleMainAction = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    if (item.isReserved || item.isPurchased) {
-      router.push({
-        pathname: "/(screens)/gifts/wishlists/[wishlistId]",
-        params: { wishlistId: item.wishlistId },
-      });
-    } else {
-      router.push({
-        pathname: "/(screens)/gifts/[giftId]",
-        params: { giftId: item.id },
-      });
+    router.push({
+      pathname: "/(screens)/gifts/[giftId]",
+      params: { giftId: item.id },
+    });
+  };
+
+  const getHostname = (url: string) => {
+    try {
+      if (!url) return "";
+      const hostname = url
+        .replace(/^(?:https?:\/\/)?(?:www\.)?/i, "")
+        .split("/")[0];
+      return hostname.charAt(0).toUpperCase() + hostname.slice(1);
+    } catch {
+      return "Boutique en ligne";
     }
   };
 
-  const isTaken = item.isReserved || item.isPurchased;
+  const isPurchased = item.isPurchased;
+  const isReserved = item.isReserved;
+  const isTaken = isReserved || isPurchased;
+  const isReservedByMe = item.isMyReservation;
 
   return (
     <Animated.View
       style={[styles.container, { transform: [{ scale: scaleAnim }] }]}
     >
+      {/* 1. HEADER : IDENTITÉ (User & Collection) */}
+      <View style={styles.cardHeader}>
+        <View style={styles.userInfo}>
+          <Image source={{ uri: item.user.avatar }} style={styles.avatar} />
+          <View>
+            <Text style={styles.userName}>{item.user.name}</Text>
+            <Text style={styles.userContext}>{item.context.toUpperCase()}</Text>
+          </View>
+        </View>
+        <TouchableOpacity onPress={handleShare} style={styles.shareBtn}>
+          <Ionicons name="share-outline" size={20} color={THEME.textMain} />
+        </TouchableOpacity>
+      </View>
+
+      {/* 2. MILIEU : IMAGE VITRINE */}
       <TouchableOpacity
         activeOpacity={1}
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
         onPress={handleMainAction}
-        style={styles.cardTouch}
+        style={styles.imageFrame}
       >
-        {/* Image (Gauche) */}
-        <View style={styles.imageSection}>
-          <Image
-            source={{ uri: item.product.image }}
-            style={[styles.image, isTaken && styles.imageDimmed]}
-            contentFit="cover"
-            transition={500}
-          />
-          {isTaken && (
-            <View style={styles.takenOverlay}>
-              <Text style={styles.takenText}>
-                {item.isPurchased ? "ACQUIS" : "RÉSERVÉ"}
+        <Image
+          source={{ uri: item.product.image }}
+          style={[styles.image, isTaken && styles.imageDimmed]}
+          contentFit="cover"
+          transition={500}
+        />
+        {isTaken && (
+          <View style={styles.takenOverlay}>
+            <View style={styles.statusBadge}>
+              <Text style={styles.statusText}>
+                {isPurchased ? "ACQUIS" : "RÉSERVÉ"}
+              </Text>
+            </View>
+          </View>
+        )}
+      </TouchableOpacity>
+
+      {/* 3. FOOTER : PRODUIT & ACTIONS */}
+      <View style={styles.cardFooter}>
+        <View style={styles.productInfo}>
+          <Text style={styles.productTitle} numberOfLines={1}>
+            {item.product.name}
+          </Text>
+          {item.product.url && (
+            <View style={styles.sourceRow}>
+              <Ionicons name="link-outline" size={12} color={THEME.accent} />
+              <Text style={styles.sourceText}>
+                {getHostname(item.product.url)}
               </Text>
             </View>
           )}
         </View>
 
-        {/* Contenu (Droite) */}
-        <View style={styles.contentSection}>
-          {/* Header Identité */}
-          <View style={styles.header}>
-            <View style={styles.userInfo}>
-              <Image source={{ uri: item.user.avatar }} style={styles.avatar} />
-              <View>
-                <Text style={styles.userName} numberOfLines={1}>
-                  {item.user.name}
-                </Text>
-                <Text style={styles.userContext}>
-                  {item.context.toUpperCase()}
-                </Text>
-              </View>
-            </View>
-            <TouchableOpacity onPress={toggleLike} style={styles.likeBtn}>
-              <Ionicons
-                name={liked ? "heart" : "heart-outline"}
-                size={16}
-                color={liked ? "#C34A4A" : THEME.textMain}
-              />
-            </TouchableOpacity>
+        <View style={styles.actionRow}>
+          <View style={styles.priceContainer}>
+            <Text style={styles.priceValue}>{item.product.price}€</Text>
           </View>
 
-          <Text style={styles.title} numberOfLines={1}>
-            {item.product.name}
-          </Text>
-
-          <View style={styles.footerRow}>
-            <View style={styles.priceContainer}>
-              <Text style={styles.priceText}>{item.product.price}€</Text>
-              <Text style={styles.priceLabel}>ESTIMÉ</Text>
-            </View>
-
-            <View style={styles.actionGroup}>
-              <TouchableOpacity
-                onPress={(e) => {
-                  e.stopPropagation();
-                  // Partage
-                }}
-                style={styles.circleBtn}
-              >
+          <TouchableOpacity
+            style={[
+              styles.mainActionBtn,
+              isTaken && !isReservedByMe ? styles.alertBtn : styles.primaryBtn,
+            ]}
+            onPress={handleMainAction}
+          >
+            {isTaken && !isReservedByMe ? (
+              <>
                 <Ionicons
-                  name="share-outline"
+                  name="notifications-outline"
                   size={14}
                   color={THEME.textMain}
                 />
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.actionBtn, isTaken && styles.actionBtnTaken]}
-                onPress={handleMainAction}
-              >
-                <Text
-                  style={[
-                    styles.actionBtnText,
-                    isTaken && styles.actionBtnTextTaken,
-                  ]}
-                >
-                  {isTaken ? "VOIR" : "RÉSERVER"}
+                <Text style={styles.alertBtnText}>M&apos;ALERTER</Text>
+              </>
+            ) : (
+              <>
+                <Text style={styles.primaryBtnText}>
+                  {isReservedByMe ? "MA RÉSERVATION" : "DÉCOUVRIR"}
                 </Text>
-                {!isTaken && (
-                  <Ionicons name="arrow-forward" size={10} color="#FFF" />
-                )}
-              </TouchableOpacity>
-            </View>
-          </View>
+                <Ionicons name="chevron-forward" size={14} color="#FFF" />
+              </>
+            )}
+          </TouchableOpacity>
         </View>
-      </TouchableOpacity>
+      </View>
     </Animated.View>
   );
 };
@@ -169,19 +171,54 @@ export default GiftCardHome;
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: THEME.surface,
-    marginBottom: 20,
+    backgroundColor: THEME.background,
+    marginBottom: 30,
     borderWidth: 1,
     borderColor: THEME.border,
-    borderRadius: 0,
+    borderRadius: 0, // Look architectural
+    overflow: "hidden",
   },
-  cardTouch: {
+  /* HEADER */
+  cardHeader: {
     flexDirection: "row",
-    height: 160,
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    backgroundColor: THEME.surface,
   },
-  imageSection: {
-    width: 110,
-    height: "100%",
+  userInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  avatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 0,
+    backgroundColor: "#F2F2F7",
+    borderWidth: 0.5,
+    borderColor: THEME.border,
+  },
+  userName: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: THEME.textMain,
+    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
+  },
+  userContext: {
+    fontSize: 8,
+    fontWeight: "800",
+    color: THEME.accent,
+    letterSpacing: 1,
+  },
+  shareBtn: {
+    padding: 5,
+  },
+  /* IMAGE */
+  imageFrame: {
+    width: "100%",
+    height: 200, // Image prédominante au milieu
     backgroundColor: "#F9FAFB",
     position: "relative",
   },
@@ -190,123 +227,94 @@ const styles = StyleSheet.create({
     height: "100%",
   },
   imageDimmed: {
-    opacity: 0.6,
+    opacity: 0.7,
   },
   takenOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(253, 251, 247, 0.4)",
+    backgroundColor: "rgba(253, 251, 247, 0.2)",
     justifyContent: "center",
     alignItems: "center",
   },
-  takenText: {
-    fontSize: 8,
+  statusBadge: {
+    backgroundColor: THEME.textMain,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  statusText: {
+    color: "#FFF",
+    fontSize: 10,
     fontWeight: "900",
-    color: THEME.accent,
-    letterSpacing: 1.5,
+    letterSpacing: 2,
+  },
+  /* FOOTER */
+  cardFooter: {
+    padding: 20,
     backgroundColor: THEME.surface,
-    paddingHorizontal: 6,
-    paddingVertical: 4,
-    borderWidth: 0.5,
-    borderColor: THEME.accent,
+    borderTopWidth: 1,
+    borderTopColor: THEME.border,
   },
-  contentSection: {
-    flex: 1,
-    padding: 14,
-    justifyContent: "space-between",
+  productInfo: {
+    marginBottom: 15,
   },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-  },
-  userInfo: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    flex: 1,
-  },
-  avatar: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: "#F2F2F7",
-    borderWidth: 0.5,
-    borderColor: THEME.border,
-  },
-  userName: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: THEME.textMain,
-    maxWidth: 100,
-  },
-  userContext: {
-    fontSize: 8,
-    color: THEME.accent,
-    fontWeight: "800",
-    letterSpacing: 0.5,
-  },
-  likeBtn: {
-    padding: 4,
-  },
-  title: {
-    fontSize: 16,
+  productTitle: {
+    fontSize: 20,
     fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
     color: THEME.textMain,
     marginBottom: 4,
   },
-  footerRow: {
+  sourceRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  sourceText: {
+    fontSize: 11,
+    color: THEME.textSecondary,
+    fontWeight: "600",
+    fontStyle: "italic",
+  },
+  actionRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    gap: 15,
   },
   priceContainer: {
-    flexDirection: "column",
+    borderLeftWidth: 2,
+    borderLeftColor: THEME.accent,
+    paddingLeft: 10,
   },
-  priceText: {
-    fontSize: 14,
-    fontWeight: "700",
+  priceValue: {
+    fontSize: 18,
+    fontWeight: "800",
     color: THEME.textMain,
   },
-  priceLabel: {
-    fontSize: 7,
+  mainActionBtn: {
+    flex: 1,
+    height: 48,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  primaryBtn: {
+    backgroundColor: THEME.textMain,
+  },
+  primaryBtnText: {
+    color: "#FFFFFF",
+    fontSize: 11,
     fontWeight: "800",
-    color: THEME.textSecondary,
     letterSpacing: 1,
   },
-  actionGroup: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-  },
-  circleBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: THEME.border,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  actionBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: THEME.textMain,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    gap: 6,
-  },
-  actionBtnTaken: {
+  alertBtn: {
     backgroundColor: "transparent",
     borderWidth: 1,
-    borderColor: THEME.border,
+    borderColor: THEME.textMain,
   },
-  actionBtnText: {
-    color: "#FFFFFF",
-    fontSize: 9,
-    fontWeight: "900",
-    letterSpacing: 1,
-  },
-  actionBtnTextTaken: {
+  alertBtnText: {
     color: THEME.textMain,
+    fontSize: 11,
+    fontWeight: "800",
+    letterSpacing: 1,
   },
 });

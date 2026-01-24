@@ -16,10 +16,12 @@ import {
   TouchableOpacity,
   View,
   ViewStyle,
+  ActivityIndicator,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import { MotiView } from "moti";
+import { shareGift } from "@/lib/share";
 
 // --- THEME ÉDITORIAL ---
 const THEME = {
@@ -49,11 +51,18 @@ export default function GiftDetailView() {
   const { data: session } = authClient.useSession();
 
   const [giftData, setGiftData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
   const loadGift = useCallback(async () => {
-    const res = await giftService.getGiftById(giftId as string);
-    if (res.success && "gift" in res) {
-      setGiftData(res.gift);
+    try {
+      const res = await giftService.getGiftById(giftId as string);
+      if (res.success && "gift" in res) {
+        setGiftData(res.gift);
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
     }
   }, [giftId]);
 
@@ -71,10 +80,28 @@ export default function GiftDetailView() {
   const group = giftData?.wishlist;
   const isOwner = group?.userId === session?.user?.id;
 
+  if (loading) {
+    return (
+      <View style={styles.centerContainer}>
+        <ActivityIndicator size="large" color={THEME.textMain} />
+      </View>
+    );
+  }
+
   if (!gift || !group) {
     return (
       <View style={styles.centerContainer}>
+        <Ionicons name="gift-outline" size={48} color={THEME.border} />
         <Text style={styles.errorText}>OBJET INTROUVABLE</Text>
+        <Text style={styles.errorSubText}>
+          Ce cadeau a peut-être été supprimé ou n&apos;est plus disponible.
+        </Text>
+        <TouchableOpacity
+          style={styles.homeBtn}
+          onPress={() => router.replace("/(tabs)")}
+        >
+          <Text style={styles.homeBtnText}>RETOUR À L&apos;ACCUEIL</Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -192,7 +219,10 @@ export default function GiftDetailView() {
         <TouchableOpacity style={styles.iconBtn} onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={24} color="#FFF" />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.iconBtn} onPress={() => {}}>
+        <TouchableOpacity
+          style={styles.iconBtn}
+          onPress={() => shareGift(giftId as string, gift.title)}
+        >
           <Ionicons name="share-social-outline" size={24} color="#FFF" />
         </TouchableOpacity>
       </View>
@@ -366,8 +396,27 @@ const styles = StyleSheet.create({
   errorText: {
     fontSize: 12,
     fontWeight: "800",
-    letterSpacing: 2,
     color: THEME.textSecondary,
+    marginTop: 15,
+  },
+  errorSubText: {
+    fontSize: 14,
+    color: THEME.textSecondary,
+    marginTop: 10,
+    marginBottom: 30,
+    textAlign: "center",
+    maxWidth: "70%",
+  },
+  homeBtn: {
+    backgroundColor: THEME.textMain,
+    paddingHorizontal: 25,
+    paddingVertical: 15,
+  },
+  homeBtnText: {
+    color: "#FFF",
+    fontSize: 11,
+    fontWeight: "800",
+    letterSpacing: 1.5,
   },
 
   /* HEADER IMAGE */

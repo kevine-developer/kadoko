@@ -197,6 +197,8 @@ export default function LuxuryFeedScreen() {
       purchasedBy: gift.purchasedBy,
       isMyReservation: gift.reservedById === session?.user?.id,
       isMyPurchase: gift.purchasedById === session?.user?.id,
+      eventDate: gift.wishlist?.eventDate,
+      eventType: gift.wishlist?.eventType,
     }));
   }, [inspirations, session?.user?.id]);
 
@@ -272,7 +274,9 @@ export default function LuxuryFeedScreen() {
             {/* 5. LE JOURNAL (Feed) */}
             <View style={styles.feedSection}>
               <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Dernières trouvailles.</Text>
+                <Text style={styles.sectionTitle}>
+                  Dernières retrouvailles.
+                </Text>
                 <View style={styles.sectionDivider} />
               </View>
 

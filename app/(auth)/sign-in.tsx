@@ -202,7 +202,7 @@ const styles = StyleSheet.create({
     borderRadius: 0, // Rectangulaire pour l'aspect autoritaire/luxe
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 40,
+    marginBottom: 20,
     // Suppression des ombres portées pour un look flat plus moderne
   },
   primaryBtnText: {

@@ -13,8 +13,8 @@ import { MotiView } from "moti";
 import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
 
-import GiftDetailsModal from "@/components/gift/GiftDetailsModal";
-import GiftItemGroup from "@/components/gift/GiftItemGroup";
+import OwnerGiftDetailsModal from "@/components/gift/OwnerGiftDetailsModal";
+import OwnerGiftCard from "@/components/gift/OwnerGiftCard";
 import WishlistEditModal from "@/components/gift/WishlistEditModal";
 import FloatingDockActions from "@/components/wishlist/floatingDock";
 import ConfirmationModal from "@/components/gift/ConfirmationModal";
@@ -165,14 +165,13 @@ export default function OwnerWishlist({
         ListHeaderComponent={<ListHeader />}
         renderItem={({ item }) => (
           <View style={{ width: ITEM_WIDTH, marginBottom: 25 }}>
-            <GiftItemGroup
+            <OwnerGiftCard
               gift={item}
               onPress={(gift) => {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                 setSelectedGift(gift);
               }}
               onRemove={(gift) => setGiftToDelete(gift)}
-              isOwner={true}
             />
           </View>
         )}
@@ -196,11 +195,10 @@ export default function OwnerWishlist({
       </Animated.View>
 
       {/* MODALS */}
-      <GiftDetailsModal
+      <OwnerGiftDetailsModal
         gift={selectedGift}
         visible={selectedGift !== null}
         onClose={() => setSelectedGift(null)}
-        isOwner={true}
         onActionSuccess={onRefresh}
       />
 

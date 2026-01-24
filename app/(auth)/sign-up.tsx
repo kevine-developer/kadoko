@@ -245,7 +245,7 @@ export default function SignUp() {
 const styles = StyleSheet.create({
   inputGroup: {
     gap: 10,
-    marginBottom: 30,
+    marginBottom: 10,
   },
 
   /* TERMS & CONDITIONS LUXE */
@@ -295,7 +295,7 @@ const styles = StyleSheet.create({
     borderRadius: 0, // Authority style (rectangulaire)
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 40,
+    marginBottom: 20,
   },
   primaryBtnText: {
     color: "#FFFFFF",

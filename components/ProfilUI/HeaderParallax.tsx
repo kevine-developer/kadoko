@@ -10,7 +10,7 @@ const HeaderParallax = ({ user, headerOpacity, imageScale }: any) => {
         source={{
           uri:
             user?.image ||
-            "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=800",
+            "https://images.unsplash.com/photo-1511367461989-f85a21fda167?w=400&h=400&fit=crop&q=60",
         }}
         style={[styles.headerImage, { transform: [{ scale: imageScale }] }]}
         blurRadius={Platform.OS === "ios" ? 10 : 5} // Effet de profondeur luxe

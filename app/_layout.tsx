@@ -20,12 +20,18 @@ import { useIsFirstLaunch } from "@/hooks/use-is-first-launch";
 import OfflineModal from "@/components/Network/OfflineModal";
 import ServerErrorModal from "@/components/Network/ServerErrorModal";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
+import { Toast } from "@/components/ui/Toast";
+import { AlertModal } from "@/components/ui/AlertModal";
+import { useUIStore } from "@/lib/ui-store";
+import { AnimatePresence } from "moti";
 
 export default function RootLayout() {
   usePushNotifications();
   const segments = useSegments();
   const router = useRouter();
   const colorScheme = useColorScheme();
+
+  const { toast, alertModal, hideToast, hideAlert } = useUIStore();
 
   const { session, isLoading: isSessionLoading } = useSession();
   const { isFirstLaunch, isLoading: isFirstLaunchLoading } = useIsFirstLaunch();
@@ -80,6 +86,30 @@ export default function RootLayout() {
       <StatusBar style="auto" />
       <OfflineModal />
       <ServerErrorModal />
+
+      <AnimatePresence>
+        {toast.visible && (
+          <Toast
+            visible={toast.visible}
+            message={toast.message}
+            type={toast.type}
+          />
+        )}
+      </AnimatePresence>
+
+      <AlertModal
+        visible={alertModal.visible}
+        title={alertModal.title}
+        message={alertModal.message}
+        actions={alertModal.actions.map((action) => ({
+          ...action,
+          onPress: () => {
+            action.onPress?.();
+            hideAlert();
+          },
+        }))}
+        onClose={hideAlert}
+      />
     </ThemeProvider>
   );
 }

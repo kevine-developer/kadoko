@@ -175,7 +175,16 @@ export default function FriendPrivateInfoScreen() {
             {p.delivery?.address ? (
               <View style={styles.noteBlock}>
                 <Text style={styles.blockLabel}>ADRESSE DE LIVRAISON</Text>
-                <Text style={styles.addressValue}>{p.delivery.address}</Text>
+                <Text style={styles.addressValue}>
+                  {[
+                    p.delivery.address.street,
+                    p.delivery.address.postalCode,
+                    p.delivery.address.city,
+                    p.delivery.address.country,
+                  ]
+                    .filter(Boolean)
+                    .join("\n")}
+                </Text>
               </View>
             ) : (
               <Text style={styles.emptyNote}>Adresse non communiquée.</Text>

@@ -52,8 +52,8 @@ export default HeaderAuth;
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 45, // Plus d'espace pour laisser respirer le formulaire
-    marginTop: 20,
+    marginBottom: 25, // Plus d'espace pour laisser respirer le formulaire
+    marginTop: 10,
   },
   topDivider: {
     height: 2,

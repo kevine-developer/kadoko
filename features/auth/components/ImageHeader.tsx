@@ -27,7 +27,7 @@ const ImageHeader = ({ imageBackground }: ImageHeaderProps) => {
         source={{
           uri:
             imageBackground ||
-            "https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=80&w=1470&auto=format&fit=crop",
+            "https://plus.unsplash.com/premium_photo-1672233867062-64af815416dd?q=80&w=627&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
         }}
         style={styles.headerImage}
         contentFit="cover"
@@ -50,8 +50,6 @@ const ImageHeader = ({ imageBackground }: ImageHeaderProps) => {
         <View style={styles.logoDivider} />
         <Text style={styles.brandTagline}>EST. 2024</Text>
       </MotiView>
-
-    
     </View>
   );
 };

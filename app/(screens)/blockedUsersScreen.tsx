@@ -9,14 +9,13 @@ import {
   Text,
   TouchableOpacity,
   View,
-  Alert,
 } from "react-native";
 import { Image } from "expo-image";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import { MotiView } from "moti";
 import { userService } from "@/lib/services/user-service";
-import { showErrorToast, showSuccessToast } from "@/lib/toast";
+import { showErrorToast, showSuccessToast, showCustomAlert } from "@/lib/toast";
 
 // --- THEME ÉDITORIAL ---
 const THEME = {
@@ -56,7 +55,7 @@ export default function BlockedUsersScreen() {
   const handleUnblock = (user: any) => {
     if (processingIds.has(user.id)) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    Alert.alert(
+    showCustomAlert(
       "Rétablir l'accès ?",
       `Voulez-vous autoriser ${user.name} à consulter de nouveau votre profil ?`,
       [
@@ -86,7 +85,6 @@ export default function BlockedUsersScreen() {
           },
         },
       ],
-      { cancelable: true },
     );
   };
 

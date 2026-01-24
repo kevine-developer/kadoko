@@ -81,7 +81,7 @@ export default function WishlistGroupView() {
           />
           <Skeleton width="100%" height={80} borderRadius={0} />
           <View style={{ marginTop: 40 }}>
-            <GiftGridSkeleton count={4} />
+            <GiftGridSkeleton count={1} />
           </View>
         </View>
       </View>
