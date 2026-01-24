@@ -162,6 +162,26 @@ export const giftService = {
     }
   },
 
+  // Confirmer la réception d'un cadeau
+  confirmReceipt: async (id: string) => {
+    try {
+      const response = await authClient.$fetch(getApiUrl(`/gifts/${id}`), {
+        method: "PATCH",
+        body: { action: "receive" },
+      });
+      return (response.data || {
+        success: false,
+        message: "Erreur",
+      }) as unknown as {
+        success: boolean;
+        gift: any;
+      };
+    } catch (error) {
+      console.error("Error confirmReceipt:", error);
+      return { success: false, message: "Erreur de confirmation" };
+    }
+  },
+
   // Supprimer un cadeau
   deleteGift: async (id: string) => {
     try {
@@ -186,15 +206,15 @@ export const giftService = {
       return (response.data || {
         success: false,
         inspirations: [],
-        circles: [],
+        received: [],
       }) as unknown as {
         success: boolean;
         inspirations: any[];
-        circles: any[];
+        received: any[];
       };
     } catch (error) {
       console.error("Error getFeed:", error);
-      return { success: false, inspirations: [], circles: [] };
+      return { success: false, inspirations: [], received: [] };
     }
   },
 

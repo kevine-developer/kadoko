@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -11,11 +11,54 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  Keyboard,
+  LayoutAnimation,
+  UIManager,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { authClient } from "@/features/auth";
-import { userService } from "@/lib/services/user-service";
+import { userService, type PrivateInfo } from "@/lib/services/user-service";
 import { showErrorToast, showSuccessToast } from "@/lib/toast";
+import * as Haptics from "expo-haptics";
+
+// Activer LayoutAnimation sur Android
+if (
+  Platform.OS === "android" &&
+  UIManager.setLayoutAnimationEnabledExperimental
+) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
+
+// --- THEME ÉDITORIAL ---
+const THEME = {
+  background: "#FDFBF7",
+  surface: "#FFFFFF",
+  textMain: "#1A1A1A",
+  textSecondary: "#8E8E93",
+  primary: "#1A1A1A",
+  accent: "#AF9062",
+  border: "rgba(0,0,0,0.08)",
+};
+
+// --- DATA ---
+const CLOTHING_SIZES = {
+  top: ["XS", "S", "M", "L", "XL", "XXL"],
+  bottom: ["34", "36", "38", "40", "42", "44", "46", "48"],
+  shoe: ["36", "37", "38", "39", "40", "41", "42", "43", "44", "45"],
+};
+
+const JEWELRY_PREFERENCES = [
+  { value: "GOLD", label: "Or" },
+  { value: "SILVER", label: "Argent" },
+  { value: "BOTH", label: "Les deux" },
+  { value: "NONE", label: "Aucune" },
+];
+
+const DELIVERY_TYPES = [
+  { value: "HOME", label: "Domicile", icon: "home-outline" },
+  { value: "RELAY", label: "Relais", icon: "cube-outline" },
+  { value: "OFFICE", label: "Bureau", icon: "business-outline" },
+];
 
 export default function PrivateInfoScreen() {
   const router = useRouter();
@@ -23,63 +66,118 @@ export default function PrivateInfoScreen() {
   const { data: session, refetch } = authClient.useSession();
   const user = session?.user as any;
 
-  // privateInfo: { clothing: { top, bottom, shoes }, jewelry: { ring, bracelet, necklace }, diet: { allergies, preferences }, delivery: { address } }
-  const [privateInfo, setPrivateInfo] = useState<any>(
-    user?.privateInfo || {
-      clothing: { top: "", bottom: "", shoes: "" },
-      jewelry: { ring: "", bracelet: "", necklace: "" },
-      diet: { allergies: "", preferences: "" },
-      delivery: { address: "" },
-    },
+  const [saving, setSaving] = useState(false);
+
+  // Gestion simple de l'accordéon
+  const [expandedSection, setExpandedSection] = useState<string | null>(
+    "clothing",
   );
 
-  const [isSaving, setIsSaving] = useState(false);
+  const [formData, setFormData] = useState<PrivateInfo>({
+    clothing: {},
+    jewelry: {},
+    diet: { allergies: [], preferences: [] },
+    delivery: { address: {} },
+  });
 
-  const updateInfo = (category: string, field: string, value: any) => {
-    setPrivateInfo((prev: any) => ({
-      ...prev,
-      [category]: {
-        ...prev[category],
-        [field]: value,
-      },
-    }));
+  useEffect(() => {
+    if (user?.privateInfo) {
+      setFormData((prev) => ({
+        ...prev,
+        ...user.privateInfo,
+        clothing: { ...prev.clothing, ...(user.privateInfo.clothing || {}) },
+        jewelry: { ...prev.jewelry, ...(user.privateInfo.jewelry || {}) },
+        diet: {
+          allergies:
+            user.privateInfo.diet?.allergies || prev.diet?.allergies || [],
+          preferences:
+            user.privateInfo.diet?.preferences || prev.diet?.preferences || [],
+        },
+        delivery: {
+          ...prev.delivery,
+          ...(user.privateInfo.delivery || {}),
+          address: {
+            ...(prev.delivery?.address || {}),
+            ...(user.privateInfo.delivery?.address || {}),
+          },
+        },
+      }));
+
+      // UX: Ouvrir la première section qui a du contenu si on n'a rien touché
+      const hasClothing = Object.values(user.privateInfo.clothing || {}).some(
+        (v) => !!v,
+      );
+      const hasJewelry = Object.values(user.privateInfo.jewelry || {}).some(
+        (v) => !!v,
+      );
+      const hasDiet =
+        (user.privateInfo.diet?.allergies?.length || 0) > 0 ||
+        (user.privateInfo.diet?.preferences?.length || 0) > 0;
+      const hasDelivery = Object.values(
+        user.privateInfo.delivery?.address || {},
+      ).some((v) => !!v);
+
+      if (hasClothing) setExpandedSection("clothing");
+      else if (hasJewelry) setExpandedSection("jewelry");
+      else if (hasDiet) setExpandedSection("diet");
+      else if (hasDelivery) setExpandedSection("delivery");
+    }
+  }, [user?.privateInfo]);
+
+  // ✅ CORRECTION DU TOGGLE
+  const toggleSection = (section: string) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    Keyboard.dismiss();
+    // Animation native fluide
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setExpandedSection(expandedSection === section ? null : section);
   };
 
   const handleSave = async () => {
-    setIsSaving(true);
+    setSaving(true);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     try {
-      const res = await userService.updatePrivateInfo(privateInfo);
+      const res = await userService.updatePrivateInfo(formData);
       if (res.success) {
-        showSuccessToast("Informations mises à jour !");
+        showSuccessToast("Profil mis à jour");
         await refetch();
         router.back();
-      } else {
-        showErrorToast("Erreur lors de la sauvegarde");
       }
     } catch {
-      showErrorToast("Erreur lors de la sauvegarde");
+      showErrorToast("Erreur sauvegarde");
     } finally {
-      setIsSaving(false);
+      setSaving(false);
     }
+  };
+
+  const updateNested = (
+    category: keyof PrivateInfo,
+    field: string,
+    value: any,
+  ) => {
+    setFormData((prev) => ({
+      ...prev,
+      [category]: { ...(prev[category] || {}), [field]: value },
+    }));
   };
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={24} color="#111827" />
+      {/* NAV BAR */}
+      <View style={[styles.navBar, { paddingTop: insets.top + 10 }]}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.navBtn}>
+          <Ionicons name="chevron-back" size={24} color={THEME.textMain} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Me connaître</Text>
+        <Text style={styles.navTitle}>CARNET DE MESURES</Text>
         <TouchableOpacity
           onPress={handleSave}
-          disabled={isSaving}
-          style={styles.saveBtn}
+          disabled={saving}
+          style={styles.saveAction}
         >
-          {isSaving ? (
-            <ActivityIndicator size="small" color="#111827" />
+          {saving ? (
+            <ActivityIndicator size="small" color={THEME.accent} />
           ) : (
-            <Text style={styles.saveText}>Enregistrer</Text>
+            <Text style={styles.saveActionText}>OK</Text>
           )}
         </TouchableOpacity>
       </View>
@@ -92,307 +190,482 @@ export default function PrivateInfoScreen() {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          <View style={styles.infoBox}>
-            <Text style={styles.title}>Dites-nous ce que vous aimez</Text>
-            <Text style={styles.subtitle}>
-              Ces informations aideront vos amis à choisir des cadeaux qui vous
-              vont à ravir.
+          <View style={styles.heroSection}>
+            <Text style={styles.heroTitle}>
+              Vos détails{"\n"}confidentiels.
+            </Text>
+            <View style={styles.titleDivider} />
+            <Text style={styles.heroSubtitle}>
+              Ces informations permettent à vos proches de viser juste, en toute
+              discrétion.
             </Text>
           </View>
 
-          {/* SECTION TAILLES */}
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Ionicons name="shirt-outline" size={20} color="#111827" />
-              <Text style={styles.sectionTitle}>Tailles & Vêtements</Text>
-            </View>
-            <View style={styles.inputGrid}>
-              <View style={styles.gridItem}>
-                <Text style={styles.label}>Haut (S, M, L...)</Text>
-                <TextInput
-                  style={styles.input}
-                  value={privateInfo.clothing?.topSize}
-                  onChangeText={(t) => updateInfo("clothing", "topSize", t)}
-                  placeholder="M"
+          {/* ✅ UTILISATION DIRECTE (Plus de composant wrapper complexe pour éviter les bugs) */}
+
+          {/* SECTION GARDE-ROBE */}
+          <View style={styles.registryBlock}>
+            <TouchableOpacity
+              style={styles.registryHeader}
+              onPress={() => toggleSection("clothing")}
+            >
+              <View style={styles.row}>
+                <Ionicons
+                  name="shirt-outline"
+                  size={20}
+                  color={THEME.accent}
+                  style={{ marginRight: 15 }}
+                />
+                <Text style={styles.registryTitle}>Garde-robe</Text>
+              </View>
+              <Ionicons
+                name={expandedSection === "clothing" ? "remove" : "add"}
+                size={20}
+                color={THEME.textSecondary}
+              />
+            </TouchableOpacity>
+
+            {expandedSection === "clothing" && (
+              <View style={styles.registryContent}>
+                <SizeSelector
+                  label="HAUTS / VESTES"
+                  options={CLOTHING_SIZES.top}
+                  selected={formData.clothing?.topSize}
+                  onSelect={(v) => updateNested("clothing", "topSize", v)}
+                />
+                <SizeSelector
+                  label="BAS / PANTALONS"
+                  options={CLOTHING_SIZES.bottom}
+                  selected={formData.clothing?.bottomSize}
+                  onSelect={(v) => updateNested("clothing", "bottomSize", v)}
+                />
+                <SizeSelector
+                  label="POINTURE"
+                  options={CLOTHING_SIZES.shoe}
+                  selected={formData.clothing?.shoeSize}
+                  onSelect={(v) => updateNested("clothing", "shoeSize", v)}
                 />
               </View>
-              <View style={styles.gridItem}>
-                <Text style={styles.label}>Bas (38, 40...)</Text>
-                <TextInput
-                  style={styles.input}
-                  value={privateInfo.clothing?.bottomSize}
-                  onChangeText={(t) => updateInfo("clothing", "bottomSize", t)}
-                  placeholder="40"
-                />
-              </View>
-              <View style={styles.gridItem}>
-                <Text style={styles.label}>Chaussures</Text>
-                <TextInput
-                  style={styles.input}
-                  value={privateInfo.clothing?.shoeSize}
-                  onChangeText={(t) => updateInfo("clothing", "shoeSize", t)}
-                  placeholder="42"
-                />
-              </View>
-            </View>
+            )}
           </View>
 
-          {/* SECTION BIJOUX */}
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Ionicons name="sparkles-outline" size={20} color="#111827" />
-              <Text style={styles.sectionTitle}>Accessoires & Bijoux</Text>
-            </View>
-            <View style={styles.inputGrid}>
-              <View style={styles.gridItem}>
-                <Text style={styles.label}>Taille Bague (52, 54...)</Text>
-                <TextInput
-                  style={styles.input}
-                  value={privateInfo.jewelry?.ringSize}
-                  onChangeText={(t) => updateInfo("jewelry", "ringSize", t)}
-                  placeholder="54"
+          {/* SECTION JOAILLERIE */}
+          <View style={styles.registryBlock}>
+            <TouchableOpacity
+              style={styles.registryHeader}
+              onPress={() => toggleSection("jewelry")}
+            >
+              <View style={styles.row}>
+                <Ionicons
+                  name="diamond-outline"
+                  size={20}
+                  color={THEME.accent}
+                  style={{ marginRight: 15 }}
                 />
+                <Text style={styles.registryTitle}>Joaillerie</Text>
               </View>
-              <View style={[styles.gridItem, { flex: 2 }]}>
-                <Text style={styles.label}>Préférence Métal</Text>
-                <View style={styles.preferenceRow}>
-                  {["OR", "ARGENT", "LES DEUX"].map((pref) => {
-                    const valueMap: any = {
-                      OR: "GOLD",
-                      ARGENT: "SILVER",
-                      "LES DEUX": "BOTH",
-                    };
-                    const isSelected =
-                      privateInfo.jewelry?.preference === valueMap[pref];
-                    return (
-                      <TouchableOpacity
-                        key={pref}
-                        onPress={() =>
-                          updateInfo("jewelry", "preference", valueMap[pref])
-                        }
-                        style={[
-                          styles.prefBtn,
-                          isSelected && styles.prefBtnActive,
-                        ]}
-                      >
-                        <Text
-                          style={[
-                            styles.prefText,
-                            isSelected && styles.prefTextActive,
-                          ]}
-                        >
-                          {pref}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
+              <Ionicons
+                name={expandedSection === "jewelry" ? "remove" : "add"}
+                size={20}
+                color={THEME.textSecondary}
+              />
+            </TouchableOpacity>
+
+            {expandedSection === "jewelry" && (
+              <View style={styles.registryContent}>
+                <EditorialInput
+                  label="TOUR DE DOIGT"
+                  placeholder="Ex: 52"
+                  keyboardType="numeric"
+                  value={formData.jewelry?.ringSize || ""}
+                  onChangeText={(t: string) =>
+                    updateNested("jewelry", "ringSize", t)
+                  }
+                />
+                <Text style={[styles.miniLabel, { marginTop: 20 }]}>
+                  PRÉFÉRENCE DE MÉTAL
+                </Text>
+                <View style={styles.chipRow}>
+                  {JEWELRY_PREFERENCES.map((pref) => (
+                    <PreferenceChip
+                      key={pref.value}
+                      label={pref.label}
+                      active={formData.jewelry?.preference === pref.value}
+                      onPress={() =>
+                        updateNested("jewelry", "preference", pref.value)
+                      }
+                    />
+                  ))}
                 </View>
               </View>
-            </View>
+            )}
           </View>
 
           {/* SECTION ALIMENTATION */}
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Ionicons name="restaurant-outline" size={20} color="#111827" />
-              <Text style={styles.sectionTitle}>Alimentation</Text>
-            </View>
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>
-                Allergies ou régimes spécifiques (séparés par une virgule)
-              </Text>
-              <TextInput
-                style={styles.input}
-                value={
-                  Array.isArray(privateInfo.diet?.allergies)
-                    ? privateInfo.diet.allergies.join(", ")
-                    : ""
-                }
-                onChangeText={(t) =>
-                  updateInfo(
-                    "diet",
-                    "allergies",
-                    t.split(",").map((s) => s.trim()),
-                  )
-                }
-                placeholder="Ex: Gluten, Arachides..."
+          <View style={styles.registryBlock}>
+            <TouchableOpacity
+              style={styles.registryHeader}
+              onPress={() => toggleSection("diet")}
+            >
+              <View style={styles.row}>
+                <Ionicons
+                  name="restaurant-outline"
+                  size={20}
+                  color={THEME.accent}
+                  style={{ marginRight: 15 }}
+                />
+                <Text style={styles.registryTitle}>Alimentation</Text>
+              </View>
+              <Ionicons
+                name={expandedSection === "diet" ? "remove" : "add"}
+                size={20}
+                color={THEME.textSecondary}
               />
-            </View>
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Préférences (ce que vous adorez)</Text>
-              <TextInput
-                style={styles.input}
-                value={
-                  Array.isArray(privateInfo.diet?.preferences)
-                    ? privateInfo.diet.preferences.join(", ")
-                    : ""
-                }
-                onChangeText={(t) =>
-                  updateInfo(
-                    "diet",
-                    "preferences",
-                    t.split(",").map((s) => s.trim()),
-                  )
-                }
-                placeholder="Ex: Chocolat, Thé..."
-              />
-            </View>
+            </TouchableOpacity>
+
+            {expandedSection === "diet" && (
+              <View style={styles.registryContent}>
+                <EditorialInput
+                  label="ALLERGIES"
+                  placeholder="Arachides, lactose..."
+                  multiline
+                  value={formData.diet?.allergies?.join(", ") || ""}
+                  onChangeText={(t: string) =>
+                    updateNested(
+                      "diet",
+                      "allergies",
+                      t
+                        .split(",")
+                        .map((s) => s.trim())
+                        .filter(Boolean),
+                    )
+                  }
+                />
+                <View style={{ height: 20 }} />
+                <EditorialInput
+                  label="RÉGIMES / PRÉFÉRENCES"
+                  placeholder="Végétarien, sans gluten..."
+                  multiline
+                  value={formData.diet?.preferences?.join(", ") || ""}
+                  onChangeText={(t: string) =>
+                    updateNested(
+                      "diet",
+                      "preferences",
+                      t
+                        .split(",")
+                        .map((s) => s.trim())
+                        .filter(Boolean),
+                    )
+                  }
+                />
+              </View>
+            )}
           </View>
 
           {/* SECTION LIVRAISON */}
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Ionicons name="location-outline" size={20} color="#111827" />
-              <Text style={styles.sectionTitle}>Adresse de livraison</Text>
-            </View>
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Où envoyer vos cadeaux ?</Text>
-              <TextInput
-                style={[styles.input, styles.textArea]}
-                value={privateInfo.delivery?.address}
-                onChangeText={(t) => updateInfo("delivery", "address", t)}
-                placeholder="Numéro, rue, code postal, ville..."
-                multiline
-                numberOfLines={3}
+          <View style={styles.registryBlock}>
+            <TouchableOpacity
+              style={styles.registryHeader}
+              onPress={() => toggleSection("delivery")}
+            >
+              <View style={styles.row}>
+                <Ionicons
+                  name="cube-outline"
+                  size={20}
+                  color={THEME.accent}
+                  style={{ marginRight: 15 }}
+                />
+                <Text style={styles.registryTitle}>Livraison</Text>
+              </View>
+              <Ionicons
+                name={expandedSection === "delivery" ? "remove" : "add"}
+                size={20}
+                color={THEME.textSecondary}
               />
-            </View>
+            </TouchableOpacity>
+
+            {expandedSection === "delivery" && (
+              <View style={styles.registryContent}>
+                <Text style={styles.miniLabel}>MODALITÉ PRÉFÉRÉE</Text>
+                <View style={styles.chipRow}>
+                  {DELIVERY_TYPES.map((type) => (
+                    <PreferenceChip
+                      key={type.value}
+                      label={type.label}
+                      icon={type.icon}
+                      active={formData.delivery?.type === type.value}
+                      onPress={() =>
+                        updateNested("delivery", "type", type.value)
+                      }
+                    />
+                  ))}
+                </View>
+                <View style={{ marginTop: 25 }}>
+                  <EditorialInput
+                    label="ADRESSE DE RÉSIDENCE"
+                    placeholder="Rue et numéro"
+                    value={formData.delivery?.address?.street || ""}
+                    onChangeText={(t: string) =>
+                      updateNested("delivery", "address", {
+                        ...(formData.delivery?.address || {}),
+                        street: t,
+                      })
+                    }
+                  />
+                  <View style={[styles.row, { marginTop: 15 }]}>
+                    <View style={{ flex: 1 }}>
+                      <EditorialInput
+                        label="CODE POSTAL"
+                        placeholder="75000"
+                        keyboardType="numeric"
+                        value={formData.delivery?.address?.postalCode || ""}
+                        onChangeText={(t: string) =>
+                          updateNested("delivery", "address", {
+                            ...(formData.delivery?.address || {}),
+                            postalCode: t,
+                          })
+                        }
+                      />
+                    </View>
+                    <View style={{ flex: 2, marginLeft: 20 }}>
+                      <EditorialInput
+                        label="VILLE"
+                        placeholder="Paris"
+                        value={formData.delivery?.address?.city || ""}
+                        onChangeText={(t: string) =>
+                          updateNested("delivery", "address", {
+                            ...(formData.delivery?.address || {}),
+                            city: t,
+                          })
+                        }
+                      />
+                    </View>
+                  </View>
+                </View>
+              </View>
+            )}
           </View>
 
-          <View style={{ height: 40 }} />
+          <View style={{ height: 100 }} />
         </ScrollView>
       </KeyboardAvoidingView>
     </View>
   );
 }
 
+// --- SOUS-COMPOSANTS ---
+
+const SizeSelector = ({
+  label,
+  options,
+  selected,
+  onSelect,
+}: {
+  label: string;
+  options: string[];
+  selected?: string;
+  onSelect: (v: string) => void;
+}) => (
+  <View style={{ marginBottom: 25 }}>
+    <Text style={styles.miniLabel}>{label}</Text>
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      style={{ marginTop: 10 }}
+    >
+      {options.map((opt: string) => (
+        <TouchableOpacity
+          key={opt}
+          style={[styles.sizeItem, selected === opt && styles.sizeItemActive]}
+          onPress={() => {
+            Haptics.selectionAsync();
+            onSelect(opt);
+          }}
+        >
+          <Text
+            style={[
+              styles.sizeItemText,
+              selected === opt && styles.sizeItemTextActive,
+            ]}
+          >
+            {opt}
+          </Text>
+        </TouchableOpacity>
+      ))}
+    </ScrollView>
+  </View>
+);
+
+const EditorialInput = ({
+  label,
+  value,
+  onChangeText,
+  ...props
+}: {
+  label: string;
+  value?: string;
+  onChangeText?: (t: string) => void;
+  [key: string]: any;
+}) => (
+  <View style={styles.inputGroup}>
+    <Text style={styles.miniLabel}>{label}</Text>
+    <TextInput
+      style={styles.editorialInput}
+      value={value}
+      onChangeText={onChangeText}
+      placeholderTextColor="#BCBCBC"
+      selectionColor={THEME.accent}
+      {...props}
+    />
+  </View>
+);
+
+const PreferenceChip = ({
+  label,
+  icon,
+  active,
+  onPress,
+}: {
+  label: string;
+  icon?: any;
+  active?: boolean;
+  onPress: () => void;
+}) => (
+  <TouchableOpacity
+    style={[styles.prefChip, active && styles.prefChipActive]}
+    onPress={() => {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      onPress();
+    }}
+  >
+    {icon && (
+      <Ionicons
+        name={icon}
+        size={14}
+        color={active ? "#FFF" : THEME.textMain}
+        style={{ marginRight: 6 }}
+      />
+    )}
+    <Text style={[styles.prefChipText, active && styles.prefChipTextActive]}>
+      {label}
+    </Text>
+  </TouchableOpacity>
+);
+
+// --- STYLES ---
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#FDFBF7",
-  },
-  header: {
+  container: { flex: 1, backgroundColor: THEME.background },
+  navBar: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 20,
-    paddingBottom: 20,
-    backgroundColor: "#FDFBF7",
+    paddingBottom: 15,
   },
-  backBtn: {
-    width: 40,
-    height: 40,
+  navTitle: {
+    fontSize: 10,
+    fontWeight: "800",
+    color: THEME.textMain,
+    letterSpacing: 2,
+  },
+  navBtn: { width: 44, height: 44, justifyContent: "center" },
+  saveAction: {
+    width: 44,
+    height: 44,
     justifyContent: "center",
+    alignItems: "flex-end",
   },
-  headerTitle: {
-    fontSize: 17,
-    fontWeight: "700",
-    color: "#111827",
+  saveActionText: { fontSize: 14, fontWeight: "800", color: THEME.accent },
+
+  scrollContent: { paddingHorizontal: 30, paddingTop: 20 },
+
+  heroSection: { marginBottom: 40 },
+  heroTitle: {
+    fontSize: 38,
     fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
+    color: THEME.textMain,
+    lineHeight: 44,
+    letterSpacing: -1,
   },
-  saveBtn: {
-    paddingHorizontal: 12,
+  titleDivider: {
+    width: 35,
+    height: 2,
+    backgroundColor: THEME.accent,
+    marginVertical: 25,
   },
-  saveText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#111827",
-  },
-  scrollContent: {
-    paddingHorizontal: 24,
-    paddingBottom: 40,
-  },
-  infoBox: {
-    marginVertical: 20,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: "#111827",
-    marginBottom: 8,
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-  },
-  subtitle: {
-    fontSize: 15,
-    color: "#6B7280",
+  heroSubtitle: {
+    fontSize: 14,
+    color: THEME.textSecondary,
     lineHeight: 22,
+    fontStyle: "italic",
+    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
   },
-  section: {
-    marginBottom: 32,
-    backgroundColor: "#FFF",
-    borderRadius: 20,
-    padding: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.02,
-    shadowRadius: 10,
-    elevation: 2,
-  },
-  sectionHeader: {
+
+  /* REGISTRY */
+  registryBlock: { borderBottomWidth: 1, borderBottomColor: THEME.border },
+  registryHeader: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-    marginBottom: 20,
+    justifyContent: "space-between",
+    paddingVertical: 25,
   },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#111827",
+  registryTitle: {
+    fontSize: 18,
+    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
+    color: THEME.textMain,
   },
-  inputGrid: {
-    flexDirection: "row",
-    gap: 12,
+  registryContent: { paddingBottom: 30 },
+
+  /* ELEMENTS */
+  row: { flexDirection: "row", alignItems: "center" },
+  miniLabel: {
+    fontSize: 9,
+    fontWeight: "800",
+    color: THEME.textSecondary,
+    letterSpacing: 1.5,
+    marginBottom: 8,
   },
-  gridItem: {
-    flex: 1,
-    gap: 8,
-  },
-  inputGroup: {
-    gap: 8,
-    marginBottom: 16,
-  },
-  label: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#6B7280",
-  },
-  input: {
-    backgroundColor: "#F9FAFB",
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    borderRadius: 12,
+
+  sizeItem: {
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 15,
-    color: "#111827",
-  },
-  textArea: {
-    height: 80,
-    textAlignVertical: "top",
-  },
-  preferenceRow: {
-    flexDirection: "row",
-    gap: 8,
-    marginTop: 4,
-  },
-  prefBtn: {
-    flex: 1,
-    paddingVertical: 10,
-    backgroundColor: "#F3F4F6",
-    borderRadius: 8,
-    alignItems: "center",
+    paddingVertical: 8,
+    marginRight: 10,
+    borderRadius: 0,
     borderWidth: 1,
-    borderColor: "transparent",
+    borderColor: THEME.border,
+    backgroundColor: "#FFF",
   },
-  prefBtnActive: {
-    backgroundColor: "#111827",
-    borderColor: "#111827",
+  sizeItemActive: {
+    backgroundColor: THEME.primary,
+    borderColor: THEME.primary,
   },
-  prefText: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: "#4B5563",
+  sizeItemText: { fontSize: 13, fontWeight: "600", color: THEME.textMain },
+  sizeItemTextActive: { color: "#FFF" },
+
+  inputGroup: { marginBottom: 5 },
+  editorialInput: {
+    fontSize: 16,
+    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
+    color: THEME.textMain,
+    borderBottomWidth: 1,
+    borderBottomColor: THEME.border,
+    paddingVertical: 8,
   },
-  prefTextActive: {
-    color: "#FFF",
+
+  chipRow: { flexDirection: "row", flexWrap: "wrap", gap: 10, marginTop: 5 },
+  prefChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: THEME.border,
+    backgroundColor: "#FFF",
   },
+  prefChipActive: {
+    backgroundColor: THEME.primary,
+    borderColor: THEME.primary,
+  },
+  prefChipText: { fontSize: 12, fontWeight: "700", color: THEME.textMain },
+  prefChipTextActive: { color: "#FFF" },
 });

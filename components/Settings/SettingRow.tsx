@@ -1,18 +1,15 @@
-import { StyleSheet, Text, TouchableOpacity, View, Switch } from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View, Switch, Platform } from "react-native";
 import React from "react";
 import { Ionicons } from "@expo/vector-icons";
 
-// --- THEME ---
 const THEME = {
-  background: "#FDFBF7",
-  surface: "#FFFFFF",
-  textMain: "#111827",
-  textSecondary: "#6B7280",
-  primary: "#111827",
+  textMain: "#1A1A1A",
+  textSecondary: "#8E8E93",
+  primary: "#1A1A1A",
+  accent: "#AF9062", // Or brossé
   border: "rgba(0,0,0,0.06)",
-  danger: "#EF4444",
-  disabled: "#F3F4F6", // Gris très clair pour le fond badge
-  disabledText: "#9CA3AF", // Gris moyen pour le texte
+  danger: "#C34A4A",
+  disabled: "rgba(0,0,0,0.03)",
 };
 
 const SettingRow = ({
@@ -28,53 +25,32 @@ const SettingRow = ({
   subLabel,
   badge,
   badgeColor,
-  isComingSoon = false, // ✅ NOUVELLE PROP
+  isComingSoon = false,
 }: any) => {
-  // Si "Bientôt", on désactive le bouton
   const isDisabled = isComingSoon;
 
   return (
     <TouchableOpacity
-      activeOpacity={isDisabled ? 1 : 0.7}
-      onPress={
-        isDisabled
-          ? undefined
-          : isSwitch
-            ? () => onSwitchChange(!switchValue)
-            : onPress
-      }
-      style={[
-        styles.rowContainer,
-        isLast && { borderBottomWidth: 0 },
-        isDisabled && { opacity: 0.6 }, // ✅ Feedback visuel global
-      ]}
+      activeOpacity={isDisabled ? 1 : 0.6}
+      onPress={isDisabled ? undefined : isSwitch ? () => onSwitchChange(!switchValue) : onPress}
+      style={[styles.rowContainer, isLast && { borderBottomWidth: 0 }]}
     >
-      <View style={styles.rowLeft}>
-        <View
-          style={[styles.iconBox, isDanger && { backgroundColor: "#FEF2F2" }]}
-        >
+      <View style={[styles.rowLeft, isDisabled && { opacity: 0.4 }]}>
+        <View style={styles.iconWrapper}>
           <Ionicons
             name={icon}
             size={18}
-            color={isDanger ? THEME.danger : THEME.textMain}
+            color={isDanger ? THEME.danger : (isDisabled ? THEME.textSecondary : THEME.accent)}
           />
         </View>
+        
         <View style={styles.labelContainer}>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-            <Text
-              style={[styles.rowLabel, isDanger && { color: THEME.danger }]}
-            >
+          <View style={styles.labelHeader}>
+            <Text style={[styles.rowLabel, isDanger && { color: THEME.danger }]}>
               {label}
             </Text>
-
-            {/* Badge existant (ex: "Action requise") */}
             {badge && !isComingSoon && (
-              <View
-                style={[
-                  styles.badge,
-                  badgeColor && { backgroundColor: badgeColor },
-                ]}
-              >
+              <View style={[styles.badge, badgeColor && { backgroundColor: badgeColor }]}>
                 <Text style={styles.badgeText}>{badge}</Text>
               </View>
             )}
@@ -84,7 +60,6 @@ const SettingRow = ({
       </View>
 
       <View style={styles.rowRight}>
-        {/* ✅ LOGIQUE D'AFFICHAGE MODIFIÉE */}
         {isComingSoon ? (
           <View style={styles.comingSoonBadge}>
             <Text style={styles.comingSoonText}>Bientôt</Text>
@@ -93,14 +68,15 @@ const SettingRow = ({
           <Switch
             value={switchValue}
             onValueChange={onSwitchChange}
-            trackColor={{ false: "#E5E7EB", true: THEME.primary }}
+            trackColor={{ false: "#E9E9EB", true: THEME.primary }}
             thumbColor="#FFF"
+            style={{ transform: [{ scaleX: 0.8 }, { scaleY: 0.8 }] }} // Plus discret
           />
         ) : (
-          <>
+          <View style={styles.valueGroup}>
             {value && <Text style={styles.rowValue}>{value}</Text>}
-            <Ionicons name="chevron-forward" size={16} color="#D1D5DB" />
-          </>
+            <Ionicons name="chevron-forward" size={14} color="#D1D5DB" />
+          </View>
         )}
       </View>
     </TouchableOpacity>
@@ -110,79 +86,79 @@ const SettingRow = ({
 export default SettingRow;
 
 const styles = StyleSheet.create({
-  /* ROW ITEM */
   rowContainer: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: "#F3F4F6",
+    paddingVertical: 18,
+    borderBottomWidth: 0.5,
+    borderBottomColor: THEME.border,
   },
   rowLeft: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    gap: 16,
     flex: 1,
+  },
+  iconWrapper: {
+    width: 20,
+    alignItems: "center",
   },
   labelContainer: {
     flex: 1,
   },
-  iconBox: {
-    width: 32,
-    height: 32,
-    borderRadius: 10,
-    backgroundColor: "#F9FAFB",
+  labelHeader: {
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
+    gap: 8,
   },
   rowLabel: {
     fontSize: 15,
     fontWeight: "500",
     color: THEME.textMain,
+    letterSpacing: -0.2,
   },
   rowSubLabel: {
     fontSize: 12,
     color: THEME.textSecondary,
     marginTop: 2,
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+    fontStyle: 'italic',
   },
   rowRight: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+  },
+  valueGroup: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
   },
   rowValue: {
     fontSize: 14,
     color: THEME.textSecondary,
   },
-
-  /* BADGE CLASSIQUE */
   badge: {
-    backgroundColor: "#E5E7EB",
     paddingHorizontal: 6,
     paddingVertical: 2,
-    borderRadius: 6,
+    borderRadius: 4,
   },
   badgeText: {
     fontSize: 9,
     fontWeight: "800",
     color: "#FFF",
+    letterSpacing: 0.5,
   },
-
-  /* ✅ BADGE "BIENTÔT" (Style discret) */
   comingSoonBadge: {
     backgroundColor: THEME.disabled,
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.03)",
   },
   comingSoonText: {
-    fontSize: 10,
-    fontWeight: "700",
-    color: THEME.disabledText,
+    fontSize: 9,
+    fontWeight: "800",
+    color: THEME.textSecondary,
     textTransform: "uppercase",
-    letterSpacing: 0.5,
+    letterSpacing: 1,
   },
 });

@@ -11,6 +11,7 @@ import {
   View,
   Animated,
   Easing,
+  Platform,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { authClient } from "@/features/auth";
@@ -18,19 +19,20 @@ import { Image } from "expo-image";
 import * as Linking from "expo-linking";
 import * as Clipboard from "expo-clipboard";
 import * as Haptics from "expo-haptics";
+import { MotiView, AnimatePresence } from "moti";
 import { showSuccessToast } from "@/lib/toast";
 import { CameraView, useCameraPermissions } from "expo-camera";
 
 const { width } = Dimensions.get("window");
 
 const THEME = {
-  background: "#FDFBF7", // Crème luxe
+  background: "#FDFBF7", // Bone Silk
   surface: "#FFFFFF",
-  textMain: "#111827",
-  textSecondary: "#6B7280",
-  primary: "#111827", // Noir profond
-  accent: "#D4AF37", // Or (discret)
-  border: "rgba(0,0,0,0.06)",
+  textMain: "#1A1A1A",
+  textSecondary: "#8E8E93",
+  primary: "#1A1A1A",
+  accent: "#AF9062", // Or brossé
+  border: "rgba(0,0,0,0.08)",
   overlay: "rgba(0,0,0,0.6)",
 };
 
@@ -45,7 +47,6 @@ export default function ShareProfileScreen() {
   const [scanned, setScanned] = useState(false);
   const [flash, setFlash] = useState(false);
 
-  // Animation du laser
   const scanAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -81,10 +82,9 @@ export default function ShareProfileScreen() {
     if (scanned) return;
     setScanned(true);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-
-    // Logique de redirection ici
     showSuccessToast("Profil détecté !");
-    setTimeout(() => setScanned(false), 2000); // Reset après 2s
+    // Redirection vers le profil scanné ici
+    setTimeout(() => setScanned(false), 2000);
   };
 
   const renderScanner = () => {
@@ -92,25 +92,29 @@ export default function ShareProfileScreen() {
       return (
         <View style={styles.permissionContainer}>
           <View style={styles.iconCircle}>
-            <Ionicons name="camera-outline" size={32} color={THEME.textMain} />
+            <Ionicons name="camera-outline" size={32} color={THEME.accent} />
           </View>
-          <Text style={styles.permissionTitle}>Accès à la caméra</Text>
+          <Text style={styles.permissionTitle}>Caméra Requise</Text>
           <Text style={styles.permissionText}>
-            Pour scanner le profil d&apos;un ami, nous avons besoin de votre
-            autorisation.
+            Pour identifier vos proches, nous avons besoin d&apos;accéder à votre
+            appareil photo.
           </Text>
           <TouchableOpacity
             onPress={requestPermission}
-            style={styles.actionBtnPrimary}
+            style={styles.primaryBtn}
           >
-            <Text style={styles.btnTextPrimary}>Autoriser l&apos;accès</Text>
+            <Text style={styles.primaryBtnText}>AUTORISER L&lsquo;ACCÈS</Text>
           </TouchableOpacity>
         </View>
       );
     }
 
     return (
-      <View style={styles.cameraWrapper}>
+      <MotiView
+        from={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        style={styles.cameraWrapper}
+      >
         <CameraView
           style={StyleSheet.absoluteFillObject}
           facing="back"
@@ -118,20 +122,15 @@ export default function ShareProfileScreen() {
           onBarcodeScanned={scanned ? undefined : handleBarCodeScanned}
           barcodeScannerSettings={{ barcodeTypes: ["qr"] }}
         />
-
-        {/* MASQUE DE SCANNER PROFESSIONNEL */}
         <View style={styles.overlayContainer}>
           <View style={styles.overlayDark} />
           <View style={styles.overlayMiddle}>
             <View style={styles.overlayDark} />
             <View style={styles.scanWindow}>
-              {/* Coins du scanner */}
               <View style={[styles.corner, styles.topLeft]} />
               <View style={[styles.corner, styles.topRight]} />
               <View style={[styles.corner, styles.bottomLeft]} />
               <View style={[styles.corner, styles.bottomRight]} />
-
-              {/* Ligne laser animée */}
               <Animated.View
                 style={[
                   styles.laser,
@@ -143,22 +142,21 @@ export default function ShareProfileScreen() {
           </View>
           <View style={[styles.overlayDark, styles.overlayBottom]}>
             <Text style={styles.scanInstruction}>
-              Positionnez le code dans le cadre
+              Cadrez le code de votre ami
             </Text>
-
             <TouchableOpacity
               style={styles.flashBtn}
               onPress={() => setFlash(!flash)}
             >
               <Ionicons
                 name={flash ? "flash" : "flash-off"}
-                size={24}
+                size={22}
                 color="#FFF"
               />
             </TouchableOpacity>
           </View>
         </View>
-      </View>
+      </MotiView>
     );
   };
 
@@ -167,27 +165,20 @@ export default function ShareProfileScreen() {
       contentContainerStyle={styles.scrollContent}
       showsVerticalScrollIndicator={false}
     >
-      <View style={styles.cardContainer}>
+      <MotiView
+        from={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        style={styles.cardContainer}
+      >
         {hasUsername ? (
           <>
             <View style={styles.cardHeader}>
-              <Image
-                source={{ uri: user?.image || "https://i.pravatar.cc/150" }}
-                style={styles.avatar}
-              />
-              <View>
-                <Text style={styles.userName}>
-                  {user?.name || "Membre Premium"}
-                </Text>
+              <Image source={{ uri: user?.image }} style={styles.avatar} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.userName}>{user?.name}</Text>
                 <Text style={styles.userHandle}>@{username}</Text>
               </View>
-              <View style={styles.badge}>
-                <Ionicons
-                  name="checkmark-circle"
-                  size={16}
-                  color={THEME.accent}
-                />
-              </View>
+              <Ionicons name="checkmark-circle" size={24} color={THEME.accent} />
             </View>
 
             <View style={styles.qrWrapper}>
@@ -203,37 +194,40 @@ export default function ShareProfileScreen() {
                 <Text style={styles.footerLabel}>MEMBRE DEPUIS</Text>
                 <Text style={styles.footerValue}>2024</Text>
               </View>
-              <Image
-                source={require("@/assets/images/icon.png")} // Remplacez par votre logo
-                style={styles.miniLogo}
-              />
+              <View style={{ alignItems: "flex-end" }}>
+                <Text style={styles.footerLabel}>IDENTITÉ</Text>
+                <Text style={styles.footerValue}>CERTIFIÉE</Text>
+              </View>
             </View>
           </>
         ) : (
-          /* ... État sans username identique ... */
           <View style={styles.noUsernameContainer}>
-            <Ionicons name="at-circle-outline" size={64} color="#E5E7EB" />
-            <Text style={styles.noUsernameTitle}>Pseudo requis</Text>
+            <Ionicons name="at-outline" size={48} color={THEME.border} />
+            <Text style={styles.noUsernameTitle}>Alias requis</Text>
+            <Text style={styles.noUsernameSubtitle}>
+              Définissez un pseudonyme pour générer votre carte de membre.
+            </Text>
             <TouchableOpacity
-              style={styles.setupBtn}
+              style={styles.primaryBtn}
               onPress={() => router.push("/(screens)/usernameSetupScreen")}
             >
-              <Text style={styles.setupBtnText}>Configurer</Text>
+              <Text style={styles.primaryBtnText}>CONFIGURER</Text>
             </TouchableOpacity>
           </View>
         )}
-      </View>
+      </MotiView>
 
       <View style={styles.actionsRow}>
         <TouchableOpacity
-          style={styles.actionBtnPrimary}
+          style={styles.primaryBtn}
           onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            Share.share({ message: `Rejoins mon cercle : ${profileLink}` });
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            Share.share({
+              message: `Rejoins mon cercle sur GiftFlow : ${profileLink}`,
+            });
           }}
         >
-          <Text style={styles.btnTextPrimary}>Partager</Text>
-          <Ionicons name="share-outline" size={18} color="#FFF" />
+          <Text style={styles.primaryBtnText}>PARTAGER MA CARTE</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -252,9 +246,10 @@ export default function ShareProfileScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.closeBtn}>
-          <Ionicons name="close" size={22} color={THEME.textMain} />
+      {/* NAV BAR */}
+      <View style={[styles.navBar, { paddingTop: insets.top + 10 }]}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+          <Ionicons name="chevron-down" size={26} color={THEME.textMain} />
         </TouchableOpacity>
 
         <View style={styles.toggleContainer}>
@@ -281,7 +276,7 @@ export default function ShareProfileScreen() {
             </TouchableOpacity>
           ))}
         </View>
-        <View style={{ width: 40 }} />
+        <View style={{ width: 44 }} />
       </View>
 
       <View style={styles.content}>
@@ -293,23 +288,20 @@ export default function ShareProfileScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: THEME.background },
-  header: {
+  navBar: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingBottom: 20,
+    paddingHorizontal: 15,
+    paddingBottom: 15,
   },
-  closeBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "#FFF",
+  backBtn: {
+    width: 44,
+    height: 44,
     justifyContent: "center",
     alignItems: "center",
-    borderWidth: 1,
-    borderColor: THEME.border,
   },
+
   toggleContainer: {
     flexDirection: "row",
     backgroundColor: "rgba(0,0,0,0.04)",
@@ -325,89 +317,110 @@ const styles = StyleSheet.create({
   },
   toggleBtnActive: {
     backgroundColor: "#FFF",
-    elevation: 2,
     shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+    elevation: 2,
   },
-  toggleText: { fontSize: 13, fontWeight: "600", color: THEME.textSecondary },
+  toggleText: {
+    fontSize: 11,
+    fontWeight: "800",
+    color: THEME.textSecondary,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
   toggleTextActive: { color: THEME.textMain },
 
   content: { flex: 1 },
-  scrollContent: { alignItems: "center", paddingBottom: 40 },
-
-  /* CARD STYLE */
-  cardContainer: {
-    backgroundColor: "#FFF",
-    width: width * 0.88,
-    borderRadius: 30,
-    padding: 24,
-    marginTop: 20,
-    marginBottom: 30,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 15 },
-    shadowOpacity: 0.08,
-    shadowRadius: 25,
-    elevation: 8,
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.03)",
+  scrollContent: {
+    alignItems: "center",
+    paddingBottom: 40,
+    paddingHorizontal: 32,
   },
-  cardHeader: { flexDirection: "row", alignItems: "center", marginBottom: 25 },
+
+  /* CARD STYLE - LUXE */
+  cardContainer: {
+    backgroundColor: THEME.surface,
+    width: width - 64,
+    borderRadius: 0, // Rectangulaire luxe
+    padding: 30,
+    marginTop: 20,
+    marginBottom: 40,
+    borderWidth: 1,
+    borderColor: THEME.border,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.03,
+    shadowRadius: 20,
+    elevation: 5,
+  },
+  cardHeader: { flexDirection: "row", alignItems: "center", marginBottom: 30 },
   avatar: {
     width: 50,
     height: 50,
-    borderRadius: 25,
+    borderRadius: 0,
     marginRight: 15,
     backgroundColor: THEME.background,
+    borderWidth: 1,
+    borderColor: THEME.border,
   },
   userName: {
-    fontSize: 17,
-    fontWeight: "700",
+    fontSize: 20,
+    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
     color: THEME.textMain,
     letterSpacing: -0.5,
   },
-  userHandle: { fontSize: 13, color: THEME.textSecondary, marginTop: 2 },
-  badge: { marginLeft: "auto" },
+  userHandle: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: THEME.accent,
+    marginTop: 2,
+    letterSpacing: 0.5,
+  },
+
   qrWrapper: {
     aspectRatio: 1,
-    backgroundColor: "#F9FAFB",
-    borderRadius: 20,
-    padding: 20,
+    backgroundColor: "#F9F6F0",
+    borderRadius: 0,
+    padding: 25,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 25,
+    marginBottom: 30,
+    borderWidth: 1,
+    borderColor: THEME.border,
   },
   qrImage: { width: "100%", height: "100%" },
+
   cardFooter: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     borderTopWidth: 1,
-    borderTopColor: "#F3F4F6",
+    borderTopColor: THEME.border,
     paddingTop: 20,
   },
   footerLabel: {
-    fontSize: 9,
+    fontSize: 8,
     fontWeight: "800",
     color: THEME.textSecondary,
-    letterSpacing: 1,
+    letterSpacing: 1.5,
+    marginBottom: 4,
   },
   footerValue: {
-    fontSize: 12,
-    fontWeight: "600",
+    fontSize: 11,
+    fontWeight: "700",
     color: THEME.textMain,
-    marginTop: 2,
+    letterSpacing: 0.5,
   },
-  miniLogo: { width: 24, height: 24, opacity: 0.8, grayscale: 1 } as any,
 
-  /* SCANNER OVERLAY */
+  /* SCANNER */
   cameraWrapper: {
     flex: 1,
-    marginHorizontal: 20,
+    marginHorizontal: 32,
     marginBottom: 40,
-    borderRadius: 30,
     overflow: "hidden",
+    borderWidth: 1,
+    borderColor: THEME.border,
   },
   overlayContainer: { ...StyleSheet.absoluteFillObject },
   overlayDark: { flex: 1, backgroundColor: THEME.overlay },
@@ -416,90 +429,69 @@ const styles = StyleSheet.create({
   overlayBottom: { alignItems: "center", paddingTop: 30 },
   scanInstruction: {
     color: "#FFF",
-    fontSize: 14,
-    fontWeight: "500",
+    fontSize: 13,
+    fontWeight: "600",
+    letterSpacing: 0.5,
+    textTransform: "uppercase",
     marginBottom: 20,
+    opacity: 0.8,
   },
 
   corner: {
     position: "absolute",
-    width: 25,
-    height: 25,
-    borderColor: "#FFF",
+    width: 20,
+    height: 20,
+    borderColor: THEME.accent,
     borderWidth: 3,
   },
-  topLeft: {
-    top: 0,
-    left: 0,
-    borderRightWidth: 0,
-    borderBottomWidth: 0,
-    borderTopLeftRadius: 15,
-  },
-  topRight: {
-    top: 0,
-    right: 0,
-    borderLeftWidth: 0,
-    borderBottomWidth: 0,
-    borderTopRightRadius: 15,
-  },
-  bottomLeft: {
-    bottom: 0,
-    left: 0,
-    borderRightWidth: 0,
-    borderTopWidth: 0,
-    borderBottomLeftRadius: 15,
-  },
-  bottomRight: {
-    bottom: 0,
-    right: 0,
-    borderLeftWidth: 0,
-    borderTopWidth: 0,
-    borderBottomRightRadius: 15,
-  },
+  topLeft: { top: 0, left: 0, borderRightWidth: 0, borderBottomWidth: 0 },
+  topRight: { top: 0, right: 0, borderLeftWidth: 0, borderBottomWidth: 0 },
+  bottomLeft: { bottom: 0, left: 0, borderRightWidth: 0, borderTopWidth: 0 },
+  bottomRight: { bottom: 0, right: 0, borderLeftWidth: 0, borderTopWidth: 0 },
 
   laser: {
     width: "90%",
-    height: 2,
+    height: 1.5,
     backgroundColor: THEME.accent,
     alignSelf: "center",
     shadowColor: THEME.accent,
-    shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 1,
-    shadowRadius: 8,
+    shadowRadius: 10,
     elevation: 5,
   },
   flashBtn: {
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: "rgba(255,255,255,0.2)",
+    backgroundColor: "rgba(255,255,255,0.15)",
     justifyContent: "center",
     alignItems: "center",
   },
 
-  /* ACTIONS */
-  actionsRow: { flexDirection: "row", paddingHorizontal: 25, gap: 12 },
-  actionBtnPrimary: {
+  /* BUTTONS */
+  actionsRow: { flexDirection: "row", gap: 12, width: "100%" },
+  primaryBtn: {
     flex: 1,
-    height: 56,
+    height: 60,
     backgroundColor: THEME.primary,
-    borderRadius: 28,
-    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 10,
+  },
+  primaryBtnText: {
+    color: "#FFF",
+    fontSize: 13,
+    fontWeight: "800",
+    letterSpacing: 1.5,
   },
   actionBtnSecondary: {
-    width: 56,
-    height: 56,
-    backgroundColor: "#FFF",
-    borderRadius: 28,
+    width: 60,
+    height: 60,
+    backgroundColor: THEME.surface,
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 1,
     borderColor: THEME.border,
   },
-  btnTextPrimary: { color: "#FFF", fontSize: 16, fontWeight: "600" },
 
   /* PERMISSION */
   permissionContainer: {
@@ -512,26 +504,40 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: "#F3F4F6",
+    backgroundColor: THEME.surface,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 20,
+    marginBottom: 25,
+    borderWidth: 1,
+    borderColor: THEME.border,
   },
-  permissionTitle: { fontSize: 20, fontWeight: "700", marginBottom: 10 },
+  permissionTitle: {
+    fontSize: 22,
+    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
+    marginBottom: 15,
+    color: THEME.textMain,
+  },
   permissionText: {
     textAlign: "center",
     color: THEME.textSecondary,
     lineHeight: 22,
-    marginBottom: 30,
+    marginBottom: 35,
+    fontStyle: "italic",
   },
 
-  noUsernameContainer: { alignItems: "center", padding: 20 },
-  noUsernameTitle: { fontSize: 18, fontWeight: "600", marginTop: 10 },
-  setupBtn: {
+  noUsernameContainer: { alignItems: "center", paddingVertical: 20 },
+  noUsernameTitle: {
+    fontSize: 18,
+    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
     marginTop: 15,
-    padding: 12,
-    backgroundColor: THEME.primary,
-    borderRadius: 12,
+    color: THEME.textMain,
   },
-  setupBtnText: { color: "#FFF", fontWeight: "600" },
+  noUsernameSubtitle: {
+    textAlign: "center",
+    color: THEME.textSecondary,
+    fontSize: 13,
+    marginTop: 10,
+    marginBottom: 25,
+    lineHeight: 18,
+  },
 });

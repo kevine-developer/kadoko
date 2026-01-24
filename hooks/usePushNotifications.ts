@@ -5,10 +5,10 @@ import { useEffect, useRef, useState } from "react";
 import { authClient } from "@/features/auth/services/auth-client";
 import { getApiUrl } from "@/lib/api-config";
 import Constants from "expo-constants";
+import { useRouter } from "expo-router";
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowAlert: true,
     shouldPlaySound: true,
     shouldSetBadge: true,
     shouldShowBanner: true,
@@ -22,6 +22,7 @@ export const usePushNotifications = () => {
     useState<Notifications.Notification | null>(null);
   const notificationListener = useRef<Notifications.Subscription>(null!);
   const responseListener = useRef<Notifications.Subscription>(null!);
+  const router = useRouter();
 
   useEffect(() => {
     registerForPushNotificationsAsync().then((token) => {
@@ -39,14 +40,21 @@ export const usePushNotifications = () => {
     responseListener.current =
       Notifications.addNotificationResponseReceivedListener((response) => {
         console.log("Notification cliquée:", response);
-        // Gérer la redirection ici si nécessaire
+        const targetUrl = response.notification.request.content.data?.targetUrl;
+
+        if (targetUrl) {
+          // Utiliser un petit délai pour être sûr que l'app est prête
+          setTimeout(() => {
+            router.push(targetUrl as any);
+          }, 100);
+        }
       });
 
     return () => {
       notificationListener.current?.remove();
       responseListener.current?.remove();
     };
-  }, []);
+  }, [router]);
 
   const saveTokenToServer = async (token: string) => {
     try {

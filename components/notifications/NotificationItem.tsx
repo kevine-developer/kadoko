@@ -1,139 +1,183 @@
 import React from "react";
-import { View, Text, TouchableOpacity, Image, StyleSheet } from "react-native";
-import { Notification } from "../../lib/services/notification-service";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  Platform,
+} from "react-native";
+import { Image } from "expo-image";
 import { useRouter } from "expo-router";
+import * as Haptics from "expo-haptics";
+import { Notification } from "../../lib/services/notification-service";
+import { Ionicons } from "@expo/vector-icons";
+
+// --- THEME ÉDITORIAL ---
+const THEME = {
+  background: "#FDFBF7",
+  surface: "#FFFFFF",
+  textMain: "#1A1A1A",
+  textSecondary: "#8E8E93",
+  accent: "#AF9062", // Or brossé
+  border: "rgba(0,0,0,0.06)",
+  unreadBg: "rgba(175, 144, 98, 0.03)", // Teinte or très légère
+};
 
 interface NotificationItemProps {
   notification: Notification;
   onPress: (n: Notification) => void;
+  onDelete: (id: string) => void;
 }
 
 const getTimeAgo = (dateData: string) => {
   const date = new Date(dateData);
   const now = new Date();
   const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-
-  let interval = seconds / 31536000;
-  if (interval > 1)
-    return Math.floor(interval) + " an" + (Math.floor(interval) > 1 ? "s" : "");
-  interval = seconds / 2592000;
-  if (interval > 1) return Math.floor(interval) + " mois";
-  interval = seconds / 86400;
-  if (interval > 1)
-    return (
-      Math.floor(interval) + " jour" + (Math.floor(interval) > 1 ? "s" : "")
-    );
-  interval = seconds / 3600;
-  if (interval > 1) return Math.floor(interval) + " h";
-  interval = seconds / 60;
-  if (interval > 1) return Math.floor(interval) + " min";
-  return "À l'instant";
+  if (seconds < 60) return "À l'instant";
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h`;
+  return date.toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
 };
 
 export const NotificationItem: React.FC<NotificationItemProps> = ({
   notification,
   onPress,
+  onDelete,
 }) => {
   const router = useRouter();
+  const isUnread = !notification.isRead;
 
   const handlePress = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     onPress(notification);
     if (notification.targetUrl) {
       router.push(notification.targetUrl as any);
     }
   };
 
-  const timeAgo = getTimeAgo(notification.createdAt);
+  const handleDelete = (e: any) => {
+    e.stopPropagation();
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    onDelete(notification.id);
+  };
+
+  const cleanMessage = notification.content.message
+    ?.replace(notification.actor?.name || "", "")
+    .trim();
 
   return (
     <TouchableOpacity
-      style={[styles.container, !notification.isRead && styles.unreadContainer]}
+      style={[styles.container, isUnread && styles.unreadContainer]}
       onPress={handlePress}
+      activeOpacity={0.7}
     >
-      <View style={styles.avatarContainer}>
-        {notification.actor?.image ? (
-          <Image
-            source={{ uri: notification.actor.image }}
-            style={styles.avatar}
-          />
-        ) : (
-          <View style={[styles.avatar, styles.placeholderAvatar]}>
-            <Text style={styles.placeholderText}>
-              {notification.actor?.name?.charAt(0).toUpperCase() || "?"}
-            </Text>
-          </View>
-        )}
-      </View>
+      {/* Indicateur de lecture "Or brossé" */}
+      {isUnread && <View style={styles.unreadStrip} />}
 
-      <View style={styles.contentContainer}>
-        <Text style={styles.message} numberOfLines={2}>
-          <Text style={styles.actorName}>{notification.actor?.name} </Text>
-          {notification.content.message?.replace(
-            notification.actor?.name || "",
-            "",
-          )}
-          {notification.content.giftTitle &&
-            ` "${notification.content.giftTitle}"`}
-        </Text>
-        <Text style={styles.time}>{timeAgo}</Text>
-      </View>
+      <View style={styles.contentRow}>
+        <Image
+          source={{
+            uri: notification.actor?.image || "https://i.pravatar.cc/150",
+          }}
+          style={styles.avatar}
+          contentFit="cover"
+        />
 
-      {!notification.isRead && <View style={styles.dot} />}
+        <View style={styles.textContent}>
+          <Text style={styles.messageText} numberOfLines={2}>
+            <Text style={styles.actorName}>{notification.actor?.name}</Text>{" "}
+            {cleanMessage}
+            {notification.content.giftTitle && (
+              <Text style={styles.giftTitle}>
+                {" "}
+                « {notification.content.giftTitle} »
+              </Text>
+            )}
+          </Text>
+          <Text style={styles.timeText}>
+            {getTimeAgo(notification.createdAt)}
+          </Text>
+        </View>
+
+        <View style={styles.actions}>
+          <TouchableOpacity onPress={handleDelete} style={styles.deleteBtn}>
+            <Ionicons name="trash-outline" size={16} color="#FF3B30" />
+          </TouchableOpacity>
+          <Ionicons name="chevron-forward" size={12} color={THEME.border} />
+        </View>
+      </View>
     </TouchableOpacity>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: "row",
-    padding: 16,
+    paddingVertical: 18,
+    paddingHorizontal: 25,
     borderBottomWidth: 1,
-    borderBottomColor: "#f0f0f0",
-    backgroundColor: "white",
-    alignItems: "center",
+    borderBottomColor: THEME.border,
+    backgroundColor: "transparent",
+    flexDirection: "row",
   },
   unreadContainer: {
-    backgroundColor: "#f9fcfd",
+    backgroundColor: THEME.unreadBg,
   },
-  avatarContainer: {
-    marginRight: 12,
+  unreadStrip: {
+    position: "absolute",
+    left: 0,
+    top: 15,
+    bottom: 15,
+    width: 3,
+    backgroundColor: THEME.accent,
   },
-  avatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-  },
-  placeholderAvatar: {
-    backgroundColor: "#ddd",
-    justifyContent: "center",
+  contentRow: {
+    flexDirection: "row",
     alignItems: "center",
-  },
-  placeholderText: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#555",
-  },
-  contentContainer: {
     flex: 1,
   },
-  actorName: {
-    fontWeight: "bold",
+  avatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 0, // Style Galerie/Editorial
+    backgroundColor: "#F2F2F7",
+    borderWidth: 0.5,
+    borderColor: THEME.border,
   },
-  message: {
+  textContent: {
+    flex: 1,
+    marginLeft: 15,
+    marginRight: 10,
+  },
+  messageText: {
     fontSize: 14,
-    color: "#333",
+    color: THEME.textMain,
     lineHeight: 20,
+    letterSpacing: -0.2,
   },
-  time: {
-    fontSize: 12,
-    color: "#888",
+  actorName: {
+    fontWeight: "700",
+    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
+  },
+  giftTitle: {
+    fontStyle: "italic",
+    color: THEME.textSecondary,
+  },
+  timeText: {
+    fontSize: 11,
+    color: THEME.textSecondary,
     marginTop: 4,
+    fontWeight: "600",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
   },
-  dot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: "#007AFF",
-    marginLeft: 8,
+  actions: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  deleteBtn: {
+    padding: 8,
+    marginRight: 4,
   },
 });

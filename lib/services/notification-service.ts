@@ -1,5 +1,5 @@
 import { authClient } from "../../features/auth/services/auth-client";
-import { socketService } from "./socket-service";
+import { socketService } from "./socket";
 import { getApiUrl } from "../api-config";
 
 export interface Notification {
@@ -60,6 +60,12 @@ class NotificationService {
     });
   }
 
+  async deleteAllNotifications() {
+    return authClient.$fetch(getApiUrl("/notifications"), {
+      method: "DELETE",
+    });
+  }
+
   /*
    * Gestion du Socket.IO
    */
@@ -69,7 +75,7 @@ class NotificationService {
 
     if (!userId) return;
 
-    socketService.init(userId);
+    socketService.connect(userId);
 
     socketService.on("notification", (data: any) => {
       onNotification(data);

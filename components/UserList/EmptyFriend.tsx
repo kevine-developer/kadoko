@@ -1,15 +1,23 @@
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+  Platform,
+} from "react-native";
 import React from "react";
 import { Ionicons } from "@expo/vector-icons";
-// --- THEME LUXE ---
+import * as Haptics from "expo-haptics";
+import { MotiView } from "moti";
+
+// --- THEME ÉDITORIAL COHÉRENT ---
 const THEME = {
-  background: "#FDFBF7",
+  background: "#FDFBF7", // Bone Silk
   surface: "#FFFFFF",
-  textMain: "#111827",
-  textSecondary: "#6B7280",
-  accent: "#111827",
-  border: "rgba(0,0,0,0.06)",
-  success: "#10B981",
+  textMain: "#1A1A1A",
+  textSecondary: "#8E8E93",
+  accent: "#AF9062", // Or brossé
+  border: "rgba(0,0,0,0.08)",
 };
 
 interface EmptyFriendProps {
@@ -17,35 +25,106 @@ interface EmptyFriendProps {
 }
 
 const EmptyFriend = ({ onPress }: EmptyFriendProps) => {
+  const handlePress = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    onPress?.();
+  };
+
   return (
-    <View style={styles.emptyState}>
-      <Ionicons name="people-outline" size={40} color="#D1D5DB" />
-      <Text style={styles.emptyText}>Votre cercle est encore vide.</Text>
-      <TouchableOpacity onPress={onPress}>
-        <Text style={styles.linkText}>Inviter des amis</Text>
+    <MotiView
+      from={{ opacity: 0, scale: 0.98 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ type: "timing", duration: 800 }}
+      style={styles.container}
+    >
+      {/* Icône Bijou */}
+      <View style={styles.iconCircle}>
+        <Ionicons name="people-outline" size={28} color={THEME.accent} />
+      </View>
+
+      {/* Texte Éditorial */}
+      <View style={styles.textContainer}>
+        <Text style={styles.title}>Cercle restreint.</Text>
+        <Text style={styles.subtitle}>
+          Votre répertoire est encore vide. Commencez à bâtir votre cercle pour
+          partager vos intentions.
+        </Text>
+      </View>
+
+      {/* Bouton Authority Rectangulaire */}
+      <TouchableOpacity
+        onPress={handlePress}
+        style={styles.actionBtn}
+        activeOpacity={0.9}
+      >
+        <Text style={styles.btnText}>INVITER VOS PROCHES</Text>
       </TouchableOpacity>
-    </View>
+
+      {/* Ligne décorative minimaliste */}
+      <View style={styles.decorativeLine} />
+    </MotiView>
   );
 };
 
 export default EmptyFriend;
 
 const styles = StyleSheet.create({
-  /* EMPTY STATES */
-  emptyState: {
+  container: {
     alignItems: "center",
-    marginTop: 40,
-    gap: 12,
+    justifyContent: "center",
+    paddingVertical: 60,
+    paddingHorizontal: 40,
+    backgroundColor: "transparent",
   },
-  emptyText: {
-    color: "#9CA3AF",
-    fontSize: 15,
-    fontStyle: "italic",
+  iconCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    borderWidth: 1,
+    borderColor: "rgba(175, 144, 98, 0.2)", // Or brossé translucide
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 30,
   },
-  linkText: {
+  textContainer: {
+    alignItems: "center",
+    marginBottom: 35,
+  },
+  title: {
+    fontSize: 22,
+    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
     color: THEME.textMain,
+    marginBottom: 12,
+    letterSpacing: -0.5,
+  },
+  subtitle: {
+    color: THEME.textSecondary,
     fontSize: 14,
-    fontWeight: "700",
-    textDecorationLine: "underline",
+    lineHeight: 22,
+    textAlign: "center",
+    fontStyle: "italic",
+    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
+  },
+  actionBtn: {
+    backgroundColor: THEME.textMain,
+    paddingHorizontal: 25,
+    paddingVertical: 15,
+    borderRadius: 0, // Rectangulaire luxe
+    width: "100%",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  btnText: {
+    color: "#FFFFFF",
+    fontSize: 11,
+    fontWeight: "800",
+    letterSpacing: 1.5,
+  },
+  decorativeLine: {
+    width: 40,
+    height: 1,
+    backgroundColor: THEME.accent,
+    marginTop: 40,
+    opacity: 0.3,
   },
 });

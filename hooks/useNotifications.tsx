@@ -4,12 +4,14 @@ import {
   notificationService,
 } from "../lib/services/notification-service";
 import { useFocusEffect } from "expo-router";
+import { authClient } from "@/features/auth";
 
 export const useNotifications = () => {
+  const { data: session } = authClient.useSession();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
-  const [page, setPage] = useState(1);
+  const [, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
 
   const fetchNotifications = useCallback(
@@ -17,20 +19,30 @@ export const useNotifications = () => {
       try {
         if (reset) {
           setLoading(true);
+        }
+
+        // Utiliser une variable locale pour capturer la page actuelle
+        // ou passer par l'état précédent si on veut incrémenter
+        let pageToFetch = 1;
+        if (!reset) {
+          setPage((p) => {
+            pageToFetch = p;
+            return p;
+          });
+        } else {
           setPage(1);
         }
 
-        const currentPage = reset ? 1 : page;
-        const result = await notificationService.getNotifications(currentPage);
+        const result = await notificationService.getNotifications(pageToFetch);
 
         if (reset) {
           setNotifications(result.notifications);
         } else {
           setNotifications((prev) => [...prev, ...result.notifications]);
+          setPage((p) => p + 1);
         }
 
-        setHasMore(currentPage < result.meta.totalPages);
-        if (!reset) setPage((p) => p + 1);
+        setHasMore(pageToFetch < result.meta.totalPages);
 
         // Mise à jour du compteur
         const count = await notificationService.getUnreadCount();
@@ -41,7 +53,7 @@ export const useNotifications = () => {
         setLoading(false);
       }
     },
-    [page],
+    [], // Ne dépend plus de page
   );
 
   const markAsRead = async (id: string) => {
@@ -77,9 +89,26 @@ export const useNotifications = () => {
     }
   };
 
-  // Initial load & Socket connection
+  const deleteAllNotifications = async () => {
+    try {
+      setNotifications([]);
+      setUnreadCount(0);
+      await notificationService.deleteAllNotifications();
+    } catch (error) {
+      console.error("Erreur deleteAllNotifications", error);
+    }
+  };
+
+  // Initial load
   useEffect(() => {
+    if (!session) return;
     fetchNotifications(true);
+  }, [session, fetchNotifications]);
+
+  // Socket connection (séparé pour être plus stable)
+  useEffect(() => {
+    const userId = session?.user?.id;
+    if (!userId) return;
 
     const onNewNotification = (n: Notification) => {
       setNotifications((prev) => [n, ...prev]);
@@ -91,13 +120,14 @@ export const useNotifications = () => {
     return () => {
       notificationService.disconnectSocket();
     };
-  }, []);
+  }, [session?.user?.id]); // Ne dépend que de l'ID utilisateur
 
   // Refresh on focus (optionnel, si on veut être sûr)
   useFocusEffect(
     useCallback(() => {
+      if (!session) return;
       notificationService.getUnreadCount().then(setUnreadCount);
-    }, []),
+    }, [session]),
   );
 
   return {
@@ -110,5 +140,6 @@ export const useNotifications = () => {
     markAsRead,
     markAllAsRead,
     deleteNotification,
+    deleteAllNotifications,
   };
 };

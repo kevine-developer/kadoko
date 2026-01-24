@@ -1,412 +1,312 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { router } from "expo-router";
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import {
   Platform,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
+  Animated,
 } from "react-native";
+import * as Haptics from "expo-haptics";
 
-// --- THEME ---
+// --- THEME ÉDITORIAL COHÉRENT ---
 const THEME = {
-  white: "#FFFFFF",
-  black: "#111827",
-  textSecondary: "#6B7280",
-  background: "#F9FAFB",
-  border: "rgba(0,0,0,0.06)",
-  success: "#10B981",
+  background: "#FFFFFF",
+  textMain: "#1A1A1A",
+  textSecondary: "#8E8E93",
+  accent: "#AF9062", // Or brossé
+  border: "rgba(0,0,0,0.08)",
+  surface: "#FDFBF7", // Bone Silk
+  success: "#4A6741",
 };
 
 const GiftCardHome = ({ item }: { item: any }) => {
   const [liked, setLiked] = useState(false);
+  const scaleAnim = useRef(new Animated.Value(1)).current;
 
-  // Gestion intelligente de la navigation
+  const handlePressIn = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 0.98,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const handlePressOut = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 1,
+      friction: 5,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const toggleLike = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setLiked(!liked);
+  };
+
   const handleMainAction = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     if (item.isReserved || item.isPurchased) {
-      // SI RÉSERVÉ ou OFFERT -> On redirige vers la Wishlist parente
       router.push({
-        pathname: "/gifts/wishlists/[wishlistId]",
+        pathname: "/(screens)/gifts/wishlists/[wishlistId]",
         params: { wishlistId: item.wishlistId },
       });
     } else {
-      // SI DISPO -> On va sur le détail du cadeau
       router.push({
-        pathname: "/gifts/[giftId]",
+        pathname: "/(screens)/gifts/[giftId]",
         params: { giftId: item.id },
       });
     }
   };
 
+  const isTaken = item.isReserved || item.isPurchased;
+
   return (
-    <TouchableOpacity
-      activeOpacity={0.92}
-      style={styles.cardContainer}
-      onPress={() =>
-        router.push({
-          pathname: "/gifts/[giftId]",
-          params: { giftId: item.id },
-        })
-      }
+    <Animated.View
+      style={[styles.container, { transform: [{ scale: scaleAnim }] }]}
     >
-      {/* 1. HEADER */}
-      <View style={styles.cardHeader}>
-        <View style={styles.userInfo}>
-          <View style={styles.avatarContainer}>
-            <Image
-              source={{ uri: item.user.avatar }}
-              style={styles.userAvatar}
-            />
-            <View style={styles.contextDot} />
-          </View>
-          <View>
-            <Text style={styles.userName}>{item.user.name}</Text>
-            <Text style={styles.userContext}>{item.context}</Text>
-          </View>
-        </View>
-
-        <TouchableOpacity
-          onPress={() => setLiked(!liked)}
-          style={styles.iconBtn}
-        >
-          <Ionicons
-            name={liked ? "heart" : "heart-outline"}
-            size={20}
-            color={liked ? "#EF4444" : "#111827"}
+      <TouchableOpacity
+        activeOpacity={1}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        onPress={handleMainAction}
+        style={styles.cardTouch}
+      >
+        {/* Image (Gauche) */}
+        <View style={styles.imageSection}>
+          <Image
+            source={{ uri: item.product.image }}
+            style={[styles.image, isTaken && styles.imageDimmed]}
+            contentFit="cover"
+            transition={500}
           />
-        </TouchableOpacity>
-      </View>
-
-      {/* 2. IMAGE PRINCIPALE */}
-      <View style={styles.imageWrapper}>
-        <Image
-          source={{ uri: item.product.image }}
-          style={styles.productImage}
-          contentFit="cover"
-          transition={400}
-        />
-
-        {/* Badge Prix */}
-        <View style={styles.priceTag}>
-          <Text style={styles.priceText}>{item.product.price}€</Text>
-        </View>
-
-        {/* Overlay Statut */}
-        {(item.isReserved || item.isPurchased) && (
-          <View style={styles.reservedOverlay}>
-            <View style={styles.reservedBadge}>
-              <Ionicons
-                name={item.isPurchased ? "gift" : "lock-closed"}
-                size={16}
-                color="#FFF"
-              />
-              <Text style={styles.reservedText}>
-                {item.isPurchased ? "DÉJÀ OFFERT" : "RÉSERVÉ"}
+          {isTaken && (
+            <View style={styles.takenOverlay}>
+              <Text style={styles.takenText}>
+                {item.isPurchased ? "ACQUIS" : "RÉSERVÉ"}
               </Text>
             </View>
-          </View>
-        )}
-      </View>
+          )}
+        </View>
 
-      {/* 3. FOOTER */}
-      <View style={styles.cardFooter}>
-        <View style={styles.titleRow}>
-          <Text style={styles.productTitle} numberOfLines={2}>
+        {/* Contenu (Droite) */}
+        <View style={styles.contentSection}>
+          {/* Header Identité */}
+          <View style={styles.header}>
+            <View style={styles.userInfo}>
+              <Image source={{ uri: item.user.avatar }} style={styles.avatar} />
+              <View>
+                <Text style={styles.userName} numberOfLines={1}>
+                  {item.user.name}
+                </Text>
+                <Text style={styles.userContext}>
+                  {item.context.toUpperCase()}
+                </Text>
+              </View>
+            </View>
+            <TouchableOpacity onPress={toggleLike} style={styles.likeBtn}>
+              <Ionicons
+                name={liked ? "heart" : "heart-outline"}
+                size={16}
+                color={liked ? "#C34A4A" : THEME.textMain}
+              />
+            </TouchableOpacity>
+          </View>
+
+          <Text style={styles.title} numberOfLines={1}>
             {item.product.name}
           </Text>
 
-          {/* Affichage de qui a pris le cadeau */}
-          {(item.isReserved || item.isPurchased) &&
-            (item.reservedBy || item.purchasedBy) && (
-              <View style={styles.reserverRow}>
-                <Image
-                  source={{
-                    uri: item.isPurchased
-                      ? item.purchasedBy?.image
-                      : item.reservedBy?.image,
-                  }}
-                  style={styles.reserverAvatar}
+          <View style={styles.footerRow}>
+            <View style={styles.priceContainer}>
+              <Text style={styles.priceText}>{item.product.price}€</Text>
+              <Text style={styles.priceLabel}>ESTIMÉ</Text>
+            </View>
+
+            <View style={styles.actionGroup}>
+              <TouchableOpacity
+                onPress={(e) => {
+                  e.stopPropagation();
+                  // Partage
+                }}
+                style={styles.circleBtn}
+              >
+                <Ionicons
+                  name="share-outline"
+                  size={14}
+                  color={THEME.textMain}
                 />
-                <Text style={styles.reserverTextInfo}>
-                  {item.isPurchased ? "Offert par " : "Réservé par "}
-                  <Text style={styles.reserverName}>
-                    {item.isPurchased
-                      ? item.isMyPurchase
-                        ? "vous"
-                        : item.purchasedBy?.name
-                      : item.isMyReservation
-                        ? "vous"
-                        : item.reservedBy?.name}
-                  </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.actionBtn, isTaken && styles.actionBtnTaken]}
+                onPress={handleMainAction}
+              >
+                <Text
+                  style={[
+                    styles.actionBtnText,
+                    isTaken && styles.actionBtnTextTaken,
+                  ]}
+                >
+                  {isTaken ? "VOIR" : "RÉSERVER"}
                 </Text>
-              </View>
-            )}
+                {!isTaken && (
+                  <Ionicons name="arrow-forward" size={10} color="#FFF" />
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
         </View>
-
-        <View style={styles.actionRow}>
-          {/* BOUTON D'ACTION INTELLIGENT */}
-          <TouchableOpacity
-            style={[
-              item.isReserved || item.isPurchased
-                ? styles.secondaryBtn
-                : styles.mainBtn,
-            ]}
-            activeOpacity={0.8}
-            onPress={handleMainAction}
-          >
-            <Text
-              style={[
-                item.isReserved || item.isPurchased
-                  ? styles.secondaryBtnText
-                  : styles.mainBtnText,
-              ]}
-            >
-              {item.isReserved || item.isPurchased
-                ? "Voir la collection"
-                : "Réserver ce cadeau"}
-            </Text>
-
-            <Ionicons
-              name={
-                item.isReserved || item.isPurchased
-                  ? "list-outline"
-                  : "arrow-forward"
-              }
-              size={item.isReserved || item.isPurchased ? 16 : 14}
-              color={item.isReserved || item.isPurchased ? THEME.black : "#FFF"}
-            />
-          </TouchableOpacity>
-
-          {/* Share Btn */}
-          {!(item.isReserved || item.isPurchased) && (
-            <TouchableOpacity style={styles.shareBtn}>
-              <Ionicons name="share-outline" size={20} color={THEME.black} />
-            </TouchableOpacity>
-          )}
-        </View>
-      </View>
-    </TouchableOpacity>
+      </TouchableOpacity>
+    </Animated.View>
   );
 };
 
 export default GiftCardHome;
 
 const styles = StyleSheet.create({
-  cardContainer: {
-    backgroundColor: THEME.white,
-    borderRadius: 24,
-    marginBottom: 18,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.06,
-    shadowRadius: 24,
-    elevation: 4,
+  container: {
+    backgroundColor: THEME.surface,
+    marginBottom: 20,
     borderWidth: 1,
     borderColor: THEME.border,
-    overflow: "hidden",
+    borderRadius: 0,
   },
-
-  /* HEADER */
-  cardHeader: {
+  cardTouch: {
+    flexDirection: "row",
+    height: 160,
+  },
+  imageSection: {
+    width: 110,
+    height: "100%",
+    backgroundColor: "#F9FAFB",
+    position: "relative",
+  },
+  image: {
+    width: "100%",
+    height: "100%",
+  },
+  imageDimmed: {
+    opacity: 0.6,
+  },
+  takenOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(253, 251, 247, 0.4)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  takenText: {
+    fontSize: 8,
+    fontWeight: "900",
+    color: THEME.accent,
+    letterSpacing: 1.5,
+    backgroundColor: THEME.surface,
+    paddingHorizontal: 6,
+    paddingVertical: 4,
+    borderWidth: 0.5,
+    borderColor: THEME.accent,
+  },
+  contentSection: {
+    flex: 1,
+    padding: 14,
+    justifyContent: "space-between",
+  },
+  header: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    alignItems: "flex-start",
   },
   userInfo: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    gap: 8,
+    flex: 1,
   },
-  avatarContainer: {
-    position: "relative",
-  },
-  userAvatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "#F3F4F6",
-    borderWidth: 1,
-    borderColor: "#FFF",
-  },
-  contextDot: {
-    position: "absolute",
-    bottom: 0,
-    right: 0,
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: THEME.black,
-    borderWidth: 1.5,
-    borderColor: "#FFF",
+  avatar: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: "#F2F2F7",
+    borderWidth: 0.5,
+    borderColor: THEME.border,
   },
   userName: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: "700",
-    color: THEME.black,
-    letterSpacing: -0.2,
+    color: THEME.textMain,
+    maxWidth: 100,
   },
   userContext: {
-    fontSize: 11,
-    color: THEME.textSecondary,
-    fontWeight: "500",
-  },
-  iconBtn: {
-    padding: 8,
-    borderRadius: 20,
-    backgroundColor: "#F9FAFB",
-  },
-
-  /* IMAGE */
-  imageWrapper: {
-    height: 180,
-    width: "100%",
-    backgroundColor: "#F3F4F6",
-    position: "relative",
-  },
-  productImage: {
-    width: "100%",
-    height: "100%",
-  },
-  priceTag: {
-    position: "absolute",
-    top: 16,
-    right: 16,
-    backgroundColor: "rgba(255,255,255,0.95)",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-  },
-  priceText: {
-    fontWeight: "700",
-    fontSize: 13,
-    color: THEME.black,
-  },
-  reservedOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0, 0, 0, 0.3)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  reservedBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.4)",
-    backdropFilter: "blur(10px)",
-  },
-  reservedText: {
-    fontSize: 12,
+    fontSize: 8,
+    color: THEME.accent,
     fontWeight: "800",
-    color: "#FFFFFF",
-    letterSpacing: 1,
-  },
-
-  /* FOOTER */
-  cardFooter: {
-    padding: 10,
-  },
-  titleRow: {
-    marginBottom: 20,
-  },
-  productTitle: {
-    fontSize: 18,
-    fontWeight: "400",
-    color: THEME.black,
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-    lineHeight: 28,
-  },
-  actionRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-
-  /* --- BOUTON PRINCIPAL (NOIR) --- */
-  mainBtn: {
-    flex: 1,
-    backgroundColor: THEME.black,
-    height: 50,
-    borderRadius: 25,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    shadowColor: THEME.black,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.2,
-    shadowRadius: 12,
-  },
-  mainBtnText: {
-    color: "#FFF",
-    fontWeight: "600",
-    fontSize: 14,
     letterSpacing: 0.5,
   },
-
-  /* --- BOUTON SECONDAIRE (BLANC) POUR "VOIR LISTE" --- */
-  secondaryBtn: {
-    flex: 1,
-    backgroundColor: "#FFFFFF",
-    height: 50,
-    borderRadius: 25,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
+  likeBtn: {
+    padding: 4,
   },
-  secondaryBtnText: {
-    color: THEME.black,
-    fontWeight: "600",
+  title: {
+    fontSize: 16,
+    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
+    color: THEME.textMain,
+    marginBottom: 4,
+  },
+  footerRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  priceContainer: {
+    flexDirection: "column",
+  },
+  priceText: {
     fontSize: 14,
+    fontWeight: "700",
+    color: THEME.textMain,
   },
-
-  shareBtn: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    alignItems: "center",
-    justifyContent: "center",
+  priceLabel: {
+    fontSize: 7,
+    fontWeight: "800",
+    color: THEME.textSecondary,
+    letterSpacing: 1,
   },
-  reserverRow: {
+  actionGroup: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-    marginTop: 12,
-    backgroundColor: "#F9FAFB",
-    padding: 8,
-    borderRadius: 12,
-    alignSelf: "flex-start",
+    gap: 10,
   },
-  reserverAvatar: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: "#E5E7EB",
+  circleBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: THEME.border,
+    justifyContent: "center",
+    alignItems: "center",
   },
-  reserverTextInfo: {
-    fontSize: 12,
-    color: "#6B7280",
-    fontWeight: "500",
+  actionBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: THEME.textMain,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    gap: 6,
   },
-  reserverName: {
-    fontWeight: "700",
-    color: "#111827",
+  actionBtnTaken: {
+    backgroundColor: "transparent",
+    borderWidth: 1,
+    borderColor: THEME.border,
+  },
+  actionBtnText: {
+    color: "#FFFFFF",
+    fontSize: 9,
+    fontWeight: "900",
+    letterSpacing: 1,
+  },
+  actionBtnTextTaken: {
+    color: THEME.textMain,
   },
 });

@@ -6,10 +6,18 @@ import {
   StyleSheet,
   RefreshControl,
   ActivityIndicator,
+  Platform,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { NotificationItem } from "./NotificationItem";
 import { useNotifications } from "../../hooks/useNotifications";
-import { Notification } from "../../lib/services/notification-service";
+
+const THEME = {
+  background: "#FDFBF7",
+  textMain: "#1A1A1A",
+  textSecondary: "#8E8E93",
+  accent: "#AF9062",
+};
 
 export const NotificationList = () => {
   const {
@@ -19,37 +27,41 @@ export const NotificationList = () => {
     fetchNotifications,
     refresh,
     markAsRead,
+    deleteNotification,
   } = useNotifications();
 
   const handleLoadMore = () => {
-    if (!loading && hasMore) {
-      fetchNotifications();
-    }
+    if (!loading && hasMore) fetchNotifications();
   };
 
-  const renderItem = ({ item }: { item: Notification }) => (
-    <NotificationItem notification={item} onPress={(n) => markAsRead(n.id)} />
-  );
-
-  const renderEmpty = () => (
-    <View style={styles.emptyContainer}>
-      {!loading && <Text style={styles.emptyText}>Aucune notification</Text>}
-    </View>
-  );
-
-  const renderFooter = () => {
-    if (!loading) return null;
-    return (
-      <View style={styles.footer}>
-        <ActivityIndicator size="small" color="#888" />
+  const renderEmpty = () =>
+    !loading ? (
+      <View style={styles.emptyContainer}>
+        <View style={styles.iconCircle}>
+          <Ionicons
+            name="notifications-off-outline"
+            size={24}
+            color={THEME.accent}
+          />
+        </View>
+        <Text style={styles.emptyTitle}>Silence radio.</Text>
+        <Text style={styles.emptyText}>
+          Votre flux d&lsquo;activité est actuellement vierge.
+        </Text>
+        <View style={styles.decorativeLine} />
       </View>
-    );
-  };
+    ) : null;
 
   return (
     <FlatList
       data={notifications}
-      renderItem={renderItem}
+      renderItem={({ item }) => (
+        <NotificationItem
+          notification={item}
+          onPress={(n) => markAsRead(n.id)}
+          onDelete={(id) => deleteNotification(id)}
+        />
+      )}
       keyExtractor={(item) => item.id}
       onEndReached={handleLoadMore}
       onEndReachedThreshold={0.5}
@@ -57,39 +69,59 @@ export const NotificationList = () => {
         <RefreshControl
           refreshing={loading && notifications.length === 0}
           onRefresh={refresh}
+          tintColor={THEME.accent}
         />
       }
       ListEmptyComponent={renderEmpty}
-      ListFooterComponent={renderFooter}
-      contentContainerStyle={
-        notifications.length === 0 ? styles.centerEmpty : null
+      ListFooterComponent={() =>
+        loading && (
+          <View style={styles.footer}>
+            <ActivityIndicator size="small" color={THEME.accent} />
+          </View>
+        )
       }
-      style={styles.list}
+      contentContainerStyle={notifications.length === 0 && { flex: 1 }}
+      showsVerticalScrollIndicator={false}
     />
   );
 };
 
 const styles = StyleSheet.create({
-  list: {
-    flex: 1,
-    backgroundColor: "#fff",
-  },
   emptyContainer: {
-    padding: 40,
+    flex: 1,
     alignItems: "center",
     justifyContent: "center",
+    paddingHorizontal: 50,
   },
-  centerEmpty: {
-    flexGrow: 1,
+  iconCircle: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    borderWidth: 1,
+    borderColor: "rgba(175, 144, 98, 0.2)",
+    alignItems: "center",
     justifyContent: "center",
+    marginBottom: 20,
+  },
+  emptyTitle: {
+    fontSize: 20,
+    color: THEME.textMain,
+    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
+    marginBottom: 10,
   },
   emptyText: {
-    fontSize: 16,
-    color: "#888",
+    fontSize: 14,
+    color: THEME.textSecondary,
+    textAlign: "center",
+    lineHeight: 20,
+    fontStyle: "italic",
   },
-  footer: {
-    padding: 20,
-    justifyContent: "center",
-    alignItems: "center",
+  decorativeLine: {
+    width: 30,
+    height: 1,
+    backgroundColor: THEME.accent,
+    marginTop: 25,
+    opacity: 0.3,
   },
+  footer: { paddingVertical: 30 },
 });

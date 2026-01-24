@@ -2,41 +2,38 @@ import { Ionicons } from "@expo/vector-icons";
 import BottomSheet, { BottomSheetView } from "@gorhom/bottom-sheet";
 import { Image } from "expo-image";
 import * as Linking from "expo-linking";
-import React, { useCallback, useEffect, useMemo, useRef } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import {
   Platform,
   Share,
-  StyleProp,
   StyleSheet,
   Text,
-  TextStyle,
   TouchableOpacity,
   View,
-  ViewStyle,
+  ActivityIndicator,
 } from "react-native";
+import { router } from "expo-router";
 import {
   GestureHandlerRootView,
   ScrollView,
 } from "react-native-gesture-handler";
+import * as Haptics from "expo-haptics";
 
 import { giftService } from "@/lib/services/gift-service";
 import { authClient } from "@/features/auth";
-
 import { Gift } from "@/types/gift";
 import { socketService } from "@/lib/services/socket";
 
-// --- THEME LUXE ---
+// --- THEME ÉDITORIAL COHÉRENT ---
 const THEME = {
-  background: "#FDFBF7",
+  background: "#FDFBF7", // Bone Silk
   surface: "#FFFFFF",
-  textMain: "#111827",
-  textSecondary: "#6B7280",
-  accent: "#111827",
-  border: "rgba(0,0,0,0.06)",
-  danger: "#EF4444",
-  success: "#10B981", // Vert Émeraude
-  warning: "#D97706", // Ambre
-  disabled: "#E5E7EB",
+  textMain: "#1A1A1A",
+  textSecondary: "#8E8E93",
+  accent: "#AF9062", // Or brossé
+  border: "rgba(0,0,0,0.08)",
+  danger: "#C34A4A",
+  success: "#4A6741", // Vert forêt luxe
 };
 
 interface GiftDetailsBottomSheetProps {
@@ -47,8 +44,6 @@ interface GiftDetailsBottomSheetProps {
   onActionSuccess?: () => void;
 }
 
-// removed import line
-
 export default function GiftDetailsBottomSheet({
   gift,
   visible,
@@ -58,10 +53,10 @@ export default function GiftDetailsBottomSheet({
 }: GiftDetailsBottomSheetProps) {
   const { data: session } = authClient.useSession();
   const bottomSheetRef = useRef<BottomSheet>(null);
-  const snapPoints = useMemo(() => ["60%", "92%"], []);
+  const snapPoints = useMemo(() => ["65%", "92%"], []);
 
-  // Local state for real-time updates
   const [localGift, setLocalGift] = React.useState<Gift | null>(gift);
+  const [loadingAction, setLoadingAction] = React.useState(false);
 
   useEffect(() => {
     setLocalGift(gift);
@@ -69,145 +64,154 @@ export default function GiftDetailsBottomSheet({
 
   useEffect(() => {
     if (!gift) return;
-
-    const handleGiftUpdate = (updatedGift: Gift) => {
-      if (updatedGift.id === gift.id) {
-        setLocalGift(updatedGift);
-        // On ne déclenche pas onActionSuccess ici pour éviter de fermer le modal ou recharger intempestivement
-        // Mais si le parent a besoin de savoir, on pourrait le notifier.
-      }
-    };
-
     socketService.connect();
-    socketService.on("gift:updated", handleGiftUpdate);
-
-    return () => {
-      socketService.off("gift:updated", handleGiftUpdate);
+    const handleGiftUpdate = (updatedGift: Gift) => {
+      if (updatedGift.id === gift.id) setLocalGift(updatedGift);
     };
+    socketService.on("gift:updated", handleGiftUpdate);
+    return () => socketService.off("gift:updated", handleGiftUpdate);
   }, [gift]);
 
   useEffect(() => {
-    if (visible) {
-      bottomSheetRef.current?.expand();
-    } else {
-      bottomSheetRef.current?.close();
-    }
+    if (visible) bottomSheetRef.current?.expand();
+    else bottomSheetRef.current?.close();
   }, [visible]);
-
-  const getHostname = (url: string) => {
-    try {
-      return new URL(url).hostname.replace("www.", "");
-    } catch {
-      return url || "Lien";
-    }
-  };
-
-  const handleSheetChange = useCallback(
-    (index: number) => {
-      if (index === -1) {
-        onClose();
-      }
-    },
-    [onClose],
-  );
 
   const handleOpenLink = () => {
     if (localGift?.productUrl) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       Linking.openURL(localGift.productUrl).catch(console.error);
     }
   };
 
   const handleShare = async () => {
     if (!localGift) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     try {
-      const message = `Regarde cette trouvaille : ${localGift.title}`;
       await Share.share({
-        message,
-        title: localGift.title,
+        message: `Une pièce d'exception repérée : ${localGift.title}`,
         url: localGift.productUrl,
       });
     } catch (error) {
-      console.error("Erreur partage:", error);
+      console.error(error);
     }
+  };
+
+  const handleVisitorAction = async () => {
+    if (!localGift || loadingAction) return;
+
+    // --- OPTIMISTIC UI ---
+    const previousState = { ...localGift };
+    const isCurrentlyReservedByMe =
+      localGift.reservedById === session?.user?.id;
+
+    // Simuler le nouvel état localement
+    setLocalGift((prev) => {
+      if (!prev) return null;
+      if (isCurrentlyReservedByMe) {
+        // Libération
+        return {
+          ...prev,
+          status: "AVAILABLE" as any,
+          reservedById: undefined,
+          reservedBy: undefined,
+        };
+      } else {
+        // Réservation
+        return {
+          ...prev,
+          status: "RESERVED" as any,
+          reservedById: session?.user?.id,
+          reservedBy: session?.user as any,
+        };
+      }
+    });
+
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setLoadingAction(true);
+
+    try {
+      const res = isCurrentlyReservedByMe
+        ? await giftService.releaseGift(localGift.id)
+        : await giftService.reserveGift(localGift.id);
+
+      if (res.success) {
+        if ("gift" in res) setLocalGift((res as any).gift);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        onActionSuccess?.();
+      } else {
+        setLocalGift(previousState);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      }
+    } catch {
+      setLocalGift(previousState);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    } finally {
+      setLoadingAction(false);
+    }
+  };
+
+  const handleTogglePublish = async () => {
+    if (!localGift || loadingAction) return;
+
+    // --- OPTIMISTIC UI ---
+    const previousState = { ...localGift };
+    const optimisticIsPublished = !localGift.isPublished;
+
+    // Mise à jour immédiate de l'interface
+    setLocalGift((prev) =>
+      prev ? { ...prev, isPublished: optimisticIsPublished } : null,
+    );
+
+    // Feedback haptique immédiat pour sensation de réactivité
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+    setLoadingAction(true);
+
+    try {
+      const res = optimisticIsPublished
+        ? await giftService.publishGift(localGift.id)
+        : await giftService.unpublishGift(localGift.id);
+
+      if (res.success) {
+        // Confirmation serveur (souvent inutile si optimiste ok, mais bonne pratique)
+        if ("gift" in res) setLocalGift((res as any).gift);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        onActionSuccess?.();
+      } else {
+        // Rollback en cas d'erreur métier
+        setLocalGift(previousState);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      }
+    } catch {
+      // Rollback en cas d'erreur technique
+      setLocalGift(previousState);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    } finally {
+      setLoadingAction(false);
+    }
+  };
+
+  const handleEdit = () => {
+    if (!localGift) return;
+    onClose();
+    // Utiliser un petit délai pour laisser la modale se fermer
+    setTimeout(() => {
+      router.push({
+        pathname: "/(screens)/gifts/addGift",
+        params: { wishlistId: localGift.wishlistId, giftId: localGift.id },
+      });
+    }, 300);
   };
 
   if (!localGift) return null;
 
-  // --- ANALYSE DES ÉTATS ---
-  // --- ANALYSE DES ÉTATS ---
-  const isReserved =
-    localGift.status === "RESERVED" || !!localGift.reservedById;
   const isPurchased =
     localGift.status === "PURCHASED" || !!localGift.purchasedById;
+  const isReserved =
+    localGift.status === "RESERVED" || !!localGift.reservedById;
+  const isReservedByMe = localGift.reservedById === session?.user?.id;
   const isTaken = isReserved || isPurchased;
-  const isDraft = !localGift.isPublished;
-  const isReserver = localGift.reservedById === session?.user?.id;
-
-  // Configuration UX pour le Visiteur (Non-Propriétaire)
-  let visitorActionConfig: {
-    label: string;
-    icon: keyof typeof Ionicons.glyphMap;
-    disabled: boolean;
-    style: StyleProp<ViewStyle>;
-    textStyle: StyleProp<TextStyle>;
-  } = {
-    label: "Réserver ce cadeau",
-    icon: "bag-handle-outline" as keyof typeof Ionicons.glyphMap,
-    disabled: false,
-    style: styles.primaryButton,
-    textStyle: styles.primaryButtonText,
-  };
-
-  if (isPurchased) {
-    visitorActionConfig = {
-      label: "Déjà offert",
-      icon: "checkmark-circle",
-      disabled: true,
-      style: styles.successButtonDisabled,
-      textStyle: styles.disabledButtonTextWhite,
-    };
-  } else if (isReserved) {
-    if (isReserver) {
-      visitorActionConfig = {
-        label: "Je retire",
-        icon: "close-circle-outline",
-        disabled: false,
-        style: styles.removeBtn,
-        textStyle: styles.removeBtnText,
-      };
-    } else {
-      visitorActionConfig = {
-        label: "Actuellement réservé",
-        icon: "lock-closed",
-        disabled: true,
-        style: styles.warningButtonDisabled,
-        textStyle: styles.disabledButtonTextWhite,
-      };
-    }
-  }
-
-  // Action Principale (Visiteur)
-  const handleVisitorAction = async () => {
-    if (visitorActionConfig.disabled) return;
-    if (isReserved && isReserver) {
-      const res = await giftService.releaseGift(localGift.id);
-      if (res.success) onActionSuccess?.();
-    } else if (!isTaken) {
-      const res = await giftService.reserveGift(localGift.id);
-      if (res.success) onActionSuccess?.();
-    }
-  };
-
-  // Action Principale (Propriétaire)
-  const handleOwnerAction = async () => {
-    if (isDraft) {
-      const res = await giftService.publishGift(localGift.id);
-      if (res.success) onActionSuccess?.();
-    } else {
-      const res = await giftService.unpublishGift(localGift.id);
-      if (res.success) onActionSuccess?.();
-    }
-  };
 
   return (
     <GestureHandlerRootView
@@ -218,56 +222,51 @@ export default function GiftDetailsBottomSheet({
         ref={bottomSheetRef}
         snapPoints={snapPoints}
         enablePanDownToClose
-        onChange={handleSheetChange}
+        onChange={(index) => index === -1 && onClose()}
         backgroundStyle={styles.sheetBackground}
         handleIndicatorStyle={styles.handle}
       >
         <BottomSheetView style={styles.container}>
-          {/* --- HEADER IMAGE --- */}
+          {/* --- IMAGE DE GALERIE --- */}
           <View style={styles.imageWrapper}>
             {localGift.imageUrl ? (
               <Image
                 source={{ uri: localGift.imageUrl }}
                 style={styles.image}
                 contentFit="cover"
-                transition={400}
               />
             ) : (
               <View style={styles.placeholder}>
-                <Ionicons
-                  name="image-outline"
-                  size={48}
-                  color={THEME.textSecondary}
-                />
+                <Ionicons name="image-outline" size={40} color={THEME.border} />
               </View>
             )}
 
-            {/* OVERLAY SI PRIS (Indication Visuelle Immédiate) */}
+            {/* OVERLAY D'ÉTAT BIJOU */}
             {isTaken && (
               <View style={styles.takenOverlay}>
-                <View style={styles.takenBadge}>
-                  <Ionicons
-                    name={isPurchased ? "gift" : "lock-closed"}
-                    size={16}
-                    color="#FFF"
-                  />
-                  <Text style={styles.takenText}>
-                    {isPurchased ? "CADEAU OFFERT" : "RÉSERVÉ"}
+                <View style={styles.takenLabel}>
+                  <Text style={styles.takenLabelText}>
+                    {isPurchased ? "PIÈCE ACQUISE" : "RÉSERVÉE"}
                   </Text>
                 </View>
               </View>
             )}
 
-            {/* BOUTONS FLOTTANTS */}
-            <View style={styles.floatingActions}>
-              <TouchableOpacity
-                style={styles.glassButton}
-                onPress={handleShare}
-              >
-                <Ionicons name="share-outline" size={20} color="#111827" />
+            {/* ACTIONS SUPÉRIEURES */}
+            <View style={styles.topActions}>
+              <TouchableOpacity style={styles.iconBtn} onPress={handleShare}>
+                <Ionicons
+                  name="share-outline"
+                  size={20}
+                  color={THEME.textMain}
+                />
               </TouchableOpacity>
-              <TouchableOpacity style={styles.glassButton} onPress={onClose}>
-                <Ionicons name="close" size={22} color="#111827" />
+              <TouchableOpacity style={styles.iconBtn} onPress={onClose}>
+                <Ionicons
+                  name="close-outline"
+                  size={22}
+                  color={THEME.textMain}
+                />
               </TouchableOpacity>
             </View>
           </View>
@@ -276,189 +275,206 @@ export default function GiftDetailsBottomSheet({
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.scrollContent}
           >
-            {/* --- TITRE & PRIX --- */}
-            <View style={styles.headerSection}>
-              {/* Badge Propriétaire (État Publication) */}
-              {isOwner && (
-                <View style={styles.publicationRow}>
-                  <View
-                    style={[
-                      styles.dot,
-                      {
-                        backgroundColor: !isDraft
+            {/* --- HEADER ÉDITORIAL --- */}
+            <View style={styles.headerInfo}>
+              <View style={styles.statusRow}>
+                <View
+                  style={[
+                    styles.statusDot,
+                    {
+                      backgroundColor: isTaken
+                        ? THEME.accent
+                        : localGift.isPublished
                           ? THEME.success
                           : THEME.textSecondary,
-                      },
-                    ]}
-                  />
-                  <Text style={styles.publicationText}>
-                    {!isDraft ? "DANS LE FIL D'ACCUEIL" : "HORS FIL D'ACCUEIL"}
-                  </Text>
-                </View>
-              )}
+                    },
+                  ]}
+                />
+                <Text style={styles.miniLabel}>
+                  {isTaken
+                    ? "INDISPONIBLE"
+                    : localGift.isPublished
+                      ? "PUBLIÉ DANS LE FIL"
+                      : "BROUILLON (SOLO)"}
+                </Text>
+              </View>
 
               <Text style={styles.title}>{localGift.title}</Text>
 
-              <View style={styles.metaRow}>
+              <View style={styles.registryData}>
                 {localGift.estimatedPrice && (
-                  <View style={styles.priceTag}>
-                    <Text style={styles.priceText}>
-                      {localGift.estimatedPrice} €
-                    </Text>
-                  </View>
+                  <Text style={styles.price}>{localGift.estimatedPrice} €</Text>
                 )}
-
-                {/* Badge Statut Textuel */}
-                <View
-                  style={[styles.statusTag, isTaken && styles.statusTagTaken]}
-                >
-                  <Text
-                    style={[
-                      styles.statusText,
-                      isTaken && { color: THEME.textMain },
-                    ]}
-                  >
-                    {isPurchased
-                      ? "Déjà offert"
-                      : isReserved
-                        ? "Réservé"
-                        : "Disponible"}
-                  </Text>
-                </View>
+                {localGift.estimatedPrice && (
+                  <View style={styles.dataDivider} />
+                )}
+                <Text style={styles.dataText}>
+                  REF. {localGift.id.slice(-6).toUpperCase()}
+                </Text>
               </View>
 
-              {/* Affichage de qui a réservé/acheté */}
-              {(isReserved || isPurchased) &&
-                (localGift.reservedBy || localGift.purchasedBy) && (
-                  <View style={styles.reserverRow}>
-                    <Image
-                      source={{
-                        uri: isPurchased
-                          ? localGift.purchasedBy?.image
-                          : localGift.reservedBy?.image,
-                      }}
-                      style={styles.reserverAvatar}
-                    />
-                    <Text style={styles.reserverTextInfo}>
-                      {isPurchased ? "Offert par " : "Réservé par "}
-                      <Text style={styles.reserverName}>
-                        {isPurchased
-                          ? localGift.purchasedBy?.id === session?.user?.id
-                            ? "vous"
-                            : localGift.purchasedBy?.name
-                          : localGift.reservedBy?.id === session?.user?.id
-                            ? "vous"
-                            : localGift.reservedBy?.name}
-                      </Text>
+              {/* INFO RÉSERVEUR / ACHETEUR */}
+              {isTaken && (localGift.reservedBy || localGift.purchasedBy) && (
+                <View style={styles.attributionBox}>
+                  <Image
+                    source={{
+                      uri: isPurchased
+                        ? localGift.purchasedBy?.image
+                        : localGift.reservedBy?.image,
+                    }}
+                    style={styles.attrAvatar}
+                  />
+                  <Text style={styles.attrText}>
+                    {isPurchased ? "Offert par " : "Réservé par "}
+                    <Text style={styles.attrName}>
+                      {isReservedByMe
+                        ? "VOUS"
+                        : (isPurchased
+                            ? localGift.purchasedBy?.name
+                            : localGift.reservedBy?.name
+                          )?.toUpperCase()}
                     </Text>
-                  </View>
-                )}
-            </View>
-
-            <View style={styles.divider} />
-
-            {/* --- LIEN PRODUIT --- */}
-            {localGift.productUrl && (
-              <TouchableOpacity
-                style={styles.linkCard}
-                onPress={handleOpenLink}
-                activeOpacity={0.8}
-              >
-                <View style={styles.linkIconBox}>
-                  <Ionicons name="globe-outline" size={24} color="#111827" />
-                </View>
-                <View style={styles.linkInfo}>
-                  <Text style={styles.linkLabel}>Boutique en ligne</Text>
-                  <Text style={styles.linkUrl} numberOfLines={1}>
-                    {getHostname(localGift.productUrl || "")}
                   </Text>
                 </View>
-                <Ionicons name="arrow-forward" size={18} color="#9CA3AF" />
+              )}
+            </View>
+
+            <View style={styles.hairline} />
+
+            {/* --- LIEN REGISTRE --- */}
+            {localGift.productUrl && (
+              <TouchableOpacity
+                style={styles.linkRow}
+                onPress={handleOpenLink}
+                activeOpacity={0.6}
+              >
+                <View style={styles.linkIconBg}>
+                  <Ionicons
+                    name="link-outline"
+                    size={20}
+                    color={THEME.accent}
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.linkLabel}>SOURCE EXTERNE</Text>
+                  <Text style={styles.linkValue} numberOfLines={1}>
+                    Consulter sur le site marchand
+                  </Text>
+                </View>
+                <Ionicons
+                  name="chevron-forward"
+                  size={14}
+                  color={THEME.border}
+                />
               </TouchableOpacity>
             )}
 
             {/* --- DESCRIPTION --- */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>À propos</Text>
-              <Text style={styles.description}>
+            <View style={styles.descriptionSection}>
+              <Text style={styles.miniLabel}>NOTES DE RÉDACTION</Text>
+              <Text style={styles.descriptionText}>
                 {localGift.description ||
-                  "Aucune description fournie pour cet objet."}
+                  "Aucune note additionnelle n'a été rédigée pour cette pièce."}
               </Text>
             </View>
 
-            {/* --- FOOTER ACTIONS (Logique UX) --- */}
-            <View style={styles.footerActions}>
-              {/* BOUTON SECONDAIRE (Toujours visible si possible) */}
-              <TouchableOpacity
-                style={styles.secondaryButton}
-                activeOpacity={0.7}
-                onPress={() =>
-                  isOwner ? console.log("Edit") : console.log("Save/Ignore")
-                }
-                disabled={isOwner && isPurchased} // Owner ne peut pas modifier si acheté
-              >
-                <Text
-                  style={[
-                    styles.secondaryButtonText,
-                    isOwner && isPurchased && { color: THEME.textSecondary },
-                  ]}
-                >
-                  {isOwner ? "Modifier" : "Sauvegarder"}
-                </Text>
-              </TouchableOpacity>
-
-              {/* BOUTON PRINCIPAL (Contextuel) */}
-              {isOwner ? (
-                // PROPRIÉTAIRE : Mettre en avant ou Retirer du fil
-                <TouchableOpacity
-                  style={[
-                    styles.primaryButton,
-                    !isDraft ? styles.publishedBtn : styles.draftBtn,
-                  ]}
-                  onPress={handleOwnerAction}
-                  activeOpacity={0.8}
-                >
-                  <Text
-                    style={[
-                      styles.primaryButtonText,
-                      !isDraft && { color: THEME.textMain },
-                    ]}
+            {/* --- ACTIONS AUTHORITY --- */}
+            <View style={styles.footer}>
+              {localGift.status === "AVAILABLE" && (
+                <>
+                  {/* Action Secondaire (Boutique) */}
+                  <TouchableOpacity
+                    style={styles.secondaryBtn}
+                    activeOpacity={0.7}
+                    onPress={isOwner ? handleEdit : undefined}
                   >
-                    {!isDraft ? "Retirer du fil" : "Mettre en avant"}
-                  </Text>
-                  <Ionicons
-                    name={!isDraft ? "eye-off-outline" : "paper-plane-outline"}
-                    size={20}
-                    color={!isDraft ? THEME.textMain : "#FFF"}
-                  />
-                </TouchableOpacity>
-              ) : (
-                // VISITEUR : Réserver ou Statut Indisponible
-                <TouchableOpacity
-                  style={[visitorActionConfig.style, { flex: 2 }]}
-                  onPress={handleVisitorAction}
-                  activeOpacity={visitorActionConfig.disabled ? 1 : 0.8}
-                  disabled={visitorActionConfig.disabled}
-                >
-                  <Text style={visitorActionConfig.textStyle}>
-                    {visitorActionConfig.label}
-                  </Text>
-                  {!visitorActionConfig.disabled && (
-                    <Ionicons
-                      name={visitorActionConfig.icon}
-                      size={20}
-                      color={
-                        visitorActionConfig.style === styles.removeBtn
-                          ? THEME.textMain
-                          : "#FFF"
+                    <Text style={styles.secondaryBtnText}>
+                      {isOwner ? "MODIFIER" : "SAUVEGARDER"}
+                    </Text>
+                  </TouchableOpacity>
+
+                  {/* Action Principale (Solid) */}
+                  {!isOwner && (
+                    <TouchableOpacity
+                      style={[
+                        styles.primaryBtn,
+                        isPurchased && styles.disabledBtn,
+                        isReserved &&
+                          !isReservedByMe &&
+                          styles.reservedOtherBtn,
+                      ]}
+                      onPress={handleVisitorAction}
+                      disabled={
+                        isPurchased ||
+                        (isReserved && !isReservedByMe) ||
+                        loadingAction
                       }
-                    />
+                    >
+                      {loadingAction ? (
+                        <ActivityIndicator size="small" color="#FFF" />
+                      ) : (
+                        <Text
+                          style={[
+                            styles.primaryBtnText,
+                            isReservedByMe && { color: THEME.textMain },
+                          ]}
+                        >
+                          {isPurchased
+                            ? "DÉJÀ OFFERT"
+                            : isReservedByMe
+                              ? "JE RETIRE"
+                              : isReserved
+                                ? "RÉSERVÉ"
+                                : "RÉSERVER"}
+                        </Text>
+                      )}
+                    </TouchableOpacity>
                   )}
-                </TouchableOpacity>
+
+                  {isOwner && (
+                    <TouchableOpacity
+                      style={[
+                        styles.primaryBtn,
+                        localGift.isPublished && styles.unpublishBtn,
+                      ]}
+                      activeOpacity={0.8}
+                      onPress={handleTogglePublish}
+                      disabled={loadingAction}
+                    >
+                      {loadingAction ? (
+                        <ActivityIndicator size="small" color="#FFF" />
+                      ) : (
+                        <Text
+                          style={[
+                            styles.primaryBtnText,
+                            localGift.isPublished && { color: THEME.textMain },
+                          ]}
+                        >
+                          {localGift.isPublished
+                            ? "RETIRER DU FIL"
+                            : "PUBLIER DANS LE FIL"}
+                        </Text>
+                      )}
+                    </TouchableOpacity>
+                  )}
+                </>
+              )}
+
+              {localGift.status !== "AVAILABLE" && (
+                <View style={styles.statusLockBox}>
+                  <Ionicons
+                    name="lock-closed-outline"
+                    size={16}
+                    color={THEME.textSecondary}
+                  />
+                  <Text style={styles.statusLockText}>
+                    CETTE PIÈCE EST EN COURS D&apos;ACQUISITION
+                  </Text>
+                </View>
               )}
             </View>
 
-            <View style={{ height: 40 }} />
+            <View style={{ height: 60 }} />
           </ScrollView>
         </BottomSheetView>
       </BottomSheet>
@@ -467,330 +483,226 @@ export default function GiftDetailsBottomSheet({
 }
 
 const styles = StyleSheet.create({
-  sheetBackground: {
-    backgroundColor: THEME.background,
-    borderRadius: 32,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: -10 },
-    shadowOpacity: 0.1,
-    shadowRadius: 20,
-    elevation: 10,
-  },
+  sheetBackground: { backgroundColor: THEME.background, borderRadius: 0 },
   handle: {
-    backgroundColor: "#D1D5DB",
-    width: 48,
-    height: 5,
-    borderRadius: 3,
-    marginTop: 8,
+    backgroundColor: THEME.border,
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    marginTop: 10,
   },
-  container: {
-    flex: 1,
-    overflow: "hidden",
-    borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
-  },
+  container: { flex: 1 },
 
-  /* HEADER IMAGE */
-  imageWrapper: {
-    height: 280,
-    width: "100%",
-    position: "relative",
-    backgroundColor: "#F3F4F6",
-  },
-  image: {
-    width: "100%",
-    height: "100%",
-  },
-  placeholder: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#E5E7EB",
-  },
-
-  /* OVERLAYS & BADGES VISUELS */
+  /* IMAGE GALERIE */
+  imageWrapper: { height: 320, width: "100%", backgroundColor: "#F2F2F7" },
+  image: { width: "100%", height: "100%" },
+  placeholder: { flex: 1, alignItems: "center", justifyContent: "center" },
   takenOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.4)", // Assombrit l'image
+    backgroundColor: "rgba(253, 251, 247, 0.4)",
     alignItems: "center",
     justifyContent: "center",
   },
-  takenBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    backgroundColor: "rgba(255,255,255,0.25)", // Glass effect
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 24,
+  takenLabel: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    backgroundColor: THEME.surface,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.6)",
-    backdropFilter: "blur(10px)",
+    borderColor: THEME.accent,
   },
-  takenText: {
-    color: "#FFFFFF",
+  takenLabelText: {
+    color: THEME.accent,
     fontWeight: "800",
-    letterSpacing: 1,
-    fontSize: 14,
+    letterSpacing: 2,
+    fontSize: 12,
   },
 
-  /* ACTIONS FLOTTANTES */
-  floatingActions: {
+  topActions: {
     position: "absolute",
-    top: 16,
-    right: 16,
+    top: 20,
+    right: 20,
     flexDirection: "row",
-    gap: 10,
+    gap: 12,
   },
-  glassButton: {
+  iconBtn: {
     width: 44,
     height: 44,
     borderRadius: 22,
     backgroundColor: "rgba(255,255,255,0.9)",
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
   },
 
-  /* CONTENT */
-  scrollContent: {
-    paddingTop: 24,
-    paddingHorizontal: 24,
-  },
-  headerSection: {
-    marginBottom: 20,
-  },
-  publicationRow: {
+  /* CONTENT AREA */
+  scrollContent: { paddingHorizontal: 32, paddingTop: 30 },
+  headerInfo: { marginBottom: 30 },
+  statusRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    marginBottom: 8,
+    gap: 8,
+    marginBottom: 15,
   },
-  dot: { width: 6, height: 6, borderRadius: 3 },
-  publicationText: {
-    fontSize: 10,
-    fontWeight: "700",
+  statusDot: { width: 6, height: 6, borderRadius: 3 },
+  miniLabel: {
+    fontSize: 9,
+    fontWeight: "800",
     color: THEME.textSecondary,
-    letterSpacing: 1,
+    letterSpacing: 1.5,
   },
+
   title: {
-    fontSize: 32,
-    fontWeight: "400",
+    fontSize: 34,
     fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
     color: THEME.textMain,
-    lineHeight: 38,
-    letterSpacing: -0.5,
-    marginBottom: 12,
+    lineHeight: 40,
+    letterSpacing: -1,
+    marginBottom: 15,
   },
-  metaRow: {
+  registryData: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  price: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: THEME.textMain,
+    marginRight: 12,
+  },
+  dataDivider: {
+    width: 1,
+    height: 14,
+    backgroundColor: THEME.border,
+    marginRight: 12,
+  },
+  dataText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: THEME.textSecondary,
+    letterSpacing: 0.5,
+  },
+
+  attributionBox: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
+    backgroundColor: "rgba(175, 144, 98, 0.05)",
+    padding: 12,
+    borderLeftWidth: 2,
+    borderLeftColor: THEME.accent,
   },
-  priceTag: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderWidth: 1,
-    borderColor: "#111827",
-    borderRadius: 8,
-  },
-  priceText: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#111827",
-  },
-  statusTag: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
-    backgroundColor: "#F3F4F6",
-  },
-  statusTagTaken: {
-    backgroundColor: "#FFF7ED", // Ambre très clair
-  },
-  statusText: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: THEME.textSecondary,
-  },
-
-  divider: {
-    height: 1,
-    backgroundColor: THEME.border,
-    marginBottom: 24,
-  },
-
-  /* LINKS & DETAILS */
-  linkCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#FFFFFF",
-    padding: 16,
-    borderRadius: 20,
-    marginBottom: 28,
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.04)",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-  },
-  linkIconBox: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: "#F9FAFB",
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 16,
-  },
-  linkInfo: { flex: 1, gap: 2 },
-  linkLabel: {
-    fontSize: 12,
-    color: THEME.textSecondary,
-    fontWeight: "600",
-    textTransform: "uppercase",
-  },
-  linkUrl: { fontSize: 16, color: THEME.textMain, fontWeight: "600" },
-  section: { marginBottom: 32 },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: "500",
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-    color: THEME.textMain,
-    marginBottom: 12,
-  },
-  description: {
-    fontSize: 16,
-    color: "#4B5563",
-    lineHeight: 26,
-    fontWeight: "400",
-  },
-
-  /* FOOTER & BUTTONS */
-  footerActions: {
-    flexDirection: "row",
-    gap: 16,
-  },
-  secondaryButton: {
-    flex: 1,
-    height: 56,
-    borderRadius: 28,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#FFFFFF",
-  },
-  secondaryButtonText: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: "#111827",
-  },
-
-  // Style Bouton Principal (Noir / Défaut)
-  primaryButton: {
-    flex: 2,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: "#111827",
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    gap: 10,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.2,
-    shadowRadius: 16,
-  },
-  primaryButtonText: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: "#FFFFFF",
-  },
-
-  // Styles Boutons Désactivés (UX Feedback)
-  successButtonDisabled: {
-    flex: 2,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: THEME.success, // Vert
-    justifyContent: "center",
-    alignItems: "center",
-    flexDirection: "row",
-    gap: 8,
-    opacity: 0.9,
-  },
-  warningButtonDisabled: {
-    flex: 2,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: THEME.warning, // Ambre
-    justifyContent: "center",
-    alignItems: "center",
-    flexDirection: "row",
-    gap: 8,
-    opacity: 0.9,
-  },
-  disabledButtonTextWhite: {
-    color: "#FFFFFF",
-    fontWeight: "700",
-    fontSize: 15,
-  },
-
-  draftBtn: { backgroundColor: "#111827" },
-  publishedBtn: {
-    backgroundColor: "#F3F4F6",
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    shadowOpacity: 0,
-  },
-  removeBtn: {
-    flex: 2,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: THEME.textMain,
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    gap: 8,
-  },
-  removeBtnText: {
-    color: THEME.textMain,
-    fontWeight: "600",
-    fontSize: 15,
-  },
-  reserverRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    marginTop: 16,
-    backgroundColor: "#F9FAFB",
-    padding: 10,
-    borderRadius: 14,
-    alignSelf: "flex-start",
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.02)",
-  },
-  reserverAvatar: {
+  attrAvatar: {
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: "#E5E7EB",
+    backgroundColor: THEME.border,
   },
-  reserverTextInfo: {
-    fontSize: 13,
-    color: "#6B7280",
-    fontWeight: "500",
+  attrText: { fontSize: 12, color: THEME.textMain, fontWeight: "500" },
+  attrName: { fontWeight: "800", color: THEME.accent },
+
+  hairline: { height: 1, backgroundColor: THEME.border, marginBottom: 30 },
+
+  /* LINK ROW */
+  linkRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 15,
+    marginBottom: 35,
   },
-  reserverName: {
-    fontWeight: "700",
-    color: "#111827",
+  linkIconBg: {
+    width: 44,
+    height: 44,
+    backgroundColor: THEME.surface,
+    borderWidth: 1,
+    borderColor: THEME.border,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  linkLabel: {
+    fontSize: 8,
+    fontWeight: "800",
+    color: THEME.textSecondary,
+    letterSpacing: 1.5,
+  },
+  linkValue: {
+    fontSize: 14,
+    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
+    fontStyle: "italic",
+    color: THEME.textMain,
+  },
+
+  /* DESCRIPTION */
+  descriptionSection: { marginBottom: 40 },
+  descriptionText: {
+    fontSize: 15,
+    color: THEME.textMain,
+    lineHeight: 24,
+    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
+    marginTop: 10,
+  },
+
+  /* FOOTER & BUTTONS */
+  footer: { flexDirection: "row", gap: 15 },
+  secondaryBtn: {
+    flex: 1,
+    height: 60,
+    borderWidth: 1,
+    borderColor: THEME.border,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  secondaryBtnText: {
+    fontSize: 11,
+    fontWeight: "800",
+    color: THEME.textMain,
+    letterSpacing: 1,
+  },
+
+  primaryBtn: {
+    flex: 2,
+    height: 60,
+    backgroundColor: THEME.textMain,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  primaryBtnText: {
+    fontSize: 11,
+    fontWeight: "800",
+    color: "#FFF",
+    letterSpacing: 1.5,
+  },
+
+  disabledBtn: { backgroundColor: THEME.border, opacity: 0.5 },
+  reservedOtherBtn: {
+    backgroundColor: "transparent",
+    borderWidth: 1,
+    borderColor: THEME.accent,
+  },
+
+  // Cas spécifique quand je retire ma réservation
+  removeAction: {
+    backgroundColor: "transparent",
+    borderWidth: 1,
+    borderColor: THEME.textMain,
+  },
+  unpublishBtn: {
+    backgroundColor: "transparent",
+    borderWidth: 1,
+    borderColor: THEME.accent,
+  },
+  statusLockBox: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    padding: 15,
+    backgroundColor: "rgba(0,0,0,0.03)",
+  },
+  statusLockText: {
+    fontSize: 10,
+    fontWeight: "800",
+    color: THEME.textSecondary,
+    letterSpacing: 1,
   },
 });

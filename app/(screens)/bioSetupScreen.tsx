@@ -3,21 +3,38 @@ import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  View,
   TouchableWithoutFeedback,
-  Keyboard,
+  View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { authClient } from "@/features/auth";
+import { MotiView } from "moti";
+import * as Haptics from "expo-haptics";
+
 import { userService } from "@/lib/services/user-service";
 import { showErrorToast, showSuccessToast } from "@/lib/toast";
-import { MotiView } from "moti";
+import { authClient } from "@/features/auth";
+
+// --- THEME ÉDITORIAL COHÉRENT ---
+const THEME = {
+  background: "#FDFBF7", // Bone Silk
+  surface: "#FFFFFF",
+  textMain: "#1A1A1A",
+  textSecondary: "#8E8E93",
+  primary: "#1A1A1A",
+  accent: "#AF9062", // Or brossé
+  border: "rgba(0,0,0,0.08)",
+  danger: "#C34A4A",
+};
+
+const MAX_CHARS = 160;
 
 export default function BioSetupScreen() {
   const router = useRouter();
@@ -28,25 +45,28 @@ export default function BioSetupScreen() {
   const [bio, setBio] = useState(user?.description || "");
   const [isSaving, setIsSaving] = useState(false);
 
-  const MAX_CHARS = 160;
-  const hasChanges =
-    bio.trim() !== (user?.description || "") && bio.length <= MAX_CHARS;
+  const hasChanges = bio.trim() !== (user?.description || "");
+  const charsLeft = MAX_CHARS - bio.length;
 
   const handleSave = async () => {
     if (!hasChanges || isSaving) return;
 
     setIsSaving(true);
+    Keyboard.dismiss();
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
     try {
       const res = await userService.updateProfile({ description: bio.trim() });
       if (res.success) {
-        showSuccessToast("Biographie mise à jour !");
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        showSuccessToast("Profil mis à jour");
         await refetch();
         router.back();
       } else {
-        showErrorToast(res.message || "Une erreur est survenue");
+        showErrorToast(res.message || "Erreur de sauvegarde");
       }
-    } catch (error) {
-      showErrorToast("Erreur lors de la sauvegarde");
+    } catch {
+      showErrorToast("Erreur serveur");
     } finally {
       setIsSaving(false);
     }
@@ -55,77 +75,88 @@ export default function BioSetupScreen() {
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
       <View style={styles.container}>
-        {/* Header */}
-        <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
+        {/* NAV BAR MINIMALISTE */}
+        <View style={[styles.navBar, { paddingTop: insets.top + 10 }]}>
           <TouchableOpacity
             onPress={() => router.back()}
             style={styles.backBtn}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <Ionicons name="arrow-back" size={24} color="#111827" />
+            <Ionicons name="chevron-back" size={24} color={THEME.textMain} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Biographie</Text>
-          <View style={{ width: 40 }} />
+          <Text style={styles.navTitle}>BIOGRAPHIE</Text>
+          <View style={{ width: 44 }} />
         </View>
 
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : "height"}
-          style={styles.content}
+          style={styles.keyboardView}
         >
-          <MotiView
-            from={{ opacity: 0, translateY: 10 }}
-            animate={{ opacity: 1, translateY: 0 }}
-            transition={{ type: "timing", duration: 500 }}
-            style={styles.inner}
+          <ScrollView
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
           >
-            <View style={styles.infoBox}>
-              <Text style={styles.title}>Parlez-nous de vous</Text>
-              <Text style={styles.subtitle}>
-                Une bio courte aide vos amis à mieux vous connaître et à trouver
-                les cadeaux parfaits.
+            {/* HERO SECTION */}
+            <MotiView
+              from={{ opacity: 0, translateY: 15 }}
+              animate={{ opacity: 1, translateY: 0 }}
+              transition={{ type: "timing", duration: 700 }}
+              style={styles.heroSection}
+            >
+              <Text style={styles.heroTitle}>Votre{"\n"}Essence.</Text>
+              <View style={styles.titleDivider} />
+              <Text style={styles.heroSubtitle}>
+                Décrivez en quelques mots ce qui vous anime. Cela aidera vos
+                proches à mieux vous comprendre.
               </Text>
-            </View>
+            </MotiView>
 
-            <View style={styles.inputWrapper}>
+            {/* ZONE DE SAISIE ÉPURÉE */}
+            <View style={styles.inputSection}>
+              <View style={styles.labelRow}>
+                <Text style={styles.miniLabel}>SIGNATURE PERSONNELLE</Text>
+                <Text
+                  style={[
+                    styles.counter,
+                    charsLeft < 10 && { color: THEME.danger },
+                  ]}
+                >
+                  {charsLeft}
+                </Text>
+              </View>
+
               <TextInput
                 style={styles.input}
                 value={bio}
                 onChangeText={setBio}
-                placeholder="Ex: Passionné de cuisine et de voyages..."
-                placeholderTextColor="#9CA3AF"
+                placeholder="Ex: Amoureux de café, de design et de randonnées..."
+                placeholderTextColor="#BCBCBC"
                 multiline
                 maxLength={MAX_CHARS}
                 autoFocus
+                textAlignVertical="top"
+                selectionColor={THEME.accent}
               />
-              <View style={styles.charCounter}>
-                <Text
-                  style={[
-                    styles.charText,
-                    bio.length >= MAX_CHARS && { color: "#EF4444" },
-                  ]}
-                >
-                  {bio.length}/{MAX_CHARS}
-                </Text>
-              </View>
             </View>
+          </ScrollView>
 
-            <View style={styles.footer}>
-              <TouchableOpacity
-                style={[
-                  styles.saveBtn,
-                  (!hasChanges || isSaving) && styles.saveBtnDisabled,
-                ]}
-                onPress={handleSave}
-                disabled={!hasChanges || isSaving}
-              >
-                {isSaving ? (
-                  <ActivityIndicator color="#FFF" />
-                ) : (
-                  <Text style={styles.saveBtnText}>Enregistrer ma bio</Text>
-                )}
-              </TouchableOpacity>
-            </View>
-          </MotiView>
+          {/* FOOTER ACTION - BOUTON RECTANGULAIRE */}
+          <View style={[styles.footer, { paddingBottom: insets.bottom + 20 }]}>
+            <TouchableOpacity
+              style={[
+                styles.primaryBtn,
+                (!hasChanges || isSaving) && styles.primaryBtnDisabled,
+              ]}
+              onPress={handleSave}
+              disabled={!hasChanges || isSaving}
+              activeOpacity={0.9}
+            >
+              {isSaving ? (
+                <ActivityIndicator color="#FFF" size="small" />
+              ) : (
+                <Text style={styles.primaryBtnText}>ENREGISTRER LE PROFIL</Text>
+              )}
+            </TouchableOpacity>
+          </View>
         </KeyboardAvoidingView>
       </View>
     </TouchableWithoutFeedback>
@@ -135,102 +166,116 @@ export default function BioSetupScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#FDFBF7",
+    backgroundColor: THEME.background,
   },
-  header: {
+  /* NAV BAR */
+  navBar: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingBottom: 20,
+    paddingHorizontal: 15,
   },
   backBtn: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
     justifyContent: "center",
+    alignItems: "center",
   },
-  headerTitle: {
-    fontSize: 17,
-    fontWeight: "700",
-    color: "#111827",
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
+  navTitle: {
+    fontSize: 10,
+    fontWeight: "800",
+    color: THEME.textMain,
+    letterSpacing: 2,
   },
-  content: {
+  keyboardView: {
     flex: 1,
   },
-  inner: {
-    flex: 1,
-    paddingHorizontal: 24,
-    paddingTop: 20,
+  scrollContent: {
+    paddingHorizontal: 32,
+    paddingTop: 30,
   },
-  infoBox: {
-    marginBottom: 32,
+
+  /* HERO SECTION */
+  heroSection: {
+    marginBottom: 40,
   },
-  title: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: "#111827",
-    marginBottom: 8,
+  heroTitle: {
+    fontSize: 38,
     fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
+    color: THEME.textMain,
+    lineHeight: 44,
+    letterSpacing: -1,
   },
-  subtitle: {
-    fontSize: 15,
-    color: "#6B7280",
+  titleDivider: {
+    width: 35,
+    height: 2,
+    backgroundColor: THEME.accent,
+    marginVertical: 25,
+  },
+  heroSubtitle: {
+    fontSize: 14,
+    color: THEME.textSecondary,
     lineHeight: 22,
+    fontStyle: "italic",
+    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
   },
-  inputWrapper: {
-    backgroundColor: "#FFF",
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.05)",
-    padding: 16,
-    minHeight: 120,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.02,
-    shadowRadius: 8,
-    elevation: 2,
+
+  /* INPUT SECTION */
+  inputSection: {
+    marginTop: 10,
+  },
+  labelRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 15,
+  },
+  miniLabel: {
+    fontSize: 9,
+    fontWeight: "800",
+    color: THEME.textSecondary,
+    letterSpacing: 1.5,
+  },
+  counter: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: "#D1D5DB",
+    fontVariant: ["tabular-nums"],
   },
   input: {
-    flex: 1,
-    fontSize: 16,
-    color: "#111827",
-    height: 100,
+    fontSize: 18,
+    color: THEME.textMain,
+    lineHeight: 28,
+    minHeight: 150,
     textAlignVertical: "top",
+    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
+    borderBottomWidth: 1,
+    borderBottomColor: THEME.border,
+    paddingBottom: 20,
   },
-  charCounter: {
-    alignItems: "flex-end",
-    marginTop: 8,
-  },
-  charText: {
-    fontSize: 12,
-    color: "#9CA3AF",
-    fontWeight: "600",
-  },
+
+  /* FOOTER & BUTTON */
   footer: {
-    marginTop: "auto",
-    paddingBottom: Platform.OS === "ios" ? 40 : 24,
+    paddingHorizontal: 32,
+    paddingTop: 20,
   },
-  saveBtn: {
-    backgroundColor: "#111827",
-    paddingVertical: 18,
-    borderRadius: 18,
+  primaryBtn: {
+    backgroundColor: THEME.primary,
+    height: 60,
+    borderRadius: 0, // Rectangulaire luxe
+    flexDirection: "row",
     alignItems: "center",
-    shadowColor: "#111827",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.2,
-    shadowRadius: 15,
-    elevation: 8,
+    justifyContent: "center",
   },
-  saveBtnDisabled: {
+  primaryBtnDisabled: {
     backgroundColor: "#E5E7EB",
-    shadowOpacity: 0,
-    elevation: 0,
+    opacity: 0.6,
   },
-  saveBtnText: {
-    color: "#FFF",
-    fontSize: 16,
+  primaryBtnText: {
+    color: "#FFFFFF",
+    fontSize: 14,
     fontWeight: "700",
-    letterSpacing: 0.5,
+    letterSpacing: 1,
+    textTransform: "uppercase",
   },
 });

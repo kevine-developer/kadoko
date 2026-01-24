@@ -1,96 +1,145 @@
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
-import { Platform, StyleSheet, TouchableOpacity, View } from "react-native";
+import {
+  Platform,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+  Share,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import * as Haptics from "expo-haptics";
+import { MotiView } from "moti";
 
-// --- THEME LUXE ---
+// --- THEME ÉDITORIAL COHÉRENT ---
 const THEME = {
-  surface: "#FFFFFF", // Blanc pur
-  primary: "#111827", // Noir profond
-  textSecondary: "#6B7280", // Gris moyen
-  border: "rgba(0,0,0,0.06)", // Bordure très subtile
+  surface: "#FFFFFF",
+  primary: "#1A1A1A", // Noir profond
+  accent: "#AF9062", // Or brossé
+  textSecondary: "#8E8E93",
+  border: "rgba(0,0,0,0.06)",
 };
 
 interface FloatingDockProps {
   handleAdd: () => void;
   handleEdit: () => void;
   handleDelete: () => void;
+  shareUrl?: string;
+  shareTitle?: string;
 }
 
-
-
-const FloatingDockActions = ({ handleAdd, handleEdit, handleDelete }: FloatingDockProps) => {
+const FloatingDockActions = ({
+  handleAdd,
+  handleEdit,
+  handleDelete,
+  shareUrl,
+  shareTitle,
+}: FloatingDockProps) => {
   const insets = useSafeAreaInsets();
 
-  const bottomOffset = insets.bottom > 0 ? insets.bottom : 24;
+  const handlePress = (
+    callback: () => void,
+    type: "light" | "medium" = "light",
+  ) => {
+    if (type === "medium") {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    } else {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+    callback();
+  };
+
+  const onShare = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    try {
+      await Share.share({
+        message: `Découvrez ma liste d'envies : ${shareTitle || ""}`,
+        url: shareUrl || "",
+      });
+    } catch (error) {
+      console.log(error);
+    }
+  };
 
   return (
-    <View style={[styles.container, { bottom: bottomOffset }]}>
+    <MotiView
+      from={{ opacity: 0, translateY: 40 }}
+      animate={{ opacity: 1, translateY: 0 }}
+      transition={{ type: "spring", damping: 15 }}
+      style={[
+        styles.container,
+        { marginBottom: insets.bottom > 0 ? insets.bottom : 20 },
+      ]}
+    >
       <View style={styles.dockSurface}>
-        {/* GROUPE GAUCHE */}
+        {/* PARTAGER */}
         <TouchableOpacity
           style={styles.dockItem}
-          activeOpacity={0.7}
-          onPress={() => {}}
+          activeOpacity={0.6}
+          onPress={onShare}
         >
           <Ionicons
-            name="share-outline"
-            size={22}
+            name="share-social-outline"
+            size={20}
             color={THEME.textSecondary}
           />
         </TouchableOpacity>
 
-        <View style={styles.divider} />
+        <View style={styles.hairlineDivider} />
 
+        {/* MODIFIER */}
         <TouchableOpacity
           style={styles.dockItem}
-          activeOpacity={0.7}
-          onPress={() => {handleEdit()}}
+          activeOpacity={0.6}
+          onPress={() => handlePress(handleEdit)}
         >
           <Ionicons
             name="create-outline"
-            size={22}
+            size={20}
             color={THEME.textSecondary}
           />
         </TouchableOpacity>
 
-        {/* BOUTON PRINCIPAL (Flottant) */}
+        {/* AJOUTER (POINT FOCAL) */}
         <TouchableOpacity
-          style={styles.mainButton}
-          activeOpacity={0.9}
-          onPress={() => {handleAdd()}}
+          style={styles.mainActionBtn}
+          activeOpacity={0.8}
+          onPress={() => handlePress(handleAdd, "medium")}
         >
-          <Ionicons name="add" size={30} color="#FFFFFF" />
+          <View style={styles.mainActionInner}>
+            <Ionicons name="add" size={28} color="#FFFFFF" />
+          </View>
         </TouchableOpacity>
 
-        {/* GROUPE DROITE */}
+        {/* SUPPRIMER */}
         <TouchableOpacity
           style={styles.dockItem}
-          activeOpacity={0.7}
-          onPress={() => {handleDelete()}}
+          activeOpacity={0.6}
+          onPress={() => handlePress(handleDelete)}
         >
           <Ionicons
             name="trash-outline"
-            size={22}
+            size={20}
             color={THEME.textSecondary}
           />
         </TouchableOpacity>
 
-        <View style={styles.divider} />
+        <View style={styles.hairlineDivider} />
 
+        {/* INFO / ANALYTICS (OU AUTRE) */}
         <TouchableOpacity
           style={styles.dockItem}
-          activeOpacity={0.7}
-          onPress={() => {}}
+          activeOpacity={0.6}
+          onPress={() => Haptics.selectionAsync()}
         >
           <Ionicons
-            name="mic-outline"
-            size={22}
+            name="ellipsis-horizontal"
+            size={20}
             color={THEME.textSecondary}
           />
         </TouchableOpacity>
       </View>
-    </View>
+    </MotiView>
   );
 };
 
@@ -98,76 +147,66 @@ export default FloatingDockActions;
 
 const styles = StyleSheet.create({
   container: {
-    position: "absolute",
-    left: 0,
-    right: 0,
     alignItems: "center",
-    zIndex: 100,
+    justifyContent: "center",
+    width: "100%",
   },
   dockSurface: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(255, 255, 255, 0.95)", // Légère transparence
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 36, // Forme Pill parfaite
-    gap: 12,
-
-    // Bordure fine
+    backgroundColor: THEME.surface,
+    paddingHorizontal: 12,
+    height: 64,
+    borderRadius: 0, // Look rectangulaire luxe
     borderWidth: 1,
     borderColor: THEME.border,
 
-    // Ombre diffuse "Premium"
+    // Ombre "Glace" ultra légère
     ...Platform.select({
       ios: {
         shadowColor: "#000",
-        shadowOffset: { width: 0, height: 12 },
-        shadowOpacity: 0.1,
-        shadowRadius: 24,
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.05,
+        shadowRadius: 20,
       },
       android: {
-        elevation: 8,
+        elevation: 6,
       },
     }),
   },
 
   /* ITEMS */
   dockItem: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 48,
+    height: 48,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "transparent",
   },
 
-  /* SEPARATEUR */
-  divider: {
+  /* SÉPARATEUR ÉDITORIAL */
+  hairlineDivider: {
     width: 1,
-    height: 16,
-    backgroundColor: "rgba(0,0,0,0.1)",
+    height: 20,
+    backgroundColor: THEME.border,
     marginHorizontal: 4,
   },
 
-  /* BOUTON CENTRAL */
-  mainButton: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: THEME.primary, // Noir
+  /* BOUTON D'AUTORITÉ (ADD) */
+  mainActionBtn: {
+    marginHorizontal: 15,
+    // On retire le décalage vertical agressif pour plus d'élégance
+  },
+  mainActionInner: {
+    width: 50,
+    height: 50,
+    backgroundColor: THEME.primary,
+    borderRadius: 0, // Carré pour matcher le reste de l'UI luxe
     alignItems: "center",
     justifyContent: "center",
-    marginHorizontal: 8,
-    // Effet "Pop out" vers le haut
-    transform: [{ translateY: -12 }],
-    // Ombre spécifique au bouton
-    shadowColor: THEME.primary,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.25,
-    shadowRadius: 12,
-    elevation: 6,
-    // Bordure blanche pour séparer du dock si superposition
-    borderWidth: 4,
-    borderColor: "#FFFFFF",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
   },
 });

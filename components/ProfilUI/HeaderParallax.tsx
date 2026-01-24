@@ -1,17 +1,9 @@
-import { Animated, StyleSheet, View } from "react-native";
+import { Animated, StyleSheet, View, Dimensions, Platform } from "react-native";
 import React from "react";
 
-interface HeaderParallaxProps {
-  user: any;
-  headerOpacity: any;
-  imageScale: any;
-}
+const { width } = Dimensions.get("window");
 
-const HeaderParallax = ({
-  user,
-  headerOpacity,
-  imageScale,
-}: HeaderParallaxProps) => {
+const HeaderParallax = ({ user, headerOpacity, imageScale }: any) => {
   return (
     <Animated.View style={[styles.headerContainer, { opacity: headerOpacity }]}>
       <Animated.Image
@@ -21,10 +13,13 @@ const HeaderParallax = ({
             "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=800",
         }}
         style={[styles.headerImage, { transform: [{ scale: imageScale }] }]}
+        blurRadius={Platform.OS === "ios" ? 10 : 5} // Effet de profondeur luxe
       />
+      {/* Overlay pour assombrir légèrement et assurer la lisibilité */}
       <View style={styles.headerOverlay} />
-      {/* Dégradé pour fondre avec la carte */}
-      <View style={styles.headerGradient} />
+
+      {/* Dégradé qui fond l'image dans le fond Bone Silk (#FDFBF7) */}
+      <View style={styles.bottomGradient} />
     </Animated.View>
   );
 };
@@ -32,30 +27,34 @@ const HeaderParallax = ({
 export default HeaderParallax;
 
 const styles = StyleSheet.create({
-  /* --- HEADER --- */
   headerContainer: {
     position: "absolute",
     top: 0,
     left: 0,
     right: 0,
-    height: 240,
-    backgroundColor: "#111827",
+    height: 300,
+    backgroundColor: "#FDFBF7",
+    overflow: "hidden",
   },
   headerImage: {
-    width: "100%",
+    width: width,
     height: "100%",
-    opacity: 0.7,
+    opacity: 0.4, // Très subtil
   },
   headerOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.3)",
+    backgroundColor: "rgba(253, 251, 247, 0.2)", // Teinte crème
   },
-  headerGradient: {
+  bottomGradient: {
     position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
-    height: 100,
+    height: 150,
+    // On simule un dégradé vers le fond de l'app
     backgroundColor: "transparent",
+    borderBottomWidth: 150,
+    borderBottomColor: "#FDFBF7",
+    opacity: 0.9,
   },
 });

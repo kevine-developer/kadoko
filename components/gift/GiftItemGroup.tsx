@@ -8,20 +8,20 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import * as Haptics from "expo-haptics";
 
 import { Gift } from "@/types/gift";
 
-// --- THEME LUXE ---
+// --- THEME ÉDITORIAL COHÉRENT ---
 const THEME = {
-  white: "#FFFFFF",
-  black: "#111827",
-  textMain: "#111827",
-  textSecondary: "#6B7280",
-  placeholder: "#F3F4F6",
-  danger: "#EF4444",
-  border: "rgba(0,0,0,0.06)",
-  success: "#10B981", // Vert émeraude
-  warning: "#F59E0B", // Ambre doré
+  background: "#FDFBF7", // Bone Silk
+  surface: "#FFFFFF",
+  textMain: "#1A1A1A",
+  textSecondary: "#8E8E93",
+  accent: "#AF9062", // Or brossé
+  border: "rgba(0,0,0,0.08)",
+  success: "#4A6741", // Vert forêt luxe
+  error: "#C34A4A",
 };
 
 type GiftItemProps = {
@@ -37,126 +37,101 @@ function GiftItemGroup({
   onRemove,
   isOwner = false,
 }: GiftItemProps) {
-  const hasPrice = !!gift.estimatedPrice;
-
-  // Vérification des statuts
+  // Logique des statuts
   const isReserved =
     gift.status === "RESERVED" ||
     (gift.reservation && !!gift.reservation.userId);
   const isPurchased =
     gift.status === "PURCHASED" || (gift.purchase && !!gift.purchase.userId);
   const isTaken = isReserved || isPurchased;
-
   const isDraft = !gift.isPublished;
 
-  // Définition du texte et de la couleur du badge
-  let statusLabel = "";
-  let statusColor = THEME.textSecondary;
+  const handlePress = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    onPress(gift);
+  };
 
-  if (isPurchased) {
-    statusLabel = "OFFERT";
-    statusColor = THEME.success;
-  } else if (isReserved) {
-    statusLabel = "RÉSERVÉ";
-    statusColor = THEME.warning;
-  } else if (isDraft && isOwner) {
-    statusLabel = "HORS FIL";
-    statusColor = THEME.textSecondary;
-  }
+  const handleRemove = (e: any) => {
+    e.stopPropagation();
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+    onRemove?.(gift);
+  };
 
   return (
     <TouchableOpacity
-      activeOpacity={0.92}
-      onPress={() => onPress(gift)}
-      style={styles.cardContainer}
+      activeOpacity={0.9}
+      onPress={handlePress}
+      style={styles.container}
     >
-      {/* 1. LAYER IMAGE */}
-      <View style={styles.imageWrapper}>
+      {/* 1. CADRE IMAGE STYLE GALERIE */}
+      <View style={styles.imageFrame}>
         {gift.imageUrl ? (
           <Image
             source={gift.imageUrl}
-            style={[styles.image, isDraft && styles.imageDimmed]}
+            style={[styles.image, isTaken && styles.imageDimmed]}
             contentFit="cover"
-            transition={400}
+            transition={500}
           />
         ) : (
-          <View style={styles.placeholderContainer}>
-            <Ionicons name="gift-outline" size={32} color="#9CA3AF" />
+          <View style={styles.placeholder}>
+            <Ionicons name="gift-outline" size={24} color={THEME.border} />
           </View>
         )}
 
-        {/* Overlay sombre si l'objet est pris (Indication visuelle d'indisponibilité) */}
-        {(isTaken || (isDraft && isOwner)) && (
-          <View style={[styles.takenOverlay, isDraft && { opacity: 0.1 }]} />
-        )}
-      </View>
+        {/* OVERLAY D'INDISPONIBILITÉ (Soyeux) */}
+        {isTaken && <View style={styles.takenOverlay} />}
 
-      {/* 2. ACTIONS & STATUTS (Top) */}
-      <View style={styles.topRow}>
-        {/* Badge Prix (Gauche) */}
-        {hasPrice ? (
-          <View style={[styles.badgeBase, styles.priceTag]}>
+        {/* BADGE DE PRIX (Discret, style étiquette) */}
+        {gift.estimatedPrice && (
+          <View style={styles.priceTag}>
             <Text style={styles.priceText}>{gift.estimatedPrice}€</Text>
           </View>
-        ) : (
-          <View />
         )}
 
-        {/* Zone Droite : Soit Suppression, Soit Statut */}
-        <View style={styles.topRightActions}>
-          {/* Affiche le statut si pris ou draft owner */}
-          {(isTaken || (isDraft && isOwner)) && (
-            <View style={[styles.badgeBase, styles.statusBadge]}>
-              {/* Petit cadenas ou check ou plume */}
-              <Ionicons
-                name={
-                  isPurchased
-                    ? "checkmark-circle"
-                    : isReserved
-                      ? "lock-closed"
-                      : "pencil-outline"
-                }
-                size={10}
-                color={statusColor}
-              />
-              <Text style={[styles.statusText, { color: statusColor }]}>
-                {statusLabel}
-              </Text>
-            </View>
-          )}
-
-          {/* Affiche le bouton supprimer SEULEMENT si propriétaire ET non pris */}
-          {isOwner && !isTaken && (
-            <TouchableOpacity
-              style={styles.removeButton}
-              onPress={(e) => {
-                e.stopPropagation();
-                onRemove?.(gift);
-              }}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <Ionicons name="close" size={14} color={THEME.black} />
-            </TouchableOpacity>
-          )}
-        </View>
+        {/* BOUTON SUPPRIMER (Seulement pour Owner) */}
+        {isOwner && !isTaken && (
+          <TouchableOpacity style={styles.removeCircle} onPress={handleRemove}>
+            <Ionicons name="close" size={14} color={THEME.textMain} />
+          </TouchableOpacity>
+        )}
       </View>
 
-      {/* 3. INFO PANEL (Bottom Floating Label) */}
-      <View style={[styles.infoLabel, isTaken && styles.infoLabelTaken]}>
+      {/* 2. INFORMATIONS ÉDITORIALES */}
+      <View style={styles.infoSection}>
+        {/* STATUT (Petit point + Label espacé) */}
+        {isTaken || (isDraft && isOwner) ? (
+          <View style={styles.statusRow}>
+            <View
+              style={[
+                styles.dot,
+                { backgroundColor: isPurchased ? THEME.success : THEME.accent },
+              ]}
+            />
+            <Text
+              style={[
+                styles.statusLabel,
+                { color: isPurchased ? THEME.success : THEME.accent },
+              ]}
+            >
+              {isPurchased ? "ACQUIS" : isReserved ? "RÉSERVÉ" : "BROUILLON"}
+            </Text>
+          </View>
+        ) : (
+          <Text style={styles.statusLabel}>DISPONIBLE</Text>
+        )}
+
+        {/* TITRE SERIF */}
         <Text
-          style={[styles.title, isTaken && styles.textTaken]}
-          numberOfLines={2}
+          style={[styles.title, isTaken && styles.titleTaken]}
+          numberOfLines={1}
         >
           {gift.title}
         </Text>
 
+        {/* LIGNE DE DÉTAIL FINALE */}
         <View style={styles.footerRow}>
-          <Text style={styles.actionText}>DÉCOUVRIR</Text>
-          <Ionicons
-            name="arrow-forward"
-            size={10}
-            color={THEME.textSecondary}
-          />
+          <Text style={styles.detailLink}>DÉTAILS</Text>
+          <View style={styles.hairline} />
         </View>
       </View>
     </TouchableOpacity>
@@ -166,148 +141,125 @@ function GiftItemGroup({
 export default memo(GiftItemGroup);
 
 const styles = StyleSheet.create({
-  cardContainer: {
+  container: {
     width: "100%",
-    height: 220,
-    borderRadius: 20,
-    position: "relative",
-    backgroundColor: THEME.placeholder,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.08,
-    shadowRadius: 20,
-    elevation: 4,
+    backgroundColor: "transparent",
   },
 
-  /* --- IMAGE --- */
-  imageWrapper: {
-    ...StyleSheet.absoluteFillObject,
-    borderRadius: 20,
+  /* IMAGE FRAME */
+  imageFrame: {
+    width: "100%",
+    aspectRatio: 0.9, // Format légèrement vertical plus luxe
+    borderRadius: 0, // Rectangulaire pour le look galerie
     overflow: "hidden",
+    backgroundColor: "#F2F2F7",
+    borderWidth: 1,
+    borderColor: THEME.border,
+    position: "relative",
   },
   image: {
     width: "100%",
     height: "100%",
-    backgroundColor: THEME.placeholder,
   },
   imageDimmed: {
     opacity: 0.6,
   },
-  placeholderContainer: {
+  placeholder: {
     flex: 1,
-    backgroundColor: "#F9FAFB",
     alignItems: "center",
     justifyContent: "center",
   },
   takenOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(255,255,255,0.4)", // Voile blanc pour "désactiver" visuellement
+    backgroundColor: "rgba(253, 251, 247, 0.2)", // Voile soie
   },
 
-  /* --- TOP ROW --- */
-  topRow: {
+  /* BADGES DANS L'IMAGE */
+  priceTag: {
     position: "absolute",
-    top: 10,
-    left: 10,
-    right: 10,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    zIndex: 10,
+    bottom: 0,
+    left: 0,
+    backgroundColor: THEME.surface,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderTopRightRadius: 0,
+    borderWidth: 1,
+    borderColor: THEME.border,
   },
-  topRightActions: {
+  priceText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: THEME.textMain,
+    letterSpacing: -0.5,
+  },
+  removeCircle: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: "rgba(255,255,255,0.9)",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 0.5,
+    borderColor: THEME.border,
+  },
+
+  /* INFO SECTION */
+  infoSection: {
+    paddingVertical: 12,
+    paddingHorizontal: 2,
+  },
+  statusRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
+    marginBottom: 6,
   },
-
-  /* BADGES COMMUNS */
-  badgeBase: {
-    backgroundColor: THEME.white,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 8,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
+  dot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
   },
-  priceTag: {
-    // Spécifique prix
-  },
-  priceText: {
-    color: THEME.black,
-    fontWeight: "700",
-    fontSize: 12,
-  },
-  statusBadge: {
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.05)",
-  },
-  statusText: {
-    fontSize: 10,
+  statusLabel: {
+    fontSize: 9,
     fontWeight: "800",
-    letterSpacing: 0.5,
-  },
-
-  /* REMOVE BUTTON */
-  removeButton: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: "rgba(255,255,255,0.95)",
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.05)",
-  },
-
-  /* --- INFO LABEL --- */
-  infoLabel: {
-    position: "absolute",
-    bottom: 10,
-    left: 10,
-    right: 10,
-    backgroundColor: THEME.white,
-    borderRadius: 14,
-    padding: 12,
-    justifyContent: "space-between",
-    minHeight: 70,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  infoLabelTaken: {
-    backgroundColor: "#F9FAFB", // Fond légèrement grisé si pris
-  },
-  title: {
-    fontSize: 15,
-    fontWeight: "500",
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-    color: THEME.textMain,
-    lineHeight: 18,
+    color: THEME.textSecondary,
+    letterSpacing: 1.5,
+    textTransform: "uppercase",
     marginBottom: 4,
   },
-  textTaken: {
-    color: "#9CA3AF", // Texte grisé si pris
-    textDecorationLine: "line-through", // Optionnel : barrer le titre
+  title: {
+    fontSize: 16,
+    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
+    color: THEME.textMain,
+    lineHeight: 20,
+    letterSpacing: -0.2,
   },
+  titleTaken: {
+    color: THEME.textSecondary,
+    fontStyle: "italic",
+    opacity: 0.7,
+  },
+
+  /* FOOTER */
   footerRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    marginTop: "auto",
+    marginTop: 10,
+    gap: 10,
   },
-  actionText: {
-    fontSize: 9,
-    color: THEME.textSecondary,
-    fontWeight: "700",
-    textTransform: "uppercase",
+  detailLink: {
+    fontSize: 8,
+    fontWeight: "800",
+    color: THEME.accent,
     letterSpacing: 1,
+  },
+  hairline: {
+    flex: 1,
+    height: 1,
+    backgroundColor: THEME.accent,
+    opacity: 0.2,
   },
 });

@@ -9,26 +9,32 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import * as Haptics from "expo-haptics";
 
-// --- THEME ---
+// --- THEME ÉDITORIAL COHÉRENT ---
 const THEME = {
-  textMain: "#111827",
+  textMain: "#1A1A1A",
   white: "#FFFFFF",
-  glass: "rgba(255,255,255,0.15)",
-  glassBorder: "rgba(255,255,255,0.2)",
+  accent: "#AF9062", // Or brossé
 };
 
 interface CreateWishlistBannerProps {
   onPress: () => void;
 }
 
-export default function CreateWishlistBanner({ onPress }: CreateWishlistBannerProps) {
-  // Animation de pression (Scale)
+export default function CreateWishlistBanner({
+  onPress,
+}: CreateWishlistBannerProps) {
   const scaleAnim = useRef(new Animated.Value(1)).current;
+
+  const handlePress = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    onPress();
+  };
 
   const handlePressIn = () => {
     Animated.spring(scaleAnim, {
-      toValue: 0.98,
+      toValue: 0.99, // Mouvement très subtil pour garder la rigidité du luxe
       useNativeDriver: true,
     }).start();
   };
@@ -36,53 +42,60 @@ export default function CreateWishlistBanner({ onPress }: CreateWishlistBannerPr
   const handlePressOut = () => {
     Animated.spring(scaleAnim, {
       toValue: 1,
-      friction: 4,
-      tension: 40,
+      friction: 5,
+      tension: 60,
       useNativeDriver: true,
     }).start();
   };
 
   return (
-    <Animated.View style={[styles.container, { transform: [{ scale: scaleAnim }] }]}>
+    <Animated.View
+      style={[styles.container, { transform: [{ scale: scaleAnim }] }]}
+    >
       <TouchableOpacity
         activeOpacity={1}
-        onPress={onPress}
+        onPress={handlePress}
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
         style={styles.card}
       >
-        {/* 1. BACKGROUND IMAGE (Abstrait / Luxe) */}
+        {/* 1. BACKGROUND IMAGE (Sombre & Moody) */}
         <Image
-          source={{ uri: "https://images.unsplash.com/photo-1634152962476-4b8a00e1915c?q=80&w=2788&auto=format&fit=crop" }}
+          source={{
+            uri: "https://images.unsplash.com/photo-1634152962476-4b8a00e1915c?q=80&w=2788&auto=format&fit=crop",
+          }}
           style={StyleSheet.absoluteFillObject}
           contentFit="cover"
-          transition={500}
+          transition={800}
         />
-        
-        {/* 2. DARK OVERLAY (Pour la lisibilité) */}
+
+        {/* 2. OVERLAY CINÉMATOGRAPHIQUE */}
         <View style={styles.overlay} />
 
-        {/* 3. CONTENU */}
+        {/* 3. CADRE INTERNE DÉCORATIF (HAIRLINE) */}
+        <View style={styles.innerFrame} />
+
+        {/* 4. CONTENU ÉDITORIAL */}
         <View style={styles.content}>
-          <View style={styles.badgeContainer}>
-            <View style={styles.dot} />
-            <Text style={styles.badgeText}>COMMENCER</Text>
+          <View style={styles.topSection}>
+            <View style={styles.accentLine} />
+            <Text style={styles.badgeText}>NOUVEAU CHAPITRE</Text>
           </View>
 
           <View style={styles.textContainer}>
             <Text style={styles.title}>
-              Créez votre première collection.
+              Inaugurez votre{"\n"}première collection.
             </Text>
             <Text style={styles.subtitle}>
-              Rassemblez vos envies et partagez-les avec votre cercle proche.
+              Initiez un registre de vos envies et partagez-le avec votre cercle
+              privé.
             </Text>
           </View>
 
-          <View style={styles.actionRow}>
-            <View style={styles.ctaButton}>
-              <Text style={styles.ctaText}>Créer maintenant</Text>
-              <Ionicons name="arrow-forward" size={16} color={THEME.textMain} />
-            </View>
+          {/* BOUTON AUTHORITY RECTANGULAIRE */}
+          <View style={styles.ctaButton}>
+            <Text style={styles.ctaText}>COMMENCER</Text>
+            <Ionicons name="arrow-forward" size={14} color={THEME.textMain} />
           </View>
         </View>
       </TouchableOpacity>
@@ -93,100 +106,99 @@ export default function CreateWishlistBanner({ onPress }: CreateWishlistBannerPr
 const styles = StyleSheet.create({
   container: {
     width: "100%",
-    paddingHorizontal: 20, // Marge latérale par rapport à l'écran
-    marginBottom: 32,
-    marginTop: 16,
+    paddingHorizontal: 0,
+    marginBottom: 40,
+    marginTop: 10,
   },
   card: {
-    height: 230,
+    height: 260,
     width: "100%",
-    borderRadius: 28,
+    borderRadius: 0, // Rectangulaire pour le style magazine
     overflow: "hidden",
     position: "relative",
-    justifyContent: "center",
-    // Ombre profonde pour l'effet "Hero"
-    shadowColor: "#111827",
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.25,
-    shadowRadius: 20,
-    elevation: 10,
+    justifyContent: "flex-end", // Contenu aligné en bas
   },
-  
+
   /* OVERLAY */
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.5)", // Assombrit l'image
+    backgroundColor: "rgba(26, 26, 26, 0.4)", // Voile noir élégant
+  },
+
+  /* CADRE INTERNE (Détail Luxe) */
+  innerFrame: {
+    position: "absolute",
+    top: 15,
+    left: 15,
+    right: 15,
+    bottom: 15,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.2)",
+    zIndex: 1,
   },
 
   /* CONTENT */
   content: {
-    flex: 1,
-    padding: 24,
-    justifyContent: "space-between",
-  },
-  
-  /* BADGE */
-  badgeContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    backgroundColor: THEME.glass,
-    alignSelf: "flex-start",
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: THEME.glassBorder,
-  },
-  dot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: "#10B981", // Vert émeraude
-  },
-  badgeText: {
-    color: THEME.white,
-    fontSize: 10,
-    fontWeight: "700",
-    letterSpacing: 1,
+    padding: 35,
+    zIndex: 2,
   },
 
-  /* TEXTS */
+  /* TOP LABEL */
+  topSection: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 15,
+    gap: 10,
+  },
+  accentLine: {
+    width: 20,
+    height: 1,
+    backgroundColor: THEME.accent, // Or brossé
+  },
+  badgeText: {
+    color: THEME.accent,
+    fontSize: 10,
+    fontWeight: "800",
+    letterSpacing: 2,
+    textTransform: "uppercase",
+  },
+
+  /* TYPOGRAPHY */
   textContainer: {
-    marginTop: 8,
+    marginBottom: 25,
   },
   title: {
-    fontSize: 24,
+    fontSize: 32,
     color: THEME.white,
-    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
-    lineHeight: 34,
-    marginBottom: 8,
+    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
+    lineHeight: 38,
+    marginBottom: 10,
+    letterSpacing: -0.5,
   },
   subtitle: {
     fontSize: 14,
-    color: "rgba(255,255,255,0.8)",
-    lineHeight: 20,
+    color: "rgba(255,255,255,0.85)",
+    lineHeight: 22,
+    fontStyle: "italic",
+    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
     maxWidth: "90%",
   },
 
   /* CTA BUTTON */
-  actionRow: {
-    flexDirection: "row",
-    justifyContent: "flex-start",
-    marginTop: 12,
-  },
   ctaButton: {
     backgroundColor: THEME.white,
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
     gap: 8,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 24, // Pill shape
+    height: 50,
+    width: 160,
+    borderRadius: 0, // Rectangulaire
   },
   ctaText: {
-    color: THEME.textMain, // Texte noir sur bouton blanc
-    fontSize: 14,
-    fontWeight: "700",
+    color: THEME.textMain,
+    fontSize: 11,
+    fontWeight: "800",
+    letterSpacing: 1.5,
   },
 });

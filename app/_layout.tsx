@@ -38,21 +38,16 @@ export default function RootLayout() {
   useEffect(() => {
     if (isLoading || !isNavigationReady) return;
 
-    // Utiliser un petit timeout pour s'assurer que le navigateur est stable
-    const timer = setTimeout(() => {
-      const inAuthGroup = segments[0] === "(auth)";
-      const inOnboarding = segments[0] === "(onboarding)";
+    const inAuthGroup = segments[0] === "(auth)";
+    const inOnboarding = segments[0] === "(onboarding)";
 
-      if (isFirstLaunch && !inOnboarding) {
-        router.replace("/(onboarding)");
-      } else if (!isFirstLaunch && !session && !inAuthGroup) {
-        router.replace("/(auth)/sign-in");
-      } else if (session && (inAuthGroup || inOnboarding)) {
-        router.replace("/(tabs)");
-      }
-    }, 1);
-
-    return () => clearTimeout(timer);
+    if (isFirstLaunch && !inOnboarding) {
+      router.replace("/(onboarding)");
+    } else if (!isFirstLaunch && !session && !inAuthGroup) {
+      router.replace("/(auth)/sign-in");
+    } else if (session && (inAuthGroup || inOnboarding)) {
+      router.replace("/(tabs)");
+    }
   }, [session, isFirstLaunch, isLoading, isNavigationReady, segments, router]);
 
   if (isLoading) {
@@ -63,9 +58,18 @@ export default function RootLayout() {
     );
   }
 
+  // Calculer l'écran initial pour éviter le flash de l'onboarding
+  let initialRouteName: string = "(onboarding)";
+  if (!isFirstLaunch) {
+    initialRouteName = session ? "(tabs)" : "(auth)";
+  }
+
   return (
     <ThemeProvider value={colorScheme === "light" ? DefaultTheme : DarkTheme}>
-      <Stack screenOptions={{ headerShown: false }}>
+      <Stack
+        screenOptions={{ headerShown: false }}
+        initialRouteName={initialRouteName as any}
+      >
         <Stack.Screen name="(onboarding)" />
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="(screens)" />

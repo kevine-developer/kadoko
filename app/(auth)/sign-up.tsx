@@ -8,7 +8,9 @@ import {
   Text,
   TouchableOpacity,
   View,
+  Platform,
 } from "react-native";
+import * as Haptics from "expo-haptics";
 import {
   authService,
   HeaderAuth,
@@ -21,24 +23,22 @@ import {
   FormError,
 } from "@/features/auth";
 
-// --- THEME LUXE ---
+// --- THEME ÉDITORIAL COHÉRENT ---
 const THEME = {
-  background: "#FDFBF7",
+  background: "#FDFBF7", // Bone Silk
   surface: "#FFFFFF",
-  textMain: "#111827",
-  textSecondary: "#6B7280",
-  border: "#E5E7EB",
-  primary: "#111827",
-  inputBg: "#FFFFFF",
+  textMain: "#1A1A1A",
+  textSecondary: "#8E8E93",
+  accent: "#AF9062", // Or brossé
+  border: "rgba(0,0,0,0.08)",
+  primary: "#1A1A1A",
 };
 
 export default function SignUp() {
   const router = useRouter();
-  const [showPassword, setShowPassword] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  // États du formulaire
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -66,35 +66,35 @@ export default function SignUp() {
     return Object.keys(newErrors).length === 0;
   };
 
-  // États pour la Modal Juridique
   const [legalModalVisible, setLegalModalVisible] = useState(false);
   const [legalConfig, setLegalConfig] = useState({ url: "", title: "" });
 
   const handleOpenLegal = (type: "TERMS" | "PRIVACY") => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     if (type === "TERMS") {
       setLegalConfig({
         title: "Conditions d'utilisation",
-        url: "https://devengalere.fr/conditions-utilisation/", // Remplace par ton URL
+        url: "https://devengalere.fr/conditions-utilisation/",
       });
     } else {
       setLegalConfig({
         title: "Politique de confidentialité",
-        url: "https://devengalere.fr/politique-confidentialite/", // Remplace par ton URL
+        url: "https://devengalere.fr/politique-confidentialite/",
       });
     }
     setLegalModalVisible(true);
   };
 
   const handleSignUp = async () => {
-    // Validation basique
     if (!validate()) return;
 
     if (!agreedToTerms) {
-      showErrorToast("Veuillez accepter les conditions d'utilisation");
+      showErrorToast("Veuillez accepter les conditions");
       return;
     }
 
     setIsLoading(true);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
     try {
       const response = await authService.signUp({
@@ -104,47 +104,32 @@ export default function SignUp() {
       });
 
       if (response.success) {
-        showSuccessToast(response.message || "Inscription réussie !");
-        // Redirection directe vers l'accueil (OTP supprimé)
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        showSuccessToast("Bienvenue dans le cercle");
         router.replace("/");
       } else {
-        setServerError(response.message || "Erreur lors de l'inscription");
+        setServerError(response.message || "Échec de l'inscription");
       }
     } catch {
-      setServerError("Une erreur est survenue");
+      setServerError("Une erreur système est survenue");
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const handleSocialLogin = async (provider: string) => {
-    if (provider === "Google") {
-      setIsLoading(true);
-      try {
-        await authService.signInWithSocial("google");
-      } catch {
-        setServerError("Erreur de connexion avec Google");
-      } finally {
-        setIsLoading(false);
-      }
-    } else {
-      console.log(`Inscription avec ${provider} non implémentée`);
     }
   };
 
   return (
     <>
       <LayoutAuth>
-        {/* Titre */}
+        {/* Header avec signature éditoriale */}
         <HeaderAuth title="Rejoignez le cercle." subtitle="NOUVEAU MEMBRE" />
 
         <FormError message={serverError} />
 
+        {/* Formulaire style Registre */}
         <View style={styles.inputGroup}>
-          {/* Nom */}
           <InputCustom
-            icon="person-outline"
-            placeholder="Nom complet"
+            label="NOM COMPLET"
+            placeholder="Votre nom et prénom"
             value={fullName}
             onChangeText={(t) => {
               setFullName(t);
@@ -153,10 +138,9 @@ export default function SignUp() {
             error={errors.name}
           />
 
-          {/* Email */}
           <InputCustom
-            icon="mail-outline"
-            placeholder="Adresse email"
+            label="ADRESSE EMAIL"
+            placeholder="votre@email.com"
             value={email}
             onChangeText={(t) => {
               setEmail(t);
@@ -167,52 +151,48 @@ export default function SignUp() {
             error={errors.email}
           />
 
-          {/* Mot de passe */}
           <InputCustom
-            icon="lock-closed-outline"
+            label="SÉCURITÉ"
             placeholder="Créer un mot de passe"
             value={password}
             onChangeText={(t) => {
               setPassword(t);
-              if (errors.password)
-                setErrors({ ...errors, password: undefined });
+              if (errors.password) setErrors({ ...errors, password: undefined });
             }}
-            secureTextEntry={!showPassword}
-            showPassword={() => setShowPassword(!showPassword)}
+            secureTextEntry
             error={errors.password}
           />
         </View>
 
-        {/* --- CHECKBOX & LIENS WEBVIEW --- */}
-        <View style={styles.termsRow}>
+        {/* --- ACCEPTATION DES CONDITIONS (STYLE ÉPURÉ) --- */}
+        <View style={styles.termsSection}>
           <TouchableOpacity
-            onPress={() => setAgreedToTerms(!agreedToTerms)}
+            onPress={() => {
+              Haptics.selectionAsync();
+              setAgreedToTerms(!agreedToTerms);
+            }}
             style={[styles.checkbox, agreedToTerms && styles.checkboxChecked]}
+            activeOpacity={0.8}
           >
-            {agreedToTerms && (
-              <Ionicons name="checkmark" size={12} color="#FFF" />
-            )}
+            {agreedToTerms && <Ionicons name="checkmark" size={12} color="#FFF" />}
           </TouchableOpacity>
 
-          <Text style={styles.termsText}>
-            J&apos;accepte les &nbsp;
-            <Text
-              style={styles.termsLink}
-              onPress={() => handleOpenLegal("TERMS")}
-            >
-              Conditions d&apos;utilisation
+          <View style={styles.termsTextContainer}>
+            <Text style={styles.termsBaseText}>
+              Je certifie avoir pris connaissance des{" "}
+              <Text style={styles.termsLink} onPress={() => handleOpenLegal("TERMS")}>
+                Conditions
+              </Text>
+              {" "}et de la{" "}
+              <Text style={styles.termsLink} onPress={() => handleOpenLegal("PRIVACY")}>
+                Confidentialité
+              </Text>
+              .
             </Text>
-            &nbsp; et la &nbsp;
-            <Text
-              style={styles.termsLink}
-              onPress={() => handleOpenLegal("PRIVACY")}
-            >
-              Politique de confidentialité
-            </Text>
-            .
-          </Text>
+          </View>
         </View>
 
+        {/* Bouton Authority Rectangulaire */}
         <TouchableOpacity
           style={[styles.primaryBtn, isLoading && styles.primaryBtnDisabled]}
           activeOpacity={0.9}
@@ -222,30 +202,29 @@ export default function SignUp() {
           {isLoading ? (
             <ActivityIndicator size="small" color="#FFF" />
           ) : (
-            <>
-              <Text style={styles.primaryBtnText}>Créer mon compte</Text>
-              <Ionicons name="arrow-forward" size={18} color="#FFF" />
-            </>
+            <Text style={styles.primaryBtnText}>CRÉER MON COMPTE</Text>
           )}
         </TouchableOpacity>
 
-        {/* Séparateur */}
-        <DividerConnect text="OU S'INSCRIRE AVEC" />
+        {/* Séparateur minimaliste */}
+        <DividerConnect text="OU" />
 
         <View style={styles.socialRow}>
           <BtnSocial
             icon="logo-google"
             label="Google"
-            handleSocialLogin={() => handleSocialLogin("Google")}
+            handleSocialLogin={() => authService.signInWithSocial("google")}
           />
 
           <BtnSocial
             icon="logo-facebook"
             label="Facebook"
-            handleSocialLogin={() => handleSocialLogin("Facebook")}
+            handleSocialLogin={() => {}}
+            disabled={true}
           />
         </View>
-        {/* Footer Inscription */}
+
+        {/* Footer avec navigation inversée */}
         <FooterAuth
           textIntro="Déjà membre ?"
           textLink="Se connecter"
@@ -253,7 +232,6 @@ export default function SignUp() {
         />
       </LayoutAuth>
 
-      {/* MODAL JURIDIQUE */}
       <LegalModal
         visible={legalModalVisible}
         onClose={() => setLegalModalVisible(false)}
@@ -265,74 +243,74 @@ export default function SignUp() {
 }
 
 const styles = StyleSheet.create({
-  /* INPUTS */
   inputGroup: {
-    gap: 16,
-    marginBottom: 24,
+    gap: 10,
+    marginBottom: 30,
   },
 
-  /* TERMS (CHECKBOX + LINKS) */
-  termsRow: {
+  /* TERMS & CONDITIONS LUXE */
+  termsSection: {
     flexDirection: "row",
     alignItems: "flex-start",
-    marginBottom: 24,
-    paddingHorizontal: 4,
+    marginBottom: 35,
+    paddingHorizontal: 2,
   },
   checkbox: {
     width: 20,
     height: 20,
-    borderRadius: 6,
-    borderWidth: 1.5,
-    borderColor: "#9CA3AF",
-    marginRight: 12,
+    borderRadius: 0, // Carré pour le luxe
+    borderWidth: 1,
+    borderColor: THEME.border,
+    marginRight: 15,
     marginTop: 2,
     alignItems: "center",
     justifyContent: "center",
+    backgroundColor: THEME.surface,
   },
   checkboxChecked: {
-    backgroundColor: THEME.textMain,
-    borderColor: THEME.textMain,
+    backgroundColor: THEME.primary,
+    borderColor: THEME.primary,
   },
-  termsText: {
+  termsTextContainer: {
     flex: 1,
+  },
+  termsBaseText: {
     fontSize: 13,
     color: THEME.textSecondary,
     lineHeight: 20,
+    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
+    fontStyle: "italic",
   },
   termsLink: {
-    fontWeight: "700",
-    color: THEME.textMain,
-    textDecorationLine: "underline",
+    color: THEME.accent,
+    fontWeight: "800",
+    textDecorationLine: "none", // Plus épuré sans l'underline natif
+    fontStyle: "normal",
   },
 
-  /* BUTTONS */
+  /* PRIMARY BUTTON */
   primaryBtn: {
     backgroundColor: THEME.primary,
-    height: 56,
-    borderRadius: 28,
-    flexDirection: "row",
+    height: 60,
+    borderRadius: 0, // Authority style (rectangulaire)
     alignItems: "center",
     justifyContent: "center",
-    gap: 10,
-    shadowColor: THEME.primary,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 8,
-    marginBottom: 32,
+    marginBottom: 40,
   },
   primaryBtnText: {
     color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "700",
+    fontSize: 13,
+    fontWeight: "800",
+    letterSpacing: 1.5,
   },
+  primaryBtnDisabled: {
+    opacity: 0.6,
+  },
+
+  /* SOCIALS */
   socialRow: {
     flexDirection: "row",
     gap: 16,
     marginBottom: 40,
-  },
-
-  primaryBtnDisabled: {
-    opacity: 0.6,
   },
 });

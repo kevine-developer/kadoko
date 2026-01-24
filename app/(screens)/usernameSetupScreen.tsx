@@ -3,20 +3,38 @@ import { useRouter } from "expo-router";
 import React, { useState, useEffect } from "react";
 import {
   ActivityIndicator,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { authClient } from "@/features/auth";
+import { MotiView, AnimatePresence } from "moti";
+import * as Haptics from "expo-haptics";
 import { userService } from "@/lib/services/user-service";
 import { showErrorToast, showSuccessToast } from "@/lib/toast";
-import { MotiView, AnimatePresence } from "moti";
+import { authClient } from "@/features/auth";
+
+// --- THEME ÉDITORIAL COHÉRENT ---
+const THEME = {
+  background: "#FDFBF7", // Bone Silk
+  surface: "#FFFFFF",
+  textMain: "#1A1A1A",
+  textSecondary: "#8E8E93",
+  primary: "#1A1A1A",
+  accent: "#AF9062", // Or brossé
+  border: "rgba(0,0,0,0.08)",
+  success: "#4A6741", // Vert forêt
+  error: "#C34A4A",
+  warningBg: "#F9F6F0",
+};
+
+const USERNAME_REGEX = /^[a-zA-Z0-9](?!.*[_.]{2})[a-zA-Z0-9._]{1,28}[a-zA-Z0-9]$/;
 
 export default function UsernameSetupScreen() {
   const router = useRouter();
@@ -29,8 +47,8 @@ export default function UsernameSetupScreen() {
   const [isAvailable, setIsAvailable] = useState<boolean | null>(null);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [isSaving, setIsSaving] = useState(false);
+  const [formatError, setFormatError] = useState<string | null>(null);
 
-  // Calcul du délai restant
   const getRemainingDays = () => {
     if (!user?.usernameUpdatedAt) return 0;
     const now = new Date();
@@ -43,56 +61,41 @@ export default function UsernameSetupScreen() {
   const remainingDays = getRemainingDays();
   const canChange = remainingDays <= 0;
 
-  // Regex de validation (identique au backend)
-  const USERNAME_REGEX =
-    /^[a-zA-Z0-9](?!.*[_.]{2})[a-zA-Z0-9._]{1,28}[a-zA-Z0-9]$/;
-  const [formatError, setFormatError] = useState<string | null>(null);
-
-  // Debounce pour la vérification de disponibilité
   useEffect(() => {
     setFormatError(null);
-
     if (!username || username === user?.username) {
       setIsAvailable(null);
       setSuggestions([]);
       return;
     }
-
     if (username.length < 3) {
       setIsAvailable(null);
-      setSuggestions([]);
       return;
     }
 
-    // Validation locale du format
     if (!USERNAME_REGEX.test(username)) {
-      setIsAvailable(null);
+      setIsAvailable(false);
       setSuggestions([]);
-
-      if (!/^[a-zA-Z0-9]/.test(username)) {
-        setFormatError("Doit commencer par une lettre ou un chiffre");
-      } else if (!/[a-zA-Z0-9]$/.test(username)) {
-        setFormatError("Doit se terminer par une lettre ou un chiffre");
-      } else if (/[_.]{2}/.test(username)) {
-        setFormatError("Les points et tirets bas ne peuvent pas se suivre");
-      } else {
-        setFormatError("Format invalide (lettres, chiffres, . and _)");
-      }
+      if (!/^[a-zA-Z0-9]/.test(username)) setFormatError("Doit commencer par un caractère");
+      else if (!/[a-zA-Z0-9]$/.test(username)) setFormatError("Doit finir par un caractère");
+      else setFormatError("Format invalide");
       return;
     }
 
     const timer = setTimeout(async () => {
       setIsChecking(true);
-      const res = await userService.checkUsernameAvailability(username);
-      setIsAvailable(res.available);
-
-      if (!res.available) {
-        const suggRes = await userService.getUsernameSuggestions(username);
-        setSuggestions(suggRes.suggestions);
-      } else {
-        setSuggestions([]);
+      try {
+        const res = await userService.checkUsernameAvailability(username);
+        setIsAvailable(res.available);
+        if (!res.available) {
+          const suggRes = await userService.getUsernameSuggestions(username);
+          setSuggestions(suggRes.suggestions || []);
+        }
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setIsChecking(false);
       }
-      setIsChecking(false);
     }, 500);
 
     return () => clearTimeout(timer);
@@ -100,153 +103,96 @@ export default function UsernameSetupScreen() {
 
   const handleSave = async () => {
     if (!canChange || !isAvailable || isSaving) return;
-
     setIsSaving(true);
+    Keyboard.dismiss();
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
     try {
       const res = await userService.updateProfile({ username });
       if (res.success) {
-        showSuccessToast("Nom d'utilisateur mis à jour !");
+        showSuccessToast("Alias mis à jour");
         await refetch();
         router.back();
-      } else {
-        showErrorToast(res.message);
       }
     } catch {
-      showErrorToast("Une erreur est survenue");
+      showErrorToast("Erreur serveur");
     } finally {
       setIsSaving(false);
     }
   };
 
   return (
-    <View style={styles.container}>
-      {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top }]}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Ionicons name="chevron-back" size={28} color="#111827" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Nom d&apos;utilisateur</Text>
-        <View style={{ width: 40 }} />
-      </View>
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+      <View style={styles.container}>
+        {/* NAV BAR */}
+        <View style={[styles.navBar, { paddingTop: insets.top + 10 }]}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+            <Ionicons name="chevron-back" size={24} color={THEME.textMain} />
+          </TouchableOpacity>
+          <Text style={styles.navTitle}>IDENTITÉ</Text>
+          <View style={{ width: 44 }} />
+        </View>
 
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        style={{ flex: 1 }}
-      >
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-        >
+        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
           <View style={styles.content}>
-            <Text style={styles.title}>Votre identité unique</Text>
-            <Text style={styles.subtitle}>
-              Le nom d&apos;utilisateur permet de partager votre profil et
-              d&apos;être retrouvé par vos amis.
-            </Text>
+            {/* HERO SECTION */}
+            <MotiView
+              from={{ opacity: 0, translateY: 15 }}
+              animate={{ opacity: 1, translateY: 0 }}
+              style={styles.heroSection}
+            >
+              <Text style={styles.heroTitle}>Votre alias{"\n"}unique.</Text>
+              <View style={styles.titleDivider} />
+              <Text style={styles.heroSubtitle}>
+                C&apos;est ainsi que vos amis vous identifieront pour partager leurs intentions.
+              </Text>
+            </MotiView>
 
+            {/* INFO LOCK */}
             {!canChange && (
-              <MotiView
-                from={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                style={styles.lockCard}
-              >
-                <Ionicons name="lock-closed" size={24} color="#B45309" />
-                <View style={styles.lockTextContent}>
-                  <Text style={styles.lockTitle}>Modification verrouillée</Text>
-                  <Text style={styles.lockSubtitle}>
-                    Vous pourrez modifier votre pseudo dans {remainingDays}{" "}
-                    jours.
-                  </Text>
-                </View>
-              </MotiView>
+              <View style={styles.lockBanner}>
+                <Ionicons name="time-outline" size={16} color={THEME.accent} />
+                <Text style={styles.lockText}>Modification possible dans {remainingDays} jours</Text>
+              </View>
             )}
 
+            {/* INPUT SECTION */}
             <View style={styles.inputSection}>
-              <View
-                style={[
-                  styles.inputWrapper,
-                  !canChange && styles.inputWrapperDisabled,
-                  isAvailable === true && styles.inputWrapperAvailable,
-                  (isAvailable === false || formatError) &&
-                    styles.inputWrapperUnavailable,
-                ]}
-              >
-                <Text style={styles.prefix}>@</Text>
+              <Text style={styles.miniLabel}>SIGNATURE @</Text>
+              <View style={[styles.inputUnderline, isAvailable === true && { borderBottomColor: THEME.success }, (isAvailable === false || formatError) && { borderBottomColor: THEME.error }]}>
                 <TextInput
                   style={styles.input}
                   value={username}
-                  onChangeText={setUsername}
-                  placeholder="pseudo"
-                  placeholderTextColor="#9CA3AF"
+                  onChangeText={(t) => setUsername(t.toLowerCase())}
+                  placeholder="votre.nom"
+                  placeholderTextColor="#BCBCBC"
                   autoCapitalize="none"
                   autoCorrect={false}
                   editable={canChange && !isSaving}
+                  selectionColor={THEME.accent}
                 />
-                {isChecking ? (
-                  <ActivityIndicator size="small" color="#6B7280" />
-                ) : (
-                  <AnimatePresence>
-                    {isAvailable === true && (
-                      <MotiView
-                        from={{ opacity: 0, scale: 0 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0 }}
-                      >
-                        <Ionicons
-                          name="checkmark-circle"
-                          size={20}
-                          color="#10B981"
-                        />
-                      </MotiView>
-                    )}
-                    {isAvailable === false && (
-                      <MotiView
-                        from={{ opacity: 0, scale: 0 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0 }}
-                      >
-                        <Ionicons
-                          name="close-circle"
-                          size={20}
-                          color="#EF4444"
-                        />
-                      </MotiView>
-                    )}
-                  </AnimatePresence>
-                )}
+                <View style={styles.statusIndicator}>
+                  {isChecking ? <ActivityIndicator size="small" color={THEME.accent} /> : 
+                   isAvailable === true ? <Ionicons name="checkmark" size={20} color={THEME.success} /> :
+                   isAvailable === false ? <Ionicons name="close" size={20} color={THEME.error} /> : null}
+                </View>
               </View>
 
-              {isAvailable === true && (
-                <Text style={styles.availableText}>
-                  Ce nom d&apos;utilisateur est disponible !
-                </Text>
-              )}
+              <View style={styles.feedbackBox}>
+                {formatError && <Text style={styles.errorText}>{formatError}</Text>}
+                {isAvailable === false && !formatError && <Text style={styles.errorText}>Cet alias est déjà réservé</Text>}
+                {isAvailable === true && <Text style={styles.successText}>Alias disponible</Text>}
+              </View>
 
-              {formatError && (
-                <Text style={styles.unavailableText}>{formatError}</Text>
-              )}
-
+              {/* SUGGESTIONS ÉDITORIALES */}
               <AnimatePresence>
                 {isAvailable === false && suggestions.length > 0 && (
-                  <MotiView
-                    from={{ opacity: 0, translateY: -10 }}
-                    animate={{ opacity: 1, translateY: 0 }}
-                    exit={{ opacity: 0, translateY: -10 }}
-                    style={styles.suggestionsContainer}
-                  >
-                    <Text style={styles.unavailableText}>
-                      Ce nom d&apos;utilisateur est déjà pris.
-                    </Text>
-                    <Text style={styles.suggestionTitle}>Suggestions :</Text>
-                    <View style={styles.suggestionsList}>
+                  <MotiView from={{ opacity: 0 }} animate={{ opacity: 1 }} style={styles.suggestionsContainer}>
+                    <Text style={styles.miniLabel}>RECOMMANDATIONS</Text>
+                    <View style={styles.chipsRow}>
                       {suggestions.map((s) => (
-                        <TouchableOpacity
-                          key={s}
-                          style={styles.suggestionBadge}
-                          onPress={() => setUsername(s)}
-                        >
-                          <Text style={styles.suggestionText}>@{s}</Text>
+                        <TouchableOpacity key={s} style={styles.suggestionChip} onPress={() => { Haptics.selectionAsync(); setUsername(s); }}>
+                          <Text style={styles.suggestionText}>{s}</Text>
                         </TouchableOpacity>
                       ))}
                     </View>
@@ -254,210 +200,63 @@ export default function UsernameSetupScreen() {
                 )}
               </AnimatePresence>
             </View>
-
-            <View style={styles.footer}>
-              <Text style={styles.infoText}>
-                <Ionicons name="information-circle-outline" size={14} /> Une
-                fois défini, vous ne pourrez plus le changer pendant 30 jours.
-              </Text>
-
-              <TouchableOpacity
-                style={[
-                  styles.saveBtn,
-                  (!canChange || !isAvailable || isSaving || !!formatError) &&
-                    styles.saveBtnDisabled,
-                ]}
-                onPress={handleSave}
-                disabled={
-                  !canChange || !isAvailable || isSaving || !!formatError
-                }
-              >
-                {isSaving ? (
-                  <ActivityIndicator color="#FFF" />
-                ) : (
-                  <Text style={styles.saveBtnText}>Valider mon pseudo</Text>
-                )}
-              </TouchableOpacity>
-            </View>
           </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </View>
+
+          {/* FOOTER ACTION */}
+          <View style={[styles.footer, { paddingBottom: insets.bottom + 20 }]}>
+            <TouchableOpacity
+              style={[styles.primaryBtn, (!canChange || !isAvailable || isSaving) && styles.primaryBtnDisabled]}
+              onPress={handleSave}
+              disabled={!canChange || !isAvailable || isSaving}
+            >
+              {isSaving ? <ActivityIndicator color="#FFF" size="small" /> : <Text style={styles.primaryBtnText}>VALIDER L&apos;IDENTITÉ</Text>}
+            </TouchableOpacity>
+            <Text style={styles.disclaimer}>L&apos;alias peut être modifié une fois tous les 30 jours.</Text>
+          </View>
+        </KeyboardAvoidingView>
+      </View>
+    </TouchableWithoutFeedback>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#FFFFFF",
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  backBtn: {
-    padding: 4,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#111827",
-  },
-  scrollContent: {
-    flexGrow: 1,
-  },
-  content: {
-    padding: 24,
-    flex: 1,
-  },
-  title: {
-    fontSize: 28,
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-    color: "#111827",
-    marginBottom: 12,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: "#6B7280",
-    lineHeight: 24,
-    marginBottom: 32,
-  },
-  lockCard: {
-    flexDirection: "row",
-    padding: 16,
-    backgroundColor: "#FFFBEB",
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: "#FDE68A",
-    marginBottom: 32,
-    alignItems: "center",
-  },
-  lockTextContent: {
-    marginLeft: 12,
-    flex: 1,
-  },
-  lockTitle: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: "#92400E",
-    marginBottom: 2,
-  },
-  lockSubtitle: {
-    fontSize: 13,
-    color: "#B45309",
-  },
-  inputSection: {
-    marginBottom: 40,
-  },
-  inputWrapper: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#F9FAFB",
-    borderWidth: 1.5,
-    borderColor: "#E5E7EB",
-    borderRadius: 16,
-    paddingHorizontal: 20,
-    height: 64,
-  },
-  inputWrapperDisabled: {
-    opacity: 0.6,
-    backgroundColor: "#F3F4F6",
-  },
-  inputWrapperAvailable: {
-    borderColor: "#10B981",
-    backgroundColor: "#F0FDF4",
-  },
-  inputWrapperUnavailable: {
-    borderColor: "#EF4444",
-    backgroundColor: "#FEF2F2",
-  },
-  prefix: {
-    fontSize: 20,
-    fontWeight: "600",
-    color: "#6B7280",
-    marginRight: 4,
-  },
-  input: {
-    flex: 1,
-    fontSize: 20,
-    fontWeight: "600",
-    color: "#111827",
-    paddingVertical: 0, // important for center alignment on android
-  },
-  availableText: {
-    color: "#059669",
-    fontSize: 13,
-    fontWeight: "600",
-    marginTop: 8,
-    marginLeft: 4,
-  },
-  unavailableText: {
-    color: "#DC2626",
-    fontSize: 13,
-    fontWeight: "600",
-    marginTop: 8,
-    marginLeft: 4,
-  },
-  suggestionsContainer: {
-    marginTop: 16,
-  },
-  suggestionTitle: {
-    fontSize: 14,
-    color: "#6B7280",
-    marginTop: 12,
-    marginBottom: 8,
-    marginLeft: 4,
-  },
-  suggestionsList: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-  },
-  suggestionBadge: {
-    backgroundColor: "#F3F4F6",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-  },
-  suggestionText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#374151",
-  },
-  footer: {
-    marginTop: "auto",
-    gap: 20,
-  },
-  infoText: {
-    fontSize: 13,
-    color: "#9CA3AF",
-    textAlign: "center",
-  },
-  saveBtn: {
-    backgroundColor: "#111827",
-    height: 56,
-    borderRadius: 16,
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    elevation: 4,
-  },
-  saveBtnDisabled: {
-    backgroundColor: "#E5E7EB",
-    shadowOpacity: 0,
-    elevation: 0,
-  },
-  saveBtnText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "700",
-  },
+  container: { flex: 1, backgroundColor: THEME.background },
+  navBar: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 15 },
+  navTitle: { fontSize: 10, fontWeight: "800", color: THEME.textMain, letterSpacing: 2 },
+  backBtn: { width: 44, height: 44, justifyContent: "center", alignItems: "center" },
+  content: { flex: 1, paddingHorizontal: 32, paddingTop: 30 },
+
+  /* HERO */
+  heroSection: { marginBottom: 40 },
+  heroTitle: { fontSize: 38, fontFamily: Platform.OS === "ios" ? "Georgia" : "serif", color: THEME.textMain, lineHeight: 44, letterSpacing: -1 },
+  titleDivider: { width: 35, height: 2, backgroundColor: THEME.accent, marginVertical: 25 },
+  heroSubtitle: { fontSize: 14, color: THEME.textSecondary, lineHeight: 22, fontStyle: "italic", fontFamily: Platform.OS === "ios" ? "Georgia" : "serif" },
+
+  /* LOCK BANNER */
+  lockBanner: { flexDirection: "row", alignItems: "center", backgroundColor: THEME.warningBg, padding: 12, borderLeftWidth: 2, borderLeftColor: THEME.accent, marginBottom: 30, gap: 10 },
+  lockText: { fontSize: 12, color: THEME.textMain, fontWeight: "600", letterSpacing: 0.2 },
+
+  /* INPUT */
+  inputSection: { marginBottom: 20 },
+  miniLabel: { fontSize: 9, fontWeight: "800", color: THEME.textSecondary, letterSpacing: 1.5, marginBottom: 15 },
+  inputUnderline: { flexDirection: "row", alignItems: "center", borderBottomWidth: 1, borderBottomColor: THEME.border, paddingBottom: 10 },
+  input: { flex: 1, fontSize: 24, fontWeight: "500", color: THEME.textMain, fontFamily: Platform.OS === "ios" ? "Georgia" : "serif" },
+  statusIndicator: { marginLeft: 10 },
+  
+  feedbackBox: { marginTop: 10, minHeight: 20 },
+  errorText: { color: THEME.error, fontSize: 11, fontWeight: "600" },
+  successText: { color: THEME.success, fontSize: 11, fontWeight: "600" },
+
+  /* SUGGESTIONS */
+  suggestionsContainer: { marginTop: 20 },
+  chipsRow: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
+  suggestionChip: { paddingHorizontal: 15, paddingVertical: 8, borderWidth: 1, borderColor: THEME.border, backgroundColor: "#FFF" },
+  suggestionText: { fontSize: 12, fontWeight: "700", color: THEME.textMain },
+
+  /* FOOTER */
+  footer: { paddingHorizontal: 32 },
+  primaryBtn: { backgroundColor: THEME.primary, height: 60, alignItems: "center", justifyContent: "center" },
+  primaryBtnDisabled: { backgroundColor: "#E5E7EB", opacity: 0.6 },
+  primaryBtnText: { color: "#FFF", fontSize: 14, fontWeight: "700", letterSpacing: 1 },
+  disclaimer: { textAlign: "center", fontSize: 11, color: THEME.textSecondary, marginTop: 15, fontStyle: "italic" },
 });

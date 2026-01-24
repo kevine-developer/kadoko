@@ -6,128 +6,91 @@ import {
   View,
 } from "react-native";
 import React from "react";
-import { router } from "expo-router";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 
-const ProfilCard = ({
-  user,
-  onEditAvatar,
-}: {
-  user: any;
-  onEditAvatar?: () => void;
-}) => {
+const THEME = {
+  textMain: "#1A1A1A",
+  textSecondary: "#8E8E93",
+  accent: "#AF9062",
+  border: "rgba(0,0,0,0.06)",
+};
+
+const ProfilCard = ({ user, onEditAvatar }: any) => {
   return (
-    <View style={styles.cardHeader}>
+    <View style={styles.container}>
       <TouchableOpacity
-        style={styles.avatarWrapper}
+        style={styles.avatarContainer}
         onPress={onEditAvatar}
-        activeOpacity={0.8}
+        activeOpacity={0.9}
       >
         <Image
-          source={{
-            uri:
-              user?.image ||
-              "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=400",
-          }}
+          source={{ uri: user?.image || "https://i.pravatar.cc/150" }}
           style={styles.avatar}
         />
-        <View style={styles.editAvatarBadge}>
-          <Ionicons name="pencil" size={10} color="#FFF" />
+        <View style={styles.editBadge}>
+          <Ionicons name="camera" size={12} color="#FFF" />
         </View>
       </TouchableOpacity>
 
-      <View style={styles.identityContainer}>
-        <Text style={styles.userName}>{user?.name}</Text>
-        {user?.username ? (
-          <Text style={styles.userHandle}>@{user.username}</Text>
-        ) : (
-          <Text style={styles.noHandle}>Sans pseudo</Text>
+      <View style={styles.info}>
+        <Text style={styles.name}>{user?.name}</Text>
+        <Text style={styles.handle}>
+          {user?.username ? `@${user.username}` : "Alias non défini"}
+        </Text>
+        {user?.description && (
+          <Text style={styles.bio}>{user.description}</Text>
         )}
       </View>
-
-      <TouchableOpacity
-        style={styles.editProfileBtn}
-        onPress={() => router.push("/(screens)/editProfileScreen")}
-      >
-        <Text style={styles.editProfileText}>Éditer</Text>
-      </TouchableOpacity>
-      <Text style={styles.description}>{user?.description}</Text>
     </View>
   );
 };
 
-export default ProfilCard;
-
 const styles = StyleSheet.create({
-  cardHeader: {
-    flexDirection: "row",
-    alignItems: "center", // Alignement centré verticalement
-    marginBottom: 24,
-  },
-  avatarWrapper: {
-    position: "relative",
-    marginRight: 16,
-  },
+  container: { flexDirection: "row", alignItems: "center", marginBottom: 30 },
+  avatarContainer: { position: "relative" },
   avatar: {
     width: 80,
     height: 80,
-    borderRadius: 40,
-    borderWidth: 3,
-    borderColor: "#FFFFFF",
-    backgroundColor: "#F3F4F6",
+    borderRadius: 0,
+    backgroundColor: "#F2F2F7",
+    borderWidth: 1,
+    borderColor: THEME.border,
   },
-  editAvatarBadge: {
+  editBadge: {
     position: "absolute",
-    bottom: 0,
-    right: 0,
-    backgroundColor: "#111827",
+    bottom: -5,
+    right: -5,
     width: 24,
     height: 24,
     borderRadius: 12,
-    alignItems: "center",
+    backgroundColor: THEME.textMain,
     justifyContent: "center",
+    alignItems: "center",
     borderWidth: 2,
-    borderColor: "#FFFFFF",
+    borderColor: "#FDFBF7",
   },
-  identityContainer: {
-    flex: 1,
-  },
-  userName: {
-    fontSize: 24,
-    fontWeight: "500",
-    color: "#111827",
+  info: { flex: 1, marginLeft: 25 },
+  name: {
+    fontSize: 28,
     fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-    marginBottom: 2,
+    color: THEME.textMain,
+    letterSpacing: -1,
   },
-  userHandle: {
-    fontSize: 14,
-    color: "#9CA3AF",
+  handle: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: THEME.accent,
+    marginTop: 4,
     letterSpacing: 0.5,
   },
-  noHandle: {
-    fontSize: 12,
-    color: "#EF4444",
-    fontWeight: "600",
+  bio: {
+    fontSize: 13,
+    color: THEME.textSecondary,
+    marginTop: 8,
+    lineHeight: 18,
     fontStyle: "italic",
-    opacity: 0.8,
-  },
-  editProfileBtn: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-  },
-  editProfileText: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#111827",
-  },
-  description: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#111827",
   },
 });
+
+export default ProfilCard;

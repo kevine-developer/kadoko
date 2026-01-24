@@ -1,36 +1,57 @@
-import { Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
-import React from 'react'
-import { router } from 'expo-router';
-import { Image } from 'expo-image';
+import {
+  Platform,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import React from "react";
+import { router } from "expo-router";
+import { Image } from "expo-image";
+import * as Haptics from "expo-haptics";
 
-// --- COMPOSANT: CARTE LISTE D'AMI (Slider Item) ---
+// --- THEME ÉDITORIAL ---
+const THEME = {
+  surface: "#FFFFFF",
+  textMain: "#1A1A1A",
+  textSecondary: "#8E8E93",
+  accent: "#AF9062", // Or brossé
+  border: "rgba(0,0,0,0.08)",
+};
+
 const FriendWishlistCard = ({ wishlist }: { wishlist: any }) => {
   const owner = wishlist.user;
   const coverImage =
     wishlist.gifts?.[0]?.imageUrl ||
     "https://images.unsplash.com/photo-1513201099705-a9746e1e201f?q=80&w=1000&auto=format&fit=crop";
 
+  const handlePress = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    router.push({
+      pathname: "/gifts/wishlists/[wishlistId]",
+      params: { wishlistId: wishlist.id },
+    });
+  };
+
   return (
     <TouchableOpacity
-      activeOpacity={0.9}
-      style={styles.friendCard}
-      onPress={() =>
-        router.push({
-          pathname: "/gifts/wishlists/[wishlistId]",
-          params: { wishlistId: wishlist.id },
-        })
-      }
+      activeOpacity={0.8}
+      style={styles.cardContainer}
+      onPress={handlePress}
     >
-      <View style={styles.friendCardImageWrapper}>
+      {/* CADRE IMAGE "GALERIE" */}
+      <View style={styles.imageFrame}>
         <Image
           source={{ uri: coverImage }}
-          style={styles.friendCardImage}
+          style={styles.image}
           contentFit="cover"
-          transition={400}
+          transition={500}
         />
+
+        {/* Date "Étiquette" */}
         {wishlist.eventDate && (
-          <View style={styles.dateBadge}>
-            <Text style={styles.dateBadgeText}>
+          <View style={styles.dateTag}>
+            <Text style={styles.dateText}>
               {new Date(wishlist.eventDate)
                 .toLocaleDateString("fr-FR", { day: "numeric", month: "short" })
                 .toUpperCase()}
@@ -39,83 +60,104 @@ const FriendWishlistCard = ({ wishlist }: { wishlist: any }) => {
         )}
       </View>
 
-      <View style={styles.friendCardInfo}>
-        <Text style={styles.friendListTitle} numberOfLines={1}>
+      {/* INFO ÉDITORIALE */}
+      <View style={styles.infoContent}>
+        <Text style={styles.title} numberOfLines={1}>
           {wishlist.title}
         </Text>
 
-        <View style={styles.friendRow}>
-          <Image source={{ uri: owner?.image }} style={styles.miniAvatar} />
-          <Text style={styles.friendName}>{owner?.name}</Text>
+        <View style={styles.authorRow}>
+          <Image source={{ uri: owner?.image }} style={styles.squareAvatar} />
+          <Text style={styles.authorName} numberOfLines={1}>
+            {owner?.name}
+          </Text>
         </View>
+
+        {/* Petite ligne dorée décorative */}
+        <View style={styles.accentLine} />
       </View>
     </TouchableOpacity>
   );
 };
 
-export default FriendWishlistCard
+export default FriendWishlistCard;
 
 const styles = StyleSheet.create({
-     friendCard: {
-    width: 160,
-    marginRight: 4,
+  cardContainer: {
+    width: 150,
+    marginRight: 12,
   },
-  friendCardImageWrapper: {
-    width: 160,
+  /* IMAGE FRAME */
+  imageFrame: {
+    width: 150,
     height: 200,
-    borderRadius: 20,
-    overflow: "hidden",
-    backgroundColor: "#F3F4F6",
-    marginBottom: 10,
+    borderRadius: 0, // Rectangulaire luxe
+    backgroundColor: "#F2F2F7",
+    marginBottom: 12,
     position: "relative",
-    // Ombre légère
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 4,
+    borderWidth: 1,
+    borderColor: THEME.border,
+    // Suppression des ombres portées lourdes
   },
-  friendCardImage: {
+  image: {
     width: "100%",
     height: "100%",
+    opacity: 0.9,
   },
-  dateBadge: {
+  dateTag: {
     position: "absolute",
-    top: 8,
-    right: 8,
-    backgroundColor: "rgba(255,255,255,0.9)",
+    top: 0,
+    right: 0,
+    backgroundColor: THEME.surface,
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 8,
-    backdropFilter: "blur(4px)",
+    borderWidth: 1,
+    borderTopWidth: 0,
+    borderRightWidth: 0,
+    borderColor: THEME.border,
   },
-  dateBadgeText: {
-    fontSize: 10,
-    fontWeight: "700",
-    color: "#111827",
+  dateText: {
+    fontSize: 9,
+    fontWeight: "800",
+    color: THEME.textMain,
+    letterSpacing: 1,
   },
-  friendCardInfo: {
-    paddingHorizontal: 4,
+
+  /* INFO */
+  infoContent: {
+    paddingHorizontal: 2,
   },
-  friendListTitle: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: "#111827",
+  title: {
+    fontSize: 16,
+    color: THEME.textMain,
     fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-    marginBottom: 4,
+    marginBottom: 6,
+    letterSpacing: -0.3,
   },
-  friendRow: {
+  authorRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    gap: 8,
+    marginBottom: 8,
   },
-  miniAvatar: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+  squareAvatar: {
+    width: 18,
+    height: 18,
+    borderRadius: 0, // Avatar carré
     backgroundColor: "#E5E7EB",
   },
-  friendName: {
-    fontSize: 12,
-    color: "#6B7280",
-  },})
+  authorName: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: THEME.textSecondary,
+    textTransform: "uppercase",
+    letterSpacing: 1,
+    flex: 1,
+  },
+  accentLine: {
+    width: 20,
+    height: 1,
+    backgroundColor: THEME.accent,
+    opacity: 0.5,
+  },
+});

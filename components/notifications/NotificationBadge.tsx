@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from "react";
-import { View, Text, StyleSheet, Animated } from "react-native";
+import { Text, StyleSheet, Animated, Platform } from "react-native";
 import { useNotifications } from "../../hooks/useNotifications";
 
 export const NotificationBadge = () => {
@@ -7,33 +7,22 @@ export const NotificationBadge = () => {
   const scaleAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    if (unreadCount > 0) {
-      Animated.spring(scaleAnim, {
-        toValue: 1,
-        useNativeDriver: true,
-        friction: 5,
-      }).start();
-    } else {
-      Animated.timing(scaleAnim, {
-        toValue: 0,
-        duration: 200,
-        useNativeDriver: true,
-      }).start();
-    }
+    Animated.spring(scaleAnim, {
+      toValue: unreadCount > 0 ? 1 : 0,
+      useNativeDriver: true,
+      friction: 8,
+      tension: 40,
+    }).start();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [unreadCount]);
 
   if (unreadCount === 0) return null;
 
   return (
     <Animated.View
-      style={[
-        styles.badge,
-        {
-          transform: [{ scale: scaleAnim }],
-        },
-      ]}
+      style={[styles.badge, { transform: [{ scale: scaleAnim }] }]}
     >
-      <Text style={styles.text}>{unreadCount > 99 ? "99+" : unreadCount}</Text>
+      <Text style={styles.text}>{unreadCount > 9 ? "9+" : unreadCount}</Text>
     </Animated.View>
   );
 };
@@ -41,22 +30,25 @@ export const NotificationBadge = () => {
 const styles = StyleSheet.create({
   badge: {
     position: "absolute",
-    top: -5,
-    right: -5,
-    backgroundColor: "#FF3B30",
+    top: -2,
+    right: 35,
+    backgroundColor: "#d3a40adc", // Noir profond Luxe
     borderRadius: 10,
-    minWidth: 20,
-    height: 20,
+    width: 16,
+    height: 16,
     justifyContent: "center",
     alignItems: "center",
-    paddingHorizontal: 4,
     borderWidth: 1.5,
-    borderColor: "white",
+    borderColor: "#FDFBF7", // Bone Silk
     zIndex: 10,
   },
   text: {
     color: "white",
-    fontSize: 10,
-    fontWeight: "bold",
+    fontSize: 8,
+    fontWeight: "900",
+    textAlign: "center",
+    ...Platform.select({
+      ios: { lineHeight: 0 }, // Centre mieux sur iOS
+    }),
   },
 });
