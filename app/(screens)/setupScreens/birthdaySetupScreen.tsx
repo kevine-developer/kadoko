@@ -1,36 +1,26 @@
-import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-  ActivityIndicator,
-  Platform,
   StyleSheet,
-  Text,
   TouchableOpacity,
   View,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MotiView } from "moti";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import * as Haptics from "expo-haptics";
 import { authClient } from "@/features/auth";
 import { userService } from "@/lib/services/user-service";
 import { showErrorToast, showSuccessToast } from "@/lib/toast";
-
-// --- THEME ÉDITORIAL COHÉRENT ---
-const THEME = {
-  background: "#FDFBF7", // Bone Silk
-  surface: "#FFFFFF",
-  textMain: "#1A1A1A",
-  textSecondary: "#8E8E93",
-  primary: "#1A1A1A",
-  accent: "#AF9062", // Or brossé
-  border: "rgba(0,0,0,0.08)",
-};
+import BtnValidate from "@/components/Settings/BtnValidate";
+import { ThemedText } from "@/components/themed-text";
+import { useAppTheme } from "@/hooks/custom/use-app-theme";
+import SettingsNavBar from "@/components/Settings/SettingsNavBar";
 
 export default function BirthdaySetupScreen() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
+  // --- COULEURS DU THÈME ---
+const theme = useAppTheme();
+
   const { data: session, refetch } = authClient.useSession();
   const user = session?.user as any;
 
@@ -94,15 +84,9 @@ export default function BirthdaySetupScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       {/* NAV BAR MINIMALISTE */}
-      <View style={[styles.navBar, { paddingTop: insets.top + 10 }]}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Ionicons name="chevron-back" size={24} color={THEME.textMain} />
-        </TouchableOpacity>
-        <Text style={styles.navTitle}>ANNIVERSAIRE</Text>
-        <View style={{ width: 44 }} />
-      </View>
+      <SettingsNavBar title="ANNIVERSAIRE" />
 
       <View style={styles.content}>
         {/* HERO SECTION */}
@@ -112,12 +96,16 @@ export default function BirthdaySetupScreen() {
           transition={{ type: "timing", duration: 700 }}
           style={styles.heroSection}
         >
-          <Text style={styles.heroTitle}>Votre date{"\n"}de naissance.</Text>
-          <View style={styles.titleDivider} />
-          <Text style={styles.heroSubtitle}>
+          <ThemedText type="hero" style={styles.heroTitle}>
+            Votre date{"\n"}de naissance.
+          </ThemedText>
+          
+          <View style={[styles.titleDivider, { backgroundColor: theme.accent }]} />
+          
+          <ThemedText type="subtitle" style={{ color: theme.textSecondary }}>
             Cette information permet à votre cercle de célébrer votre journée
             spéciale et de préparer vos attentions.
-          </Text>
+          </ThemedText>
         </MotiView>
 
         {/* DATE DISPLAY - STYLE REGISTRE */}
@@ -127,14 +115,22 @@ export default function BirthdaySetupScreen() {
           transition={{ delay: 300 }}
           style={styles.registrySection}
         >
-          <Text style={styles.miniLabel}>MOMENT DE CÉLÉBRATION</Text>
+          <ThemedText type="label" style={{ color: theme.textSecondary, marginBottom: 12 }}>
+            MOMENT DE CÉLÉBRATION
+          </ThemedText>
+          
           <TouchableOpacity
             onPress={showDatePicker}
             activeOpacity={0.7}
-            style={styles.dateSelector}
+            style={[styles.dateSelector, { borderBottomColor: theme.border }]}
           >
-            <Text style={styles.dateValue}>{formatDate(date)}</Text>
-            <Text style={styles.modifyLink}>MODIFIER</Text>
+            <ThemedText type="title" style={{ fontSize: 22 }}>
+              {formatDate(date)}
+            </ThemedText>
+            
+            <ThemedText type="label" colorName="accent">
+              MODIFIER
+            </ThemedText>
           </TouchableOpacity>
         </MotiView>
 
@@ -151,24 +147,13 @@ export default function BirthdaySetupScreen() {
         />
       </View>
 
-      {/* FOOTER ACTION - BOUTON RECTANGULAIRE LUXE */}
-      <View style={[styles.footer, { paddingBottom: insets.bottom + 20 }]}>
-        <TouchableOpacity
-          style={[
-            styles.primaryBtn,
-            (!hasChanges || isSaving) && styles.primaryBtnDisabled,
-          ]}
-          onPress={handleSave}
-          disabled={!hasChanges || isSaving}
-          activeOpacity={0.9}
-        >
-          {isSaving ? (
-            <ActivityIndicator color="#FFF" size="small" />
-          ) : (
-            <Text style={styles.primaryBtnText}>ENREGISTRER LA DATE</Text>
-          )}
-        </TouchableOpacity>
-      </View>
+      {/* FOOTER ACTION */}
+      <BtnValidate
+        hasChanges={hasChanges}
+        isSaving={isSaving}
+        handleSave={handleSave}
+        text="ENREGISTRER LA DATE"
+      />
     </View>
   );
 }
@@ -176,26 +161,6 @@ export default function BirthdaySetupScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: THEME.background,
-  },
-  /* NAV BAR */
-  navBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 15,
-  },
-  backBtn: {
-    width: 44,
-    height: 44,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  navTitle: {
-    fontSize: 10,
-    fontWeight: "800",
-    color: THEME.textMain,
-    letterSpacing: 2,
   },
   /* CONTENT */
   content: {
@@ -207,76 +172,22 @@ const styles = StyleSheet.create({
     marginBottom: 50,
   },
   heroTitle: {
-    fontSize: 38,
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-    color: THEME.textMain,
-    lineHeight: 44,
-    letterSpacing: -1,
+    marginBottom: 10,
   },
   titleDivider: {
     width: 35,
     height: 2,
-    backgroundColor: THEME.accent,
     marginVertical: 25,
-  },
-  heroSubtitle: {
-    fontSize: 15,
-    color: THEME.textSecondary,
-    lineHeight: 24,
-    fontStyle: "italic",
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
   },
   /* REGISTRE DATE */
   registrySection: {
     marginTop: 10,
-  },
-  miniLabel: {
-    fontSize: 9,
-    fontWeight: "800",
-    color: THEME.textSecondary,
-    letterSpacing: 1.5,
-    marginBottom: 12,
   },
   dateSelector: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-end",
     borderBottomWidth: 1,
-    borderBottomColor: THEME.border,
     paddingBottom: 15,
-  },
-  dateValue: {
-    fontSize: 22,
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-    color: THEME.textMain,
-  },
-  modifyLink: {
-    fontSize: 10,
-    fontWeight: "800",
-    color: THEME.accent,
-    letterSpacing: 1,
-    marginBottom: 5,
-  },
-  /* FOOTER & BUTTON */
-  footer: {
-    paddingHorizontal: 32,
-  },
-  primaryBtn: {
-    backgroundColor: THEME.primary,
-    height: 60,
-    borderRadius: 0, // Rectangulaire luxe autoritaire
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  primaryBtnDisabled: {
-    backgroundColor: "#E5E7EB",
-    opacity: 0.6,
-  },
-  primaryBtnText: {
-    color: "#FFFFFF",
-    fontSize: 14,
-    fontWeight: "700",
-    letterSpacing: 1,
-    textTransform: "uppercase",
   },
 });

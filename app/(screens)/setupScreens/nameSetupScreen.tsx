@@ -19,6 +19,7 @@ import * as Haptics from "expo-haptics";
 import { authClient } from "@/features/auth";
 import { userService } from "@/lib/services/user-service";
 import { showErrorToast, showSuccessToast } from "@/lib/toast";
+import BtnValidate from "@/components/Settings/BtnValidate";
 
 // --- THEME ÉDITORIAL COHÉRENT ---
 const THEME = {
@@ -162,6 +163,12 @@ export default function NameSetupScreen() {
               )}
             </TouchableOpacity>
           </View>
+        <BtnValidate
+          hasChanges={hasChanges}
+          isSaving={isSaving}
+          handleSave={handleSave}
+          text="CONFIRMER L&apos;IDENTITÉ"
+        />
         </KeyboardAvoidingView>
       </View>
     </TouchableWithoutFeedback>

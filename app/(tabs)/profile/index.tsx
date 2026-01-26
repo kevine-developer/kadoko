@@ -35,7 +35,7 @@ export default function ModernUserProfileScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
-const theme = useAppTheme();
+  const theme = useAppTheme();
 
   const [activePage, setActivePage] = useState(0);
   const pagerRef = useRef<PagerView>(null);
@@ -168,7 +168,7 @@ const theme = useAppTheme();
           onQrPress={() => {
             if (!user?.username) {
               showErrorToast("Pseudo requis.");
-              router.push("/(screens)/usernameSetupScreen");
+              router.push("/(screens)/setupScreens/usernameSetupScreen");
             } else {
               router.push("/(screens)/shareProfileScreen");
             }
@@ -201,8 +201,13 @@ const theme = useAppTheme();
 
               {!user?.username && (
                 <TouchableOpacity
-                  style={[styles.alertBanner, { borderLeftColor: theme.accent }]}
-                  onPress={() => router.push("/(screens)/usernameSetupScreen")}
+                  style={[
+                    styles.alertBanner,
+                    { borderLeftColor: theme.accent },
+                  ]}
+                  onPress={() =>
+                    router.push("/(screens)/setupScreens/usernameSetupScreen")
+                  }
                 >
                   <Icon name="at-outline" size={16} color={theme.accent} />
                   <ThemedText type="label" style={[styles.alertText]}>
@@ -217,7 +222,9 @@ const theme = useAppTheme();
 
         {/* TABS ÉDITORIAUX */}
         <View style={styles.tabsWrapper}>
-          <View style={[styles.tabsHeader, { borderBottomColor: theme.border }]}>
+          <View
+            style={[styles.tabsHeader, { borderBottomColor: theme.border }]}
+          >
             {["À OFFRIR", "COLLECTIONS", "HISTORIQUE"].map((label, index) => {
               const isActive = activePage === index;
               return (
@@ -234,7 +241,9 @@ const theme = useAppTheme();
                 >
                   <ThemedText
                     type="label"
-                    style={{ color: isActive ? theme.textMain : theme.textSecondary }}
+                    style={{
+                      color: isActive ? theme.textMain : theme.textSecondary,
+                    }}
                   >
                     {label}
                   </ThemedText>

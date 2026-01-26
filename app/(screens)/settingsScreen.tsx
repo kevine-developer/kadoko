@@ -1,42 +1,35 @@
-import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState, useEffect } from "react";
 import {
   ScrollView,
   StyleSheet,
-  Text,
   TouchableOpacity,
   View,
   Image,
-  Platform,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
-import { MotiView } from "moti";
+
+// Hooks & Components
 import { authClient } from "@/features/auth";
 import SettingRow from "@/components/Settings/SettingRow";
 import { getApiUrl } from "@/lib/api-config";
 import { showErrorToast, showCustomAlert } from "@/lib/toast";
+import { ThemedText } from "@/components/themed-text";
+import Icon from "@/components/themed-icon";
+import { useAppTheme } from "@/hooks/custom/use-app-theme";
+import SettingsSection from "@/components/Settings/SettingsSection";
 
 interface LinkedAccount {
   provider: string;
   linkedAt: string;
 }
 
-const THEME = {
-  background: "#FDFBF7",
-  surface: "#FFFFFF",
-  textMain: "#1A1A1A",
-  textSecondary: "#8E8E93",
-  primary: "#1A1A1A",
-  accent: "#AF9062",
-  border: "rgba(0,0,0,0.06)",
-  danger: "#C34A4A",
-};
-
 export default function SettingsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const theme = useAppTheme();
+
   const { data: session } = authClient.useSession();
   const user = session?.user as any;
 
@@ -60,34 +53,14 @@ export default function SettingsScreen() {
         console.log("Error fetching accounts");
       }
     };
-
     fetchLinkedAccounts();
   }, [user]);
-
-  const handleLinkGoogle = async () => {
-    // Règle métier : Si email Gmail, on doit lier le même
-    if (user?.email?.endsWith("@gmail.com")) {
-      showCustomAlert(
-        "Synchronisation Google",
-        `Puisque votre email est ${user.email}, vous devez utiliser le compte Google associé à cette adresse exacte.`,
-        [
-          { text: "Annuler", style: "cancel" },
-          {
-            text: "J'ai compris",
-            onPress: performGoogleLink,
-          },
-        ],
-      );
-    } else {
-      performGoogleLink();
-    }
-  };
 
   const performGoogleLink = async () => {
     try {
       await authClient.signIn.social({
         provider: "google",
-        callbackURL: "/(screens)/settingsScreen", // On revient ici
+        callbackURL: "/(screens)/settingsScreen",
       });
     } catch {
       showErrorToast("Impossible de lancer la liaison Google");
@@ -109,21 +82,14 @@ export default function SettingsScreen() {
     ]);
   };
 
-  const openLink = (url: string, title: string) => {
-    router.push({
-      pathname: "/(screens)/webviewScreen",
-      params: { url, title },
-    });
-  };
-
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       {/* HEADER ÉDITORIAL */}
       <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.navBtn}>
-          <Ionicons name="chevron-back" size={26} color={THEME.textMain} />
+          <Icon name="chevron-back" size={26} color={theme.textMain} />
         </TouchableOpacity>
-        <Text style={styles.navTitle}>PARAMÈTRES</Text>
+        <ThemedText type="label">Paramètres</ThemedText>
         <View style={{ width: 44 }} />
       </View>
 
@@ -131,22 +97,34 @@ export default function SettingsScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* CARTE PROFIL LUXE */}
         <TouchableOpacity
-          style={styles.profileCard}
+          style={[
+            styles.profileCard,
+            { backgroundColor: theme.surface, borderColor: theme.border },
+          ]}
           activeOpacity={0.8}
-          onPress={() => router.push("/(screens)/nameSetupScreen")}
+          onPress={() => router.push("/(screens)/setupScreens/nameSetupScreen")}
         >
           <Image
             source={{ uri: user?.image || "https://i.pravatar.cc/150" }}
             style={styles.avatar}
           />
           <View style={styles.profileInfo}>
-            <Text style={styles.userName}>{user?.name || "Membre"}</Text>
-            <Text style={styles.userEmail}>{user?.email}</Text>
+            <ThemedText type="title" style={{ fontSize: 18 }}>
+              {user?.name || "Membre"}
+            </ThemedText>
+            <ThemedText colorName="textSecondary" style={{ fontSize: 13 }}>
+              {user?.email}
+            </ThemedText>
             <View style={styles.editLink}>
-              <Text style={styles.editLinkText}>Gérer le profil</Text>
-              <Ionicons name="arrow-forward" size={10} color={THEME.accent} />
+              <ThemedText
+                type="label"
+                colorName="accent"
+                style={{ fontSize: 9 }}
+              >
+                Gérer le profil
+              </ThemedText>
+              <Icon name="arrow-forward" size={10} colorName="accent" />
             </View>
           </View>
         </TouchableOpacity>
@@ -157,13 +135,17 @@ export default function SettingsScreen() {
             label="Nom d'utilisateur"
             subLabel={user?.username ? `@${user.username}` : "Non défini"}
             icon="at-outline"
-            onPress={() => router.push("/(screens)/usernameSetupScreen")}
+            onPress={() =>
+              router.push("/(screens)/setupScreens/usernameSetupScreen")
+            }
           />
           <SettingRow
             label="Biographie"
             subLabel={user?.description || "Votre essence en quelques mots"}
             icon="document-text-outline"
-            onPress={() => router.push("/(screens)/bioSetupScreen")}
+            onPress={() =>
+              router.push("/(screens)/setupScreens/bioSetupScreen")
+            }
           />
           <SettingRow
             label="Anniversaire"
@@ -176,13 +158,24 @@ export default function SettingsScreen() {
                 : "Non défini"
             }
             icon="calendar-outline"
-            onPress={() => router.push("/(screens)/birthdaySetupScreen")}
+            onPress={() =>
+              router.push("/(screens)/setupScreens/birthdaySetupScreen")
+            }
+          />
+          <SettingRow
+            label="Connexions"
+            icon="link-outline"
+            onPress={() =>
+              router.push("/(screens)/setupScreens/socialLinksScreen")
+            }
           />
           <SettingRow
             label="Me connaître"
             subLabel="Tailles et préférences intimes"
             icon="heart-outline"
-            onPress={() => router.push("/(screens)/privateInfoScreen")}
+            onPress={() =>
+              router.push("/(screens)/setupScreens/privateInfoScreen")
+            }
             isLast
           />
         </SettingsSection>
@@ -192,14 +185,26 @@ export default function SettingsScreen() {
             label="Email"
             subLabel={user?.email}
             icon="mail-outline"
-            onPress={() => router.push("/(screens)/changeEmailScreen")}
+            onPress={() =>
+              router.push("/(screens)/setupScreens/changeEmailScreen")
+            }
             badge={!user?.emailVerified ? "À VÉRIFIER" : undefined}
-            badgeColor={!user?.emailVerified ? THEME.accent : undefined}
+            badgeColor={!user?.emailVerified ? theme.accent : undefined}
+          />
+          <SettingRow
+            label="Blocage"
+            subLabel="Registre des personnes bloquées"
+            icon="person-remove-outline"
+            onPress={() =>
+              router.push("/(screens)/setupScreens/blockedUsersScreen")
+            }
           />
           <SettingRow
             label="Mot de passe"
             icon="key-outline"
-            onPress={() => router.push("/(screens)/changePasswordScreen")}
+            onPress={() =>
+              router.push("/(screens)/setupScreens/changePasswordScreen")
+            }
           />
           <SettingRow
             label="Profil Public"
@@ -218,176 +223,101 @@ export default function SettingsScreen() {
             subLabel={
               linkedAccounts.some((a) => a.provider === "google")
                 ? "Compte synchronisé"
-                : "Synchroniser pour une connexion rapide"
+                : "Synchroniser mon compte"
             }
             icon="logo-google"
             onPress={
               linkedAccounts.some((a) => a.provider === "google")
                 ? undefined
-                : handleLinkGoogle
+                : performGoogleLink
             }
             badge={
               linkedAccounts.some((a) => a.provider === "google")
                 ? "LIÉ"
                 : undefined
             }
-            badgeColor={
-              linkedAccounts.some((a) => a.provider === "google")
-                ? "#34C759"
-                : undefined
-            }
-          />
-        </SettingsSection>
-
-        <SettingsSection title="Données & Aide">
-          <SettingRow
-            label="Utilisateurs bloqués"
-            icon="ban-outline"
-            onPress={() => router.push("/(screens)/blockedUsersScreen")}
-          />
-          <SettingRow
-            label="Centre d'aide"
-            icon="help-buoy-outline"
-            onPress={() => openLink("https://devengalere.fr/aide", "Aide")}
-            isLast
+            badgeColor={theme.accent}
           />
         </SettingsSection>
 
         {/* LOGOUT / DANGER AREA */}
         <View style={styles.dangerZone}>
-          <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
-            <Text style={styles.logoutText}>Se déconnecter</Text>
+          <TouchableOpacity
+            style={[styles.logoutBtn, { backgroundColor: theme.textMain }]}
+            onPress={handleLogout}
+          >
+            <ThemedText type="label" lightColor="#FFF" darkColor="#000">
+              Se déconnecter
+            </ThemedText>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.deleteLink}
-            onPress={() => router.push("/(screens)/deleteAccountScreen")}
+            onPress={() =>
+              router.push("/(screens)/setupScreens/deleteAccountScreen")
+            }
           >
-            <Text style={styles.deleteText}>Clôturer le compte</Text>
+            <ThemedText
+              type="caption"
+              colorName="textSecondary"
+              style={{ textDecorationLine: "underline" }}
+            >
+              Clôturer le compte
+            </ThemedText>
           </TouchableOpacity>
         </View>
 
         <View style={styles.footer}>
-          <Text style={styles.versionText}>GIFTFLOW — VERSION 1.0</Text>
+          <ThemedText
+            type="label"
+            colorName="textSecondary"
+            style={{ fontSize: 9 }}
+          >
+            GIFTFLOW — VERSION 1.0
+          </ThemedText>
         </View>
       </ScrollView>
     </View>
   );
 }
 
-const SettingsSection = ({ title, children }: any) => (
-  <View style={styles.sectionContainer}>
-    <Text style={styles.sectionTitle}>{title}</Text>
-    <View style={styles.sectionContent}>{children}</View>
-  </View>
-);
-
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: THEME.background },
+  container: { flex: 1 },
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 15,
   },
-  navTitle: {
-    fontSize: 10,
-    fontWeight: "800",
-    color: THEME.textMain,
-    letterSpacing: 2,
-  },
   navBtn: { width: 44, height: 44, justifyContent: "center" },
-
   scrollContent: { paddingHorizontal: 30, paddingBottom: 60 },
-
-  heroSection: { marginTop: 20, marginBottom: 30 },
-  heroTitle: {
-    fontSize: 38,
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-    color: THEME.textMain,
-    letterSpacing: -1,
-  },
-  titleDivider: {
-    width: 35,
-    height: 2,
-    backgroundColor: THEME.accent,
-    marginTop: 20,
-  },
-
   profileCard: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: THEME.surface,
-    padding: 20,
-    marginBottom: 40,
+    padding: 10,
+    marginBottom: 20,
     borderWidth: 1,
-    borderColor: THEME.border,
   },
   avatar: {
     width: 60,
     height: 60,
-    borderRadius: 30,
+    borderRadius: 0,
     backgroundColor: "#F9FAFB",
   },
   profileInfo: { flex: 1, marginLeft: 20 },
-  userName: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: THEME.textMain,
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-  },
-  userEmail: { fontSize: 13, color: THEME.textSecondary, marginTop: 2 },
   editLink: {
     flexDirection: "row",
     alignItems: "center",
     gap: 5,
     marginTop: 8,
   },
-  editLinkText: {
-    fontSize: 10,
-    fontWeight: "800",
-    color: THEME.accent,
-    letterSpacing: 0.5,
-    textTransform: "uppercase",
-  },
-
-  sectionContainer: { marginBottom: 35 },
-  sectionTitle: {
-    fontSize: 9,
-    fontWeight: "800",
-    color: THEME.textSecondary,
-    letterSpacing: 1.5,
-    textTransform: "uppercase",
-    marginBottom: 10,
-  },
-  sectionContent: { borderTopWidth: 1, borderTopColor: THEME.border },
 
   dangerZone: { marginTop: 20, gap: 20, alignItems: "center" },
   logoutBtn: {
-    backgroundColor: THEME.textMain,
     width: "100%",
     height: 56,
     justifyContent: "center",
     alignItems: "center",
   },
-  logoutText: {
-    color: "#FFF",
-    fontSize: 13,
-    fontWeight: "800",
-    letterSpacing: 1,
-    textTransform: "uppercase",
-  },
   deleteLink: { paddingVertical: 10 },
-  deleteText: {
-    fontSize: 12,
-    color: THEME.textSecondary,
-    textDecorationLine: "underline",
-  },
-
   footer: { alignItems: "center", marginTop: 40 },
-  versionText: {
-    fontSize: 9,
-    color: "#D1D5DB",
-    fontWeight: "700",
-    letterSpacing: 2,
-  },
 });

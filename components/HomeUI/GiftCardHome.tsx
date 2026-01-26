@@ -1,35 +1,42 @@
-import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { router } from "expo-router";
-import React, { useRef } from "react";
+import React, { useRef, useState } from "react";
 import {
-  Platform,
   StyleSheet,
-  Text,
   TouchableOpacity,
   View,
   Animated,
+  Linking,
+  Platform,
 } from "react-native";
 import * as Haptics from "expo-haptics";
 import { shareGift } from "@/lib/share";
+import { ThemedText } from "@/components/themed-text";
+import Icon from "@/components/themed-icon";
+import { useThemeColor } from "@/hooks/use-theme-color";
+import { GiftPriority } from "@/types/gift";
 
-// --- THEME ÉDITORIAL COHÉRENT ---
-const THEME = {
-  background: "#FFFFFF",
-  textMain: "#1A1A1A",
-  textSecondary: "#8E8E93",
-  accent: "#AF9062", // Or brossé
-  border: "rgba(0,0,0,0.08)",
-  surface: "#FDFBF7", // Bone Silk
-  success: "#4A6741",
-};
+interface GiftCardHomeProps {
+  item: any;
+}
 
-const GiftCardHome = ({ item }: { item: any }) => {
+const GiftCardHome = ({ item }: GiftCardHomeProps) => {
   const scaleAnim = useRef(new Animated.Value(1)).current;
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  // Couleurs du thème
+  const backgroundColor = useThemeColor({}, "background");
+  const surfaceColor = useThemeColor({}, "surface");
+  const textMain = useThemeColor({}, "textMain");
+  const textSecondary = useThemeColor({}, "textSecondary");
+  const accentColor = useThemeColor({}, "accent");
+  const borderColor = useThemeColor({}, "border");
+  const errorColor = useThemeColor({}, "danger");
+  const ecoColor = "#4A6741"; // Vert forêt luxe
 
   const handlePressIn = () => {
     Animated.spring(scaleAnim, {
-      toValue: 0.98,
+      toValue: 0.99,
       useNativeDriver: true,
     }).start();
   };
@@ -42,60 +49,75 @@ const GiftCardHome = ({ item }: { item: any }) => {
     }).start();
   };
 
-  const handleShare = async () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    await shareGift(item.id, item.product.name);
-  };
-
-  const handleMainAction = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    router.push({
-      pathname: "/(screens)/gifts/[giftId]",
-      params: { giftId: item.id },
-    });
-  };
-
   const getHostname = (url: string) => {
     try {
-      if (!url) return "";
-      const hostname = url
-        .replace(/^(?:https?:\/\/)?(?:www\.)?/i, "")
-        .split("/")[0];
-      return hostname.charAt(0).toUpperCase() + hostname.slice(1);
+      return url.replace(/^(?:https?:\/\/)?(?:www\.)?/i, "").split("/")[0];
     } catch {
-      return "Boutique en ligne";
+      return "Boutique";
     }
   };
 
-  const isPurchased = item.isPurchased;
-  const isReserved = item.isReserved;
-  const isTaken = isReserved || isPurchased;
-  const isReservedByMe = item.isMyReservation;
+  const getPriorityConfig = (priority?: string) => {
+    switch (priority) {
+      case GiftPriority.ESSENTIAL:
+        return { label: "INDISPENSABLE", color: errorColor };
+      case GiftPriority.DESIRED:
+        return { label: "COUP DE COEUR", color: accentColor };
+      case GiftPriority.OPTIONAL:
+        return { label: "IDÉE CADEAU", color: textSecondary };
+      default:
+        return null;
+    }
+  };
+
+  const isTaken = item.isReserved || item.isPurchased;
+  const priority = getPriorityConfig(item.priority);
 
   return (
     <Animated.View
-      style={[styles.container, { transform: [{ scale: scaleAnim }] }]}
+      style={[
+        styles.container,
+        {
+          backgroundColor: surfaceColor,
+          borderColor,
+          transform: [{ scale: scaleAnim }],
+        },
+      ]}
     >
-      {/* 1. HEADER : IDENTITÉ (User & Collection) */}
-      <View style={styles.cardHeader}>
-        <View style={styles.userInfo}>
+      {/* 1. HEADER : IDENTITÉ ÉDITORIALE */}
+      <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.userInfo}
+          onPress={() => router.push(`/profilFriend/${item.user.id}`)}
+        >
           <Image source={{ uri: item.user.avatar }} style={styles.avatar} />
           <View>
-            <Text style={styles.userName}>{item.user.name}</Text>
-            <Text style={styles.userContext}>{item.context.toUpperCase()}</Text>
+            <ThemedText type="defaultBold" style={styles.userName}>
+              {item.user.name}
+            </ThemedText>
+            <ThemedText
+              type="label"
+              style={{ color: accentColor, fontSize: 8 }}
+            >
+              {item.context.toUpperCase()}
+            </ThemedText>
           </View>
-        </View>
-        <TouchableOpacity onPress={handleShare} style={styles.shareBtn}>
-          <Ionicons name="share-outline" size={20} color={THEME.textMain} />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          onPress={() => shareGift(item.id, item.product.name)}
+          style={styles.iconBtn}
+        >
+          <Icon name="share-outline" size={20} color={textMain} />
         </TouchableOpacity>
       </View>
 
-      {/* 2. MILIEU : IMAGE VITRINE */}
+      {/* 2. IMAGE IMMERSIVE (Style Insta/TikTok 4:5) */}
       <TouchableOpacity
         activeOpacity={1}
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
-        onPress={handleMainAction}
+        onPress={() => router.push(`/(screens)/gifts/${item.id}`)}
         style={styles.imageFrame}
       >
         <Image
@@ -104,123 +126,181 @@ const GiftCardHome = ({ item }: { item: any }) => {
           contentFit="cover"
           transition={500}
         />
+
+        {/* Badges flottants sur l'image */}
+        <View style={styles.imageBadges}>
+          {priority && (
+            <View style={[styles.badge, { backgroundColor: surfaceColor }]}>
+              <ThemedText
+                type="label"
+                style={{ color: priority.color, fontSize: 8 }}
+              >
+                {priority.label}
+              </ThemedText>
+            </View>
+          )}
+          {item.acceptsSecondHand && (
+            <View style={[styles.badge, { backgroundColor: surfaceColor }]}>
+              <Icon name="leaf" size={10} color={ecoColor} />
+              <ThemedText
+                type="label"
+                style={{ color: ecoColor, fontSize: 8, marginLeft: 4 }}
+              >
+                SECONDE MAIN
+              </ThemedText>
+            </View>
+          )}
+        </View>
+
         {isTaken && (
           <View style={styles.takenOverlay}>
-            <View style={styles.statusBadge}>
-              <Text style={styles.statusText}>
-                {isPurchased ? "ACQUIS" : "RÉSERVÉ"}
-              </Text>
+            <View style={styles.takenTag}>
+              <ThemedText type="label" style={styles.takenText}>
+                {item.isPurchased ? "ACQUIS" : "RÉSERVÉ"}
+              </ThemedText>
             </View>
           </View>
         )}
       </TouchableOpacity>
 
-      {/* 3. FOOTER : PRODUIT & ACTIONS */}
-      <View style={styles.cardFooter}>
-        <View style={styles.productInfo}>
-          <Text style={styles.productTitle} numberOfLines={1}>
+      {/* 3. SECTION CONTENU (Description & Info) */}
+      <View style={styles.contentSection}>
+        <View style={styles.titleRow}>
+          <ThemedText type="title" style={styles.productTitle}>
             {item.product.name}
-          </Text>
-          {item.product.url && (
-            <View style={styles.sourceRow}>
-              <Ionicons name="link-outline" size={12} color={THEME.accent} />
-              <Text style={styles.sourceText}>
-                {getHostname(item.product.url)}
-              </Text>
-            </View>
-          )}
+          </ThemedText>
+          <ThemedText type="title" style={styles.priceText}>
+            {item.product.price}€
+          </ThemedText>
         </View>
 
-        <View style={styles.actionRow}>
-          <View style={styles.priceContainer}>
-            <Text style={styles.priceValue}>{item.product.price}€</Text>
-          </View>
-
+        {item.product.url && (
           <TouchableOpacity
-            style={[
-              styles.mainActionBtn,
-              isTaken && !isReservedByMe ? styles.alertBtn : styles.primaryBtn,
-            ]}
-            onPress={handleMainAction}
+            onPress={() => Linking.openURL(item.product.url)}
+            style={styles.sourceLink}
           >
-            {isTaken && !isReservedByMe ? (
-              <>
-                <Ionicons
-                  name="notifications-outline"
-                  size={14}
-                  color={THEME.textMain}
-                />
-                <Text style={styles.alertBtnText}>M&apos;ALERTER</Text>
-              </>
-            ) : (
-              <>
-                <Text style={styles.primaryBtnText}>
-                  {isReservedByMe ? "MA RÉSERVATION" : "DÉCOUVRIR"}
-                </Text>
-                <Ionicons name="chevron-forward" size={14} color="#FFF" />
-              </>
-            )}
+            <Icon name="link-outline" size={12} color={textSecondary} />
+            <ThemedText type="caption" style={styles.sourceName}>
+              {getHostname(item.product.url).toUpperCase()}
+            </ThemedText>
           </TouchableOpacity>
-        </View>
+        )}
+
+        {/* Description Expandable */}
+        {(item.product.description || item.notes) && (
+          <View style={styles.descriptionContainer}>
+            <ThemedText
+              type="default"
+              numberOfLines={isExpanded ? undefined : 2}
+              style={styles.descriptionText}
+            >
+              {item.notes && (
+                <ThemedText type="defaultBold" style={{ color: accentColor }}>
+                  Note :{" "}
+                </ThemedText>
+              )}
+              {item.notes || item.product.description}
+            </ThemedText>
+
+            <TouchableOpacity
+              onPress={() => {
+                Haptics.selectionAsync();
+                setIsExpanded(!isExpanded);
+              }}
+            >
+              <ThemedText type="label" style={styles.moreBtn}>
+                {isExpanded ? "VOIR MOINS" : "LIRE LA SUITE"}
+              </ThemedText>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Divider discret */}
+        <View style={[styles.divider, { backgroundColor: borderColor }]} />
+
+        {/* 4. FOOTER : STATUS & CTAs */}
+        {isTaken && !item.isMyReservation ? (
+          <View style={styles.reservationFooter}>
+            <View style={styles.reserverInfo}>
+              <Image
+                source={{
+                  uri: item.reservedBy?.image || "https://i.pravatar.cc/150",
+                }}
+                style={styles.reserverAvatar}
+              />
+              <ThemedText type="caption" style={{ fontStyle: "italic" }}>
+                {item.isPurchased ? "Offert par " : "Réservé par "}
+                <ThemedText type="defaultBold" style={{ fontSize: 12 }}>
+                  {item.reservedBy?.name}
+                </ThemedText>
+              </ThemedText>
+            </View>
+
+            <TouchableOpacity
+              style={[styles.alertBtn, { borderColor: textMain }]}
+              onPress={() =>
+                Haptics.notificationAsync(
+                  Haptics.NotificationFeedbackType.Success,
+                )
+              }
+            >
+              <Icon name="notifications-outline" size={14} color={textMain} />
+              <ThemedText type="label" style={styles.alertBtnText}>
+                M&apos;ALERTER
+              </ThemedText>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <TouchableOpacity
+            style={[styles.mainCta, { backgroundColor: textMain }]}
+            onPress={() => router.push(`/(screens)/gifts/${item.id}`)}
+          >
+            <ThemedText type="label" style={styles.ctaText}>
+              {item.isMyReservation ? "MA RÉSERVATION" : "VOIR LES DÉTAILS"}
+            </ThemedText>
+            <Icon name="chevron-forward" size={14} color={backgroundColor} />
+          </TouchableOpacity>
+        )}
       </View>
     </Animated.View>
   );
 };
 
-export default GiftCardHome;
-
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: THEME.background,
-    marginBottom: 30,
+    marginBottom: 40,
     borderWidth: 1,
-    borderColor: THEME.border,
-    borderRadius: 0, // Look architectural
+    borderRadius: 0,
     overflow: "hidden",
   },
-  /* HEADER */
-  cardHeader: {
+  header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    backgroundColor: THEME.surface,
+    padding: 16,
   },
   userInfo: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    gap: 12,
   },
   avatar: {
     width: 32,
     height: 32,
     borderRadius: 0,
     backgroundColor: "#F2F2F7",
-    borderWidth: 0.5,
-    borderColor: THEME.border,
   },
   userName: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: THEME.textMain,
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
+    fontSize: 14,
+    letterSpacing: -0.3,
   },
-  userContext: {
-    fontSize: 8,
-    fontWeight: "800",
-    color: THEME.accent,
-    letterSpacing: 1,
+  iconBtn: {
+    padding: 4,
   },
-  shareBtn: {
-    padding: 5,
-  },
-  /* IMAGE */
   imageFrame: {
     width: "100%",
-    height: 200, // Image prédominante au milieu
+    aspectRatio: 0.8, // Format portrait immersif
     backgroundColor: "#F9FAFB",
-    position: "relative",
   },
   image: {
     width: "100%",
@@ -229,92 +309,127 @@ const styles = StyleSheet.create({
   imageDimmed: {
     opacity: 0.7,
   },
-  takenOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(253, 251, 247, 0.2)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  statusBadge: {
-    backgroundColor: THEME.textMain,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-  },
-  statusText: {
-    color: "#FFF",
-    fontSize: 10,
-    fontWeight: "900",
-    letterSpacing: 2,
-  },
-  /* FOOTER */
-  cardFooter: {
-    padding: 20,
-    backgroundColor: THEME.surface,
-    borderTopWidth: 1,
-    borderTopColor: THEME.border,
-  },
-  productInfo: {
-    marginBottom: 15,
-  },
-  productTitle: {
-    fontSize: 20,
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-    color: THEME.textMain,
-    marginBottom: 4,
-  },
-  sourceRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-  },
-  sourceText: {
-    fontSize: 11,
-    color: THEME.textSecondary,
-    fontWeight: "600",
-    fontStyle: "italic",
-  },
-  actionRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    gap: 15,
-  },
-  priceContainer: {
-    borderLeftWidth: 2,
-    borderLeftColor: THEME.accent,
-    paddingLeft: 10,
-  },
-  priceValue: {
-    fontSize: 18,
-    fontWeight: "800",
-    color: THEME.textMain,
-  },
-  mainActionBtn: {
-    flex: 1,
-    height: 48,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
+  imageBadges: {
+    position: "absolute",
+    top: 15,
+    left: 15,
     gap: 8,
   },
-  primaryBtn: {
-    backgroundColor: THEME.textMain,
+  badge: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderWidth: 0.5,
+    borderColor: "rgba(0,0,0,0.05)",
   },
-  primaryBtnText: {
-    color: "#FFFFFF",
-    fontSize: 11,
+  takenOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(253, 251, 247, 0.4)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  takenTag: {
+    backgroundColor: "#1A1A1A",
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+  },
+  takenText: {
+    color: "#FFF",
+    fontSize: 10,
+    letterSpacing: 2,
+  },
+  contentSection: {
+    padding: 20,
+  },
+  titleRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: 8,
+  },
+  productTitle: {
+    fontSize: 22,
+    flex: 1,
+    marginRight: 10,
+  },
+  priceText: {
+    fontSize: 20,
+    fontWeight: "300",
+  },
+  sourceLink: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    marginBottom: 15,
+  },
+  sourceName: {
+    fontSize: 9,
     fontWeight: "800",
     letterSpacing: 1,
   },
-  alertBtn: {
-    backgroundColor: "transparent",
+  descriptionContainer: {
+    marginBottom: 10,
+  },
+  descriptionText: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: "#4B5563",
+  },
+  moreBtn: {
+    fontSize: 9,
+    color: "#AF9062",
+    marginTop: 6,
+    fontWeight: "800",
+  },
+  divider: {
+    height: 1,
+    width: "100%",
+    marginVertical: 20,
+    opacity: 0.5,
+  },
+  reservationFooter: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  reserverInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  reserverAvatar: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: THEME.textMain,
+    borderColor: "#FFF",
+  },
+  alertBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderWidth: 1,
   },
   alertBtnText: {
-    color: THEME.textMain,
+    fontSize: 9,
+    marginLeft: 6,
+    fontWeight: "800",
+  },
+  mainCta: {
+    height: 50,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+  },
+  ctaText: {
+    color: "#FFF",
     fontSize: 11,
     fontWeight: "800",
     letterSpacing: 1,
   },
 });
+
+export default GiftCardHome;

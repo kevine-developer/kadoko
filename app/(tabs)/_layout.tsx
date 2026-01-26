@@ -1,30 +1,19 @@
-import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
 import React from "react";
-import {
-  Platform,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { Platform, StyleSheet, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { HapticTab } from "@/components/haptic-tab";
 import * as Haptics from "expo-haptics";
-import { NotificationBadge } from "@/components/notifications/NotificationBadge";
 
-// --- THEME ÉDITORIAL ---
-const THEME = {
-  background: "#FDFBF7",
-  surface: "#FFFFFF",
-  textMain: "#1A1A1A",
-  textSecondary: "#8E8E93",
-  accent: "#AF9062", // Or brossé
-  border: "rgba(0,0,0,0.08)",
-};
+// Hooks & Components
+import { HapticTab } from "@/components/haptic-tab";
+import { NotificationBadge } from "@/components/notifications/NotificationBadge";
+import { ThemedText } from "@/components/themed-text";
+import Icon from "@/components/themed-icon";
+import { useAppTheme } from "@/hooks/custom/use-app-theme";
 
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
+  const theme = useAppTheme(); // Récupération du thème global
 
   return (
     <Tabs
@@ -32,16 +21,16 @@ export default function TabLayout() {
         headerShown: false,
         tabBarButton: HapticTab,
         tabBarShowLabel: false,
-        tabBarActiveTintColor: THEME.textMain,
-        tabBarInactiveTintColor: THEME.textSecondary,
-        // ✅ 1. Structure de la barre
+        tabBarActiveTintColor: theme.textMain,
+        tabBarInactiveTintColor: theme.textSecondary,
         tabBarStyle: [
           styles.tabBarBase,
           {
+            backgroundColor: theme.surface,
+            borderTopColor: theme.border,
             bottom: Platform.OS === "ios" ? insets.bottom + 10 : 20,
           },
         ],
-        // ✅ 2. FORCE CHAQUE ONGLET À AVOIR LA MÊME LARGEUR (20%)
         tabBarItemStyle: {
           flex: 1,
           justifyContent: "center",
@@ -76,8 +65,6 @@ export default function TabLayout() {
           ),
         }}
       />
-
-      {/* BOUTON CENTRAL */}
       <Tabs.Screen
         name="Ephemera/index"
         options={{
@@ -117,11 +104,12 @@ export default function TabLayout() {
 }
 
 /**
- * 💎 BOUTON CENTRAL "TOTEM" PARFAITEMENT CENTRÉ
+ * 💎 BOUTON CENTRAL "TOTEM" (LOSANGE)
  */
 const CentralTabButton = (props: any) => {
   const { onPress, accessibilityState } = props;
   const focused = accessibilityState?.selected;
+  const theme = useAppTheme();
 
   const handlePress = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -133,15 +121,27 @@ const CentralTabButton = (props: any) => {
       <TouchableOpacity
         onPress={handlePress}
         activeOpacity={0.9}
-        style={styles.centralTouchArea}
+        style={[
+          styles.centralTouchArea,
+          { shadowColor: focused ? theme.accent : theme.textMain },
+        ]}
       >
-        <View style={[styles.diamondShape, focused && styles.diamondFocused]}>
-          {/* On contre-pivote l'icône pour qu'elle reste droite */}
+        <View
+          style={[
+            styles.diamondShape,
+            {
+              backgroundColor: theme.surface,
+              borderColor: "rgba(99, 79, 14, 0.1)",
+            },
+            focused && { borderColor: theme.accent, borderWidth: 1.5 },
+          ]}
+        >
+          {/* Contre-pivote l'icône pour qu'elle reste droite malgré le losange */}
           <View style={{ transform: [{ rotate: "-45deg" }] }}>
-            <Ionicons
+            <Icon
               name="sparkles"
               size={24}
-              color={focused ? THEME.accent : "#FFFFFF"}
+              color={focused ? theme.accent : theme.textMain}
             />
           </View>
         </View>
@@ -150,23 +150,27 @@ const CentralTabButton = (props: any) => {
   );
 };
 
+/**
+ * ICONES STANDARDS AVEC THEMEDTEXT
+ */
 const TabIcon = ({ focused, color, iconName, label }: any) => {
+  const theme = useAppTheme();
+
   return (
     <View style={styles.iconContainer}>
-      <Ionicons
-        size={20}
-        name={iconName}
-        color={focused ? THEME.textMain : color}
-      />
-      {focused && <View style={styles.activeDot} />}
-      <Text
+      <Icon name={iconName} size={20} color={focused ? theme.accent : color} />
+      {focused && (
+        <View style={[styles.activeDot, { backgroundColor: theme.accent }]} />
+      )}
+      <ThemedText
+        type="label"
         style={[
           styles.label,
-          { color: focused ? THEME.textMain : THEME.textSecondary },
+          { color: focused ? theme.accent : theme.textSecondary },
         ]}
       >
         {label}
-      </Text>
+      </ThemedText>
       {label === "NOTIF" && <NotificationBadge />}
     </View>
   );
@@ -176,22 +180,19 @@ const styles = StyleSheet.create({
   tabBarBase: {
     position: "absolute",
     height: 70,
-    backgroundColor: THEME.surface,
     borderTopWidth: 1,
-    borderTopColor: THEME.border,
+    elevation: 0,
+    // Ombre de la barre
     shadowColor: "#000",
     shadowOffset: { width: 0, height: -5 },
-    shadowOpacity: 0.02,
+    shadowOpacity: 0.03,
     shadowRadius: 10,
-    elevation: 0, // On retire l'elevation par défaut pour gérer l'ombre manuellement
   },
-
   iconContainer: {
     alignItems: "center",
     justifyContent: "center",
     paddingTop: 12,
     height: "100%",
-    width: 100,
   },
   activeDot: {
     position: "absolute",
@@ -199,31 +200,23 @@ const styles = StyleSheet.create({
     width: 3,
     height: 3,
     borderRadius: 1.5,
-    backgroundColor: THEME.accent,
   },
   label: {
     fontSize: 8,
-    fontWeight: "800",
-    textTransform: "uppercase",
-    letterSpacing: 1,
     marginTop: 6,
   },
-
-  /* --- CORRECTIFS BOUTON CENTRAL --- */
   centralButtonContainer: {
-    // Ce conteneur prend la place de l'onglet (flex: 1 grâce au tabBarItemStyle parent)
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
     zIndex: 10,
   },
   centralTouchArea: {
-    top: -25, // On le fait sortir vers le haut
+    top: -25,
     justifyContent: "center",
     alignItems: "center",
     ...Platform.select({
       ios: {
-        shadowColor: "#1A1A1A",
         shadowOffset: { width: 0, height: 8 },
         shadowOpacity: 0.3,
         shadowRadius: 8,
@@ -236,18 +229,10 @@ const styles = StyleSheet.create({
   diamondShape: {
     width: 54,
     height: 54,
-    borderRadius: 12, // Légèrement arrondi pour adoucir le losange
-    backgroundColor: "#1A1A1A", // Noir profond
+    borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
+    transform: [{ rotate: "45deg" }],
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.1)",
-    transform: [{ rotate: "45deg" }], // Rotation Losange
-  },
-  diamondFocused: {
-    borderColor: THEME.accent,
-    shadowColor: THEME.accent,
-    shadowOpacity: 0.5,
-    shadowRadius: 10,
   },
 });

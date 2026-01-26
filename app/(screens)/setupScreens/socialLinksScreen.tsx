@@ -1,35 +1,27 @@
-import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-  ActivityIndicator,
   FlatList,
   Platform,
   StyleSheet,
-  Text,
   TextInput,
   TouchableOpacity,
   View,
   KeyboardAvoidingView,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import { MotiView, AnimatePresence } from "moti";
+
+// Hooks & Components
 import { authClient } from "@/features/auth";
 import { userService } from "@/lib/services/user-service";
 import { showErrorToast, showSuccessToast } from "@/lib/toast";
-
-// --- THEME ÉDITORIAL ---
-const THEME = {
-  background: "#FDFBF7", // Bone Silk
-  surface: "#FFFFFF",
-  textMain: "#1A1A1A",
-  textSecondary: "#8E8E93",
-  primary: "#1A1A1A",
-  accent: "#AF9062", // Or brossé
-  border: "rgba(0,0,0,0.08)",
-  danger: "#C34A4A",
-};
+import { ThemedText } from "@/components/themed-text";
+import Icon from "@/components/themed-icon";
+import { useAppTheme } from "@/hooks/custom/use-app-theme";
+import { getIconName } from "@/constants/socialLink";
+import SettingsNavBar from "@/components/Settings/SettingsNavBar";
+import SettingHero from "@/components/Settings/SettingHero";
 
 interface SocialLink {
   id: string;
@@ -37,20 +29,11 @@ interface SocialLink {
   url: string;
 }
 
-const getIconName = (title: string): any => {
-  const lower = title.toLowerCase();
-  if (lower.includes("instagram")) return "logo-instagram";
-  if (lower.includes("twitter") || lower.includes("x")) return "logo-twitter";
-  if (lower.includes("tiktok")) return "logo-tiktok";
-  if (lower.includes("facebook")) return "logo-facebook";
-  if (lower.includes("linkedin")) return "logo-linkedin";
-  if (lower.includes("youtube")) return "logo-youtube";
-  return "link-outline";
-};
-
 export default function SocialLinksScreen() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
+
+  const theme = useAppTheme();
+
   const { data: session, refetch } = authClient.useSession();
   const user = session?.user as any;
 
@@ -105,25 +88,13 @@ export default function SocialLinksScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       {/* NAV BAR */}
-      <View style={[styles.navBar, { paddingTop: insets.top + 10 }]}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.navBtn}>
-          <Ionicons name="chevron-back" size={24} color={THEME.textMain} />
-        </TouchableOpacity>
-        <Text style={styles.navTitle}>CONNEXIONS</Text>
-        <TouchableOpacity
-          onPress={handleSave}
-          disabled={isSaving}
-          style={styles.saveAction}
-        >
-          {isSaving ? (
-            <ActivityIndicator size="small" color={THEME.accent} />
-          ) : (
-            <Text style={styles.saveActionText}>OK</Text>
-          )}
-        </TouchableOpacity>
-      </View>
+      <SettingsNavBar
+        title="Connexions"
+        onPress={handleSave}
+        isSaving={isSaving}
+      />
 
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -135,44 +106,43 @@ export default function SocialLinksScreen() {
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
           ListHeaderComponent={
-            <View style={styles.heroSection}>
-              <Text style={styles.heroTitle}>Vos liens{"\n"}sociaux.</Text>
-              <View style={styles.titleDivider} />
-              <Text style={styles.heroSubtitle}>
-                Rassemblez vos univers numériques en un seul lieu pour vos
-                proches.
-              </Text>
-            </View>
+            <SettingHero
+              title={`Vos liens\nsociaux.`}
+              subtitle="Rassemblez vos univers numériques en un seul lieu pour vos proches."
+            />
           }
           renderItem={({ item, index }) => (
             <MotiView
               from={{ opacity: 0, translateX: -10 }}
               animate={{ opacity: 1, translateX: 0 }}
               transition={{ delay: index * 50 }}
-              style={styles.linkRow}
+              style={[styles.linkRow, { borderBottomColor: theme.border }]}
             >
-              <View style={styles.iconCircle}>
-                <Ionicons
-                  name={getIconName(item.title)}
-                  size={18}
-                  color={THEME.accent}
-                />
+              <View
+                style={[
+                  styles.iconCircle,
+                  { borderColor: theme.border, backgroundColor: theme.surface },
+                ]}
+              >
+                <Icon name={getIconName(item.title)} />
               </View>
               <View style={styles.linkInfo}>
-                <Text style={styles.linkTitle}>{item.title}</Text>
-                <Text style={styles.linkUrl} numberOfLines={1}>
+                <ThemedText type="title" style={{ fontSize: 16 }}>
+                  {item.title}
+                </ThemedText>
+                <ThemedText
+                  type="caption"
+                  colorName="textSecondary"
+                  style={{ marginTop: 2 }}
+                >
                   {item.url.replace("https://", "")}
-                </Text>
+                </ThemedText>
               </View>
               <TouchableOpacity
                 onPress={() => removeLink(item.id)}
                 style={styles.removeBtn}
               >
-                <Ionicons
-                  name="close-circle-outline"
-                  size={20}
-                  color={THEME.border}
-                />
+                <Icon name="close-circle-outline" colorName="border" />
               </TouchableOpacity>
             </MotiView>
           )}
@@ -184,26 +154,55 @@ export default function SocialLinksScreen() {
                     from={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: "auto" }}
                     exit={{ opacity: 0, height: 0 }}
-                    style={styles.addForm}
+                    style={[
+                      styles.addForm,
+                      {
+                        borderColor: theme.border,
+                        backgroundColor: theme.surface,
+                      },
+                    ]}
                   >
-                    <Text style={styles.miniLabel}>NOUVELLE CONNEXION</Text>
+                    <ThemedText
+                      type="label"
+                      colorName="textSecondary"
+                      style={{ marginBottom: 20 }}
+                    >
+                      NOUVELLE CONNEXION
+                    </ThemedText>
 
                     <TextInput
-                      style={styles.editorialInput}
+                      style={[
+                        styles.editorialInput,
+                        {
+                          color: theme.textSecondary,
+                          borderBottomColor: theme.border,
+                          fontFamily:
+                            Platform.OS === "ios" ? "Georgia" : "serif",
+                        },
+                      ]}
                       placeholder="Plateforme (ex: Instagram)"
                       value={newTitle}
                       onChangeText={setNewTitle}
-                      placeholderTextColor="#BCBCBC"
+                      placeholderTextColor={theme.textSecondary}
                       autoFocus
                     />
 
                     <TextInput
-                      style={[styles.editorialInput, { marginTop: 15 }]}
+                      style={[
+                        styles.editorialInput,
+                        {
+                          marginTop: 15,
+                          color: theme.textSecondary,
+                          borderBottomColor: theme.border,
+                          fontFamily:
+                            Platform.OS === "ios" ? "Georgia" : "serif",
+                        },
+                      ]}
                       placeholder="URL ou Nom d'utilisateur"
                       value={newUrl}
                       onChangeText={setNewUrl}
                       autoCapitalize="none"
-                      placeholderTextColor="#BCBCBC"
+                      placeholderTextColor={theme.textSecondary}
                     />
 
                     <View style={styles.formActions}>
@@ -211,28 +210,38 @@ export default function SocialLinksScreen() {
                         onPress={toggleAddForm}
                         style={styles.cancelLink}
                       >
-                        <Text style={styles.cancelText}>Annuler</Text>
+                        <ThemedText type="caption" colorName="textSecondary">
+                          Annuler
+                        </ThemedText>
                       </TouchableOpacity>
                       <TouchableOpacity
                         onPress={handleAddLink}
                         style={[
                           styles.confirmBtn,
+                          { backgroundColor: theme.accent },
                           (!newTitle || !newUrl) && styles.disabledBtn,
                         ]}
                         disabled={!newTitle || !newUrl}
                       >
-                        <Text style={styles.confirmText}>AJOUTER</Text>
+                        <ThemedText type="label" colorName="surface">
+                          AJOUTER
+                        </ThemedText>
                       </TouchableOpacity>
                     </View>
                   </MotiView>
                 ) : (
                   <TouchableOpacity
-                    style={styles.addBtnRegistry}
+                    style={[
+                      styles.addBtnRegistry,
+                      { borderColor: theme.border },
+                    ]}
                     onPress={toggleAddForm}
                     activeOpacity={0.6}
                   >
-                    <Ionicons name="add" size={20} color={THEME.accent} />
-                    <Text style={styles.addBtnText}>AJOUTER UN LIEN</Text>
+                    <Icon name="add" size={20} colorName="accent" />
+                    <ThemedText type="label" style={{ marginLeft: 8 }}>
+                      AJOUTER UN LIEN
+                    </ThemedText>
                   </TouchableOpacity>
                 )}
               </AnimatePresence>
@@ -245,21 +254,13 @@ export default function SocialLinksScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: THEME.background },
-
-  /* NAV BAR */
+  container: { flex: 1 },
   navBar: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 20,
+    paddingHorizontal: 15,
     paddingBottom: 15,
-  },
-  navTitle: {
-    fontSize: 10,
-    fontWeight: "800",
-    color: THEME.textMain,
-    letterSpacing: 2,
   },
   navBtn: { width: 44, height: 44, justifyContent: "center" },
   saveAction: {
@@ -268,60 +269,23 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "flex-end",
   },
-  saveActionText: { fontSize: 14, fontWeight: "800", color: THEME.accent },
-
-  /* CONTENT */
   listContent: { paddingHorizontal: 30, paddingBottom: 60 },
-  heroSection: { marginTop: 20, marginBottom: 40 },
-  heroTitle: {
-    fontSize: 38,
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-    color: THEME.textMain,
-    lineHeight: 44,
-    letterSpacing: -1,
-  },
-  titleDivider: {
-    width: 35,
-    height: 2,
-    backgroundColor: THEME.accent,
-    marginVertical: 25,
-  },
-  heroSubtitle: {
-    fontSize: 15,
-    color: THEME.textSecondary,
-    lineHeight: 22,
-    fontStyle: "italic",
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-  },
-
-  /* REGISTRY ROW */
   linkRow: {
     flexDirection: "row",
     alignItems: "center",
     paddingVertical: 18,
     borderBottomWidth: 1,
-    borderBottomColor: THEME.border,
   },
   iconCircle: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: "#FFF",
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: THEME.border,
   },
   linkInfo: { flex: 1, marginLeft: 15 },
-  linkTitle: {
-    fontSize: 16,
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-    color: THEME.textMain,
-  },
-  linkUrl: { fontSize: 12, color: THEME.textSecondary, marginTop: 2 },
   removeBtn: { padding: 5 },
-
-  /* FOOTER & BUTTONS */
   footerContainer: { marginTop: 30 },
   addBtnRegistry: {
     flexDirection: "row",
@@ -329,38 +293,16 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingVertical: 15,
     borderWidth: 1,
-    borderColor: THEME.border,
     borderStyle: "dashed",
   },
-  addBtnText: {
-    fontSize: 11,
-    fontWeight: "800",
-    color: THEME.textMain,
-    letterSpacing: 1,
-    marginLeft: 8,
-  },
-
-  /* ADD FORM */
   addForm: {
-    backgroundColor: "#FFF",
     padding: 25,
     borderWidth: 1,
-    borderColor: THEME.border,
     overflow: "hidden",
-  },
-  miniLabel: {
-    fontSize: 9,
-    fontWeight: "800",
-    color: THEME.textSecondary,
-    letterSpacing: 1.5,
-    marginBottom: 20,
   },
   editorialInput: {
     fontSize: 16,
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-    color: THEME.textMain,
     borderBottomWidth: 1,
-    borderBottomColor: THEME.border,
     paddingVertical: 8,
   },
   formActions: {
@@ -371,17 +313,10 @@ const styles = StyleSheet.create({
     gap: 20,
   },
   cancelLink: { paddingVertical: 10 },
-  cancelText: { fontSize: 12, color: THEME.textSecondary, fontWeight: "600" },
   confirmBtn: {
-    backgroundColor: THEME.primary,
     paddingHorizontal: 20,
     paddingVertical: 12,
-  },
-  confirmText: {
-    fontSize: 11,
-    fontWeight: "800",
-    color: "#FFF",
-    letterSpacing: 1,
+    borderRadius: 0,
   },
   disabledBtn: { opacity: 0.3 },
 });
