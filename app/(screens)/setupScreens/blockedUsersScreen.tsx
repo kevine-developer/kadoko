@@ -1,4 +1,4 @@
-import { useRouter } from "expo-router";
+
 import React, { useState, useEffect } from "react";
 import {
   ActivityIndicator,
@@ -8,7 +8,6 @@ import {
   View,
 } from "react-native";
 import { Image } from "expo-image";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import { MotiView } from "moti";
 
@@ -21,8 +20,6 @@ import { useAppTheme } from "@/hooks/custom/use-app-theme";
 import SettingsNavBar from "@/components/Settings/SettingsNavBar";
 
 export default function BlockedUsersScreen() {
-  const router = useRouter();
-  const insets = useSafeAreaInsets();
   const theme = useAppTheme();
   
   const [blockedUsers, setBlockedUsers] = useState<any[]>([]);

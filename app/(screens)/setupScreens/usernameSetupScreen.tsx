@@ -1,4 +1,3 @@
-import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState, useEffect } from "react";
 import {
@@ -7,7 +6,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
-  Text,
   TextInput,
   TouchableOpacity,
   TouchableWithoutFeedback,
@@ -16,29 +14,26 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MotiView, AnimatePresence } from "moti";
 import * as Haptics from "expo-haptics";
+
+// Hooks & Components
 import { userService } from "@/lib/services/user-service";
 import { showErrorToast, showSuccessToast } from "@/lib/toast";
 import { authClient } from "@/features/auth";
+import { ThemedText } from "@/components/themed-text";
+import Icon from "@/components/themed-icon";
+import { useAppTheme } from "@/hooks/custom/use-app-theme";
+import SettingsNavBar from "@/components/Settings/SettingsNavBar";
+import BtnValidate from "@/components/Settings/BtnValidate";
+import SettingHero from "@/components/Settings/SettingHero";
 
-// --- THEME ÉDITORIAL COHÉRENT ---
-const THEME = {
-  background: "#FDFBF7", // Bone Silk
-  surface: "#FFFFFF",
-  textMain: "#1A1A1A",
-  textSecondary: "#8E8E93",
-  primary: "#1A1A1A",
-  accent: "#AF9062", // Or brossé
-  border: "rgba(0,0,0,0.08)",
-  success: "#4A6741", // Vert forêt
-  error: "#C34A4A",
-  warningBg: "#F9F6F0",
-};
-
-const USERNAME_REGEX = /^[a-zA-Z0-9](?!.*[_.]{2})[a-zA-Z0-9._]{1,28}[a-zA-Z0-9]$/;
+const USERNAME_REGEX =
+  /^[a-zA-Z0-9](?!.*[_.]{2})[a-zA-Z0-9._]{1,28}[a-zA-Z0-9]$/;
 
 export default function UsernameSetupScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const theme = useAppTheme();
+
   const { data: session, refetch } = authClient.useSession();
   const user = session?.user as any;
 
@@ -76,8 +71,10 @@ export default function UsernameSetupScreen() {
     if (!USERNAME_REGEX.test(username)) {
       setIsAvailable(false);
       setSuggestions([]);
-      if (!/^[a-zA-Z0-9]/.test(username)) setFormatError("Doit commencer par un caractère");
-      else if (!/[a-zA-Z0-9]$/.test(username)) setFormatError("Doit finir par un caractère");
+      if (!/^[a-zA-Z0-9]/.test(username))
+        setFormatError("Doit commencer par un caractère");
+      else if (!/[a-zA-Z0-9]$/.test(username))
+        setFormatError("Doit finir par un caractère");
       else setFormatError("Format invalide");
       return;
     }
@@ -110,6 +107,7 @@ export default function UsernameSetupScreen() {
     try {
       const res = await userService.updateProfile({ username });
       if (res.success) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         showSuccessToast("Alias mis à jour");
         await refetch();
         router.back();
@@ -123,76 +121,134 @@ export default function UsernameSetupScreen() {
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-      <View style={styles.container}>
+      <View style={[styles.container, { backgroundColor: theme.background }]}>
         {/* NAV BAR */}
-        <View style={[styles.navBar, { paddingTop: insets.top + 10 }]}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-            <Ionicons name="chevron-back" size={24} color={THEME.textMain} />
-          </TouchableOpacity>
-          <Text style={styles.navTitle}>IDENTITÉ</Text>
-          <View style={{ width: 44 }} />
-        </View>
-
-        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
+        <SettingsNavBar title="Identité" />
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={{ flex: 1 }}
+        >
           <View style={styles.content}>
             {/* HERO SECTION */}
-            <MotiView
-              from={{ opacity: 0, translateY: 15 }}
-              animate={{ opacity: 1, translateY: 0 }}
-              style={styles.heroSection}
-            >
-              <Text style={styles.heroTitle}>Votre alias{"\n"}unique.</Text>
-              <View style={styles.titleDivider} />
-              <Text style={styles.heroSubtitle}>
-                C&apos;est ainsi que vos amis vous identifieront pour partager leurs intentions.
-              </Text>
-            </MotiView>
+            <SettingHero
+              title={`Votre alias\nunique.`}
+              subtitle="C&apos;est ainsi que vos amis vous identifieront pour partager leurs intentions."
+            />
 
             {/* INFO LOCK */}
             {!canChange && (
-              <View style={styles.lockBanner}>
-                <Ionicons name="time-outline" size={16} color={THEME.accent} />
-                <Text style={styles.lockText}>Modification possible dans {remainingDays} jours</Text>
+              <View
+                style={[styles.lockBanner, { backgroundColor: theme.surface }]}
+              >
+                <Icon name="time-outline"  colorName="accent" />
+                <ThemedText
+                  type="defaultBold"
+                  colorName="textSecondary"
+                  style={{ fontSize: 12 }}
+                >
+                  Modification possible dans {remainingDays} jours
+                </ThemedText>
               </View>
             )}
 
             {/* INPUT SECTION */}
             <View style={styles.inputSection}>
-              <Text style={styles.miniLabel}>SIGNATURE @</Text>
-              <View style={[styles.inputUnderline, isAvailable === true && { borderBottomColor: THEME.success }, (isAvailable === false || formatError) && { borderBottomColor: THEME.error }]}>
+              <ThemedText type="label" colorName="textSecondary">
+                SIGNATURE @
+              </ThemedText>
+              <View
+                style={[
+                  styles.inputUnderline,
+                  { borderBottomColor: theme.border },
+                  isAvailable === true && { borderBottomColor: theme.success },
+                  (isAvailable === false || formatError) && {
+                    borderBottomColor: theme.danger,
+                  },
+                ]}
+              >
                 <TextInput
-                  style={styles.input}
+                  style={[
+                    styles.input,
+                    {
+                      color: theme.textMain,
+                      fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
+                    },
+                  ]}
                   value={username}
                   onChangeText={(t) => setUsername(t.toLowerCase())}
                   placeholder="votre.nom"
-                  placeholderTextColor="#BCBCBC"
+                  placeholderTextColor={theme.textSecondary}
                   autoCapitalize="none"
                   autoCorrect={false}
                   editable={canChange && !isSaving}
-                  selectionColor={THEME.accent}
+                  selectionColor={theme.accent}
                 />
                 <View style={styles.statusIndicator}>
-                  {isChecking ? <ActivityIndicator size="small" color={THEME.accent} /> : 
-                   isAvailable === true ? <Ionicons name="checkmark" size={20} color={THEME.success} /> :
-                   isAvailable === false ? <Ionicons name="close" size={20} color={THEME.error} /> : null}
+                  {isChecking ? (
+                    <ActivityIndicator size="small" color={theme.accent} />
+                  ) : isAvailable === true ? (
+                    <Icon name="checkmark"  colorName="success" />
+                  ) : isAvailable === false ? (
+                    <Icon name="close"  colorName="danger" />
+                  ) : null}
                 </View>
               </View>
 
               <View style={styles.feedbackBox}>
-                {formatError && <Text style={styles.errorText}>{formatError}</Text>}
-                {isAvailable === false && !formatError && <Text style={styles.errorText}>Cet alias est déjà réservé</Text>}
-                {isAvailable === true && <Text style={styles.successText}>Alias disponible</Text>}
+                {formatError && (
+                  <ThemedText type="caption" colorName="danger">
+                    {formatError}
+                  </ThemedText>
+                )}
+                {isAvailable === false && !formatError && (
+                  <ThemedText type="caption" colorName="danger">
+                    Cet alias est déjà utilisé
+                  </ThemedText>
+                )}
+                {isAvailable === true && (
+                  <ThemedText type="caption" style={{ color: theme.success }}>
+                    Alias disponible
+                  </ThemedText>
+                )}
               </View>
 
-              {/* SUGGESTIONS ÉDITORIALES */}
+              {/* SUGGESTIONS */}
               <AnimatePresence>
                 {isAvailable === false && suggestions.length > 0 && (
-                  <MotiView from={{ opacity: 0 }} animate={{ opacity: 1 }} style={styles.suggestionsContainer}>
-                    <Text style={styles.miniLabel}>RECOMMANDATIONS</Text>
+                  <MotiView
+                    from={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    style={styles.suggestionsContainer}
+                  >
+                    <ThemedText
+                      type="label"
+                      colorName="textSecondary"
+                      style={{ marginBottom: 15 }}
+                    >
+                      RECOMMANDATIONS
+                    </ThemedText>
                     <View style={styles.chipsRow}>
                       {suggestions.map((s) => (
-                        <TouchableOpacity key={s} style={styles.suggestionChip} onPress={() => { Haptics.selectionAsync(); setUsername(s); }}>
-                          <Text style={styles.suggestionText}>{s}</Text>
+                        <TouchableOpacity
+                          key={s}
+                          style={[
+                            styles.suggestionChip,
+                            {
+                              borderColor: theme.border,
+                              backgroundColor: theme.surface,
+                            },
+                          ]}
+                          onPress={() => {
+                            Haptics.selectionAsync();
+                            setUsername(s);
+                          }}
+                        >
+                          <ThemedText
+                            type="defaultBold"
+                            style={{ fontSize: 12 }}
+                          >
+                            {s}
+                          </ThemedText>
                         </TouchableOpacity>
                       ))}
                     </View>
@@ -204,14 +260,20 @@ export default function UsernameSetupScreen() {
 
           {/* FOOTER ACTION */}
           <View style={[styles.footer, { paddingBottom: insets.bottom + 20 }]}>
-            <TouchableOpacity
-              style={[styles.primaryBtn, (!canChange || !isAvailable || isSaving) && styles.primaryBtnDisabled]}
-              onPress={handleSave}
-              disabled={!canChange || !isAvailable || isSaving}
+            <BtnValidate
+              hasChanges={canChange}
+              isSaving={isSaving}
+              handleSave={handleSave}
+              text="VALIDER L'IDENTITÉ"
+              isAvailable={isAvailable}
+            />
+            <ThemedText
+              type="caption"
+              colorName="textSecondary"
+              style={styles.disclaimer}
             >
-              {isSaving ? <ActivityIndicator color="#FFF" size="small" /> : <Text style={styles.primaryBtnText}>VALIDER L&apos;IDENTITÉ</Text>}
-            </TouchableOpacity>
-            <Text style={styles.disclaimer}>L&apos;alias peut être modifié une fois tous les 30 jours.</Text>
+              L&apos;alias peut être modifié une fois tous les 30 jours.
+            </ThemedText>
           </View>
         </KeyboardAvoidingView>
       </View>
@@ -220,43 +282,43 @@ export default function UsernameSetupScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: THEME.background },
-  navBar: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 15 },
-  navTitle: { fontSize: 10, fontWeight: "800", color: THEME.textMain, letterSpacing: 2 },
-  backBtn: { width: 44, height: 44, justifyContent: "center", alignItems: "center" },
+  container: { flex: 1 },
+  navBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 15,
+  },
+  backBtn: {
+    width: 44,
+    height: 44,
+    justifyContent: "center",
+    alignItems: "center",
+  },
   content: { flex: 1, paddingHorizontal: 32, paddingTop: 30 },
-
-  /* HERO */
-  heroSection: { marginBottom: 40 },
-  heroTitle: { fontSize: 38, fontFamily: Platform.OS === "ios" ? "Georgia" : "serif", color: THEME.textMain, lineHeight: 44, letterSpacing: -1 },
-  titleDivider: { width: 35, height: 2, backgroundColor: THEME.accent, marginVertical: 25 },
-  heroSubtitle: { fontSize: 14, color: THEME.textSecondary, lineHeight: 22, fontStyle: "italic", fontFamily: Platform.OS === "ios" ? "Georgia" : "serif" },
-
-  /* LOCK BANNER */
-  lockBanner: { flexDirection: "row", alignItems: "center", backgroundColor: THEME.warningBg, padding: 12, borderLeftWidth: 2, borderLeftColor: THEME.accent, marginBottom: 30, gap: 10 },
-  lockText: { fontSize: 12, color: THEME.textMain, fontWeight: "600", letterSpacing: 0.2 },
-
-  /* INPUT */
+  lockBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 12,
+    borderLeftWidth: 2,
+    borderLeftColor: "#AF9062",
+    marginBottom: 30,
+    gap: 10,
+  },
   inputSection: { marginBottom: 20 },
-  miniLabel: { fontSize: 9, fontWeight: "800", color: THEME.textSecondary, letterSpacing: 1.5, marginBottom: 15 },
-  inputUnderline: { flexDirection: "row", alignItems: "center", borderBottomWidth: 1, borderBottomColor: THEME.border, paddingBottom: 10 },
-  input: { flex: 1, fontSize: 24, fontWeight: "500", color: THEME.textMain, fontFamily: Platform.OS === "ios" ? "Georgia" : "serif" },
+  inputUnderline: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderBottomWidth: 1,
+    paddingBottom: 10,
+  },
+  input: { flex: 1, fontSize: 24, fontWeight: "500" },
   statusIndicator: { marginLeft: 10 },
-  
   feedbackBox: { marginTop: 10, minHeight: 20 },
-  errorText: { color: THEME.error, fontSize: 11, fontWeight: "600" },
-  successText: { color: THEME.success, fontSize: 11, fontWeight: "600" },
-
-  /* SUGGESTIONS */
   suggestionsContainer: { marginTop: 20 },
   chipsRow: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
-  suggestionChip: { paddingHorizontal: 15, paddingVertical: 8, borderWidth: 1, borderColor: THEME.border, backgroundColor: "#FFF" },
-  suggestionText: { fontSize: 12, fontWeight: "700", color: THEME.textMain },
-
-  /* FOOTER */
+  suggestionChip: { paddingHorizontal: 15, paddingVertical: 8, borderWidth: 1 },
   footer: { paddingHorizontal: 32 },
-  primaryBtn: { backgroundColor: THEME.primary, height: 60, alignItems: "center", justifyContent: "center" },
-  primaryBtnDisabled: { backgroundColor: "#E5E7EB", opacity: 0.6 },
-  primaryBtnText: { color: "#FFF", fontSize: 14, fontWeight: "700", letterSpacing: 1 },
-  disclaimer: { textAlign: "center", fontSize: 11, color: THEME.textSecondary, marginTop: 15, fontStyle: "italic" },
+  primaryBtn: { height: 60, alignItems: "center", justifyContent: "center" },
+  disclaimer: { textAlign: "center", marginTop: 15, fontStyle: "italic" },
 });

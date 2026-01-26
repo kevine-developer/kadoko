@@ -16,11 +16,12 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
-import { MotiView, MotiText } from "moti";
+import { MotiView } from "moti";
 
 import { userService } from "@/lib/services/user-service";
 import { showErrorToast, showSuccessToast } from "@/lib/toast";
 import { authClient } from "@/features/auth";
+import SettingHero from "@/components/Settings/SettingHero";
 
 // --- THEME ÉDITORIAL ---
 const THEME = {
@@ -91,19 +92,11 @@ export default function DeleteAccountScreen() {
             showsVerticalScrollIndicator={false}
           >
             {/* TITRE ÉDITORIAL */}
-            <MotiView
-              from={{ opacity: 0, translateY: 20 }}
-              animate={{ opacity: 1, translateY: 0 }}
-              transition={{ type: "timing", duration: 800 }}
-              style={styles.heroSection}
-            >
-              <Text style={styles.heroTitle}>Est-ce{"\n"}un adieu ?</Text>
-              <View style={styles.titleDivider} />
-              <Text style={styles.heroSubtitle}>
-                La clôture de votre compte est une action définitive. Toutes vos
-                collections précieuses seront effacées de nos registres.
-              </Text>
-            </MotiView>
+          
+            <SettingHero
+              title={`Est-ce\nun adieu ?`}
+              subtitle="La clôture de votre compte est une action définitive. Toutes vos collections précieuses seront effacées de nos registres."
+            />
 
             {/* INFO SECTION - STYLE CATALOGUE */}
             <MotiView
@@ -228,31 +221,6 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 32,
     flexGrow: 1,
-  },
-
-  /* HERO SECTION */
-  heroSection: {
-    marginTop: 40,
-    marginBottom: 40,
-  },
-  heroTitle: {
-    fontSize: 48,
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-    color: THEME.textMain,
-    lineHeight: 52,
-    letterSpacing: -1,
-  },
-  titleDivider: {
-    width: 40,
-    height: 2,
-    backgroundColor: THEME.accent,
-    marginVertical: 24,
-  },
-  heroSubtitle: {
-    fontSize: 15,
-    color: THEME.textSecondary,
-    lineHeight: 24,
-    letterSpacing: 0.2,
   },
 
   /* INFO SECTION */

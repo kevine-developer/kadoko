@@ -1,4 +1,9 @@
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  ActivityIndicator,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import React from "react";
 import Icon from "../themed-icon";
 import { ThemedText } from "../themed-text";
@@ -8,9 +13,11 @@ import { useAppTheme } from "@/hooks/custom/use-app-theme";
 
 interface SettingsNavBarProps {
   title: string;
+  onPress?: () => void;
+  isSaving?: boolean;
 }
 
-const SettingsNavBar = ({ title }: SettingsNavBarProps) => {
+const SettingsNavBar = ({ title, onPress, isSaving }: SettingsNavBarProps) => {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const theme = useAppTheme();
@@ -23,6 +30,19 @@ const SettingsNavBar = ({ title }: SettingsNavBarProps) => {
         {title}
       </ThemedText>
       <View style={{ width: 44 }} />
+      <TouchableOpacity
+        onPress={onPress}
+        disabled={isSaving}
+        style={styles.saveAction}
+      >
+        {isSaving ? (
+          <ActivityIndicator size="small" color={theme.accent} />
+        ) : (
+          <ThemedText type="label" colorName="accent">
+            OK
+          </ThemedText>
+        )}
+      </TouchableOpacity>
     </View>
   );
 };
@@ -41,5 +61,11 @@ const styles = StyleSheet.create({
     height: 44,
     justifyContent: "center",
     alignItems: "center",
+  },
+  saveAction: {
+    width: 44,
+    height: 44,
+    justifyContent: "center",
+    alignItems: "flex-end",
   },
 });

@@ -8,11 +8,8 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
-  Keyboard,
-  LayoutAnimation,
   UIManager,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -20,8 +17,18 @@ import { authClient } from "@/features/auth";
 import { userService, type PrivateInfo } from "@/lib/services/user-service";
 import { showErrorToast, showSuccessToast } from "@/lib/toast";
 import * as Haptics from "expo-haptics";
+import {
+  CLOTHING_SIZES,
+  DELIVERY_TYPES,
+  JEWELRY_PREFERENCES,
+} from "@/constants/privateInfo";
+import SettingHero from "@/components/Settings/SettingHero";
+import { RegistryAccordion } from "@/components/Settings/InfoPrive/RegistryAccordion";
+import { SizeSelector } from "@/components/Settings/InfoPrive/SizeSelector";
+import { EditorialInput } from "@/components/Settings/InfoPrive/EditorialInput";
+import { PreferenceChip } from "@/components/Settings/InfoPrive/PreferenceChip";
 
-// Activer LayoutAnimation sur Android
+// Activer LayoutAnimation sur Android pour le changement d'état local
 if (
   Platform.OS === "android" &&
   UIManager.setLayoutAnimationEnabledExperimental
@@ -29,36 +36,13 @@ if (
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
-// --- THEME ÉDITORIAL ---
 const THEME = {
   background: "#FDFBF7",
-  surface: "#FFFFFF",
   textMain: "#1A1A1A",
   textSecondary: "#8E8E93",
-  primary: "#1A1A1A",
   accent: "#AF9062",
   border: "rgba(0,0,0,0.08)",
 };
-
-// --- DATA ---
-const CLOTHING_SIZES = {
-  top: ["XS", "S", "M", "L", "XL", "XXL"],
-  bottom: ["34", "36", "38", "40", "42", "44", "46", "48"],
-  shoe: ["36", "37", "38", "39", "40", "41", "42", "43", "44", "45"],
-};
-
-const JEWELRY_PREFERENCES = [
-  { value: "GOLD", label: "Or" },
-  { value: "SILVER", label: "Argent" },
-  { value: "BOTH", label: "Les deux" },
-  { value: "NONE", label: "Aucune" },
-];
-
-const DELIVERY_TYPES = [
-  { value: "HOME", label: "Domicile", icon: "home-outline" },
-  { value: "RELAY", label: "Relais", icon: "cube-outline" },
-  { value: "OFFICE", label: "Bureau", icon: "business-outline" },
-];
 
 export default function PrivateInfoScreen() {
   const router = useRouter();
@@ -67,8 +51,6 @@ export default function PrivateInfoScreen() {
   const user = session?.user as any;
 
   const [saving, setSaving] = useState(false);
-
-  // Gestion simple de l'accordéon
   const [expandedSection, setExpandedSection] = useState<string | null>(
     "clothing",
   );
@@ -85,13 +67,9 @@ export default function PrivateInfoScreen() {
       setFormData((prev) => ({
         ...prev,
         ...user.privateInfo,
-        clothing: { ...prev.clothing, ...(user.privateInfo.clothing || {}) },
-        jewelry: { ...prev.jewelry, ...(user.privateInfo.jewelry || {}) },
         diet: {
-          allergies:
-            user.privateInfo.diet?.allergies || prev.diet?.allergies || [],
-          preferences:
-            user.privateInfo.diet?.preferences || prev.diet?.preferences || [],
+          allergies: user.privateInfo.diet?.allergies || [],
+          preferences: user.privateInfo.diet?.preferences || [],
         },
         delivery: {
           ...prev.delivery,
@@ -102,36 +80,8 @@ export default function PrivateInfoScreen() {
           },
         },
       }));
-
-      // UX: Ouvrir la première section qui a du contenu si on n'a rien touché
-      const hasClothing = Object.values(user.privateInfo.clothing || {}).some(
-        (v) => !!v,
-      );
-      const hasJewelry = Object.values(user.privateInfo.jewelry || {}).some(
-        (v) => !!v,
-      );
-      const hasDiet =
-        (user.privateInfo.diet?.allergies?.length || 0) > 0 ||
-        (user.privateInfo.diet?.preferences?.length || 0) > 0;
-      const hasDelivery = Object.values(
-        user.privateInfo.delivery?.address || {},
-      ).some((v) => !!v);
-
-      if (hasClothing) setExpandedSection("clothing");
-      else if (hasJewelry) setExpandedSection("jewelry");
-      else if (hasDiet) setExpandedSection("diet");
-      else if (hasDelivery) setExpandedSection("delivery");
     }
   }, [user?.privateInfo]);
-
-  // ✅ CORRECTION DU TOGGLE
-  const toggleSection = (section: string) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    Keyboard.dismiss();
-    // Animation native fluide
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    setExpandedSection(expandedSection === section ? null : section);
-  };
 
   const handleSave = async () => {
     setSaving(true);
@@ -190,261 +140,183 @@ export default function PrivateInfoScreen() {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          <View style={styles.heroSection}>
-            <Text style={styles.heroTitle}>
-              Vos détails{"\n"}confidentiels.
+          <SettingHero
+            title={`Vos détails\nconfidentiels.`}
+            subtitle="Ces informations permettent à vos proches de viser juste, en toute discrétion."
+          />
+
+          <RegistryAccordion
+            title="Garde-robe"
+            icon="shirt-outline"
+            isOpen={expandedSection === "clothing"}
+            onToggle={() =>
+              setExpandedSection(
+                expandedSection === "clothing" ? null : "clothing",
+              )
+            }
+          >
+            <SizeSelector
+              label="HAUTS / VESTES"
+              options={CLOTHING_SIZES.top}
+              selected={formData.clothing?.topSize}
+              onSelect={(v) => updateNested("clothing", "topSize", v)}
+            />
+            <SizeSelector
+              label="BAS / PANTALONS"
+              options={CLOTHING_SIZES.bottom}
+              selected={formData.clothing?.bottomSize}
+              onSelect={(v) => updateNested("clothing", "bottomSize", v)}
+            />
+            <SizeSelector
+              label="POINTURE"
+              options={CLOTHING_SIZES.shoe}
+              selected={formData.clothing?.shoeSize}
+              onSelect={(v) => updateNested("clothing", "shoeSize", v)}
+            />
+          </RegistryAccordion>
+
+          <RegistryAccordion
+            title="Joaillerie"
+            icon="diamond-outline"
+            isOpen={expandedSection === "jewelry"}
+            onToggle={() =>
+              setExpandedSection(
+                expandedSection === "jewelry" ? null : "jewelry",
+              )
+            }
+          >
+            <EditorialInput
+              label="TOUR DE DOIGT"
+              placeholder="Ex: 52"
+              keyboardType="numeric"
+              value={formData.jewelry?.ringSize || ""}
+              onChangeText={(t) => updateNested("jewelry", "ringSize", t)}
+            />
+            <Text style={[styles.miniLabel, { marginTop: 20 }]}>
+              PRÉFÉRENCE DE MÉTAL
             </Text>
-            <View style={styles.titleDivider} />
-            <Text style={styles.heroSubtitle}>
-              Ces informations permettent à vos proches de viser juste, en toute
-              discrétion.
-            </Text>
-          </View>
-
-          {/* ✅ UTILISATION DIRECTE (Plus de composant wrapper complexe pour éviter les bugs) */}
-
-          {/* SECTION GARDE-ROBE */}
-          <View style={styles.registryBlock}>
-            <TouchableOpacity
-              style={styles.registryHeader}
-              onPress={() => toggleSection("clothing")}
-            >
-              <View style={styles.row}>
-                <Ionicons
-                  name="shirt-outline"
-                  size={20}
-                  color={THEME.accent}
-                  style={{ marginRight: 15 }}
-                />
-                <Text style={styles.registryTitle}>Garde-robe</Text>
-              </View>
-              <Ionicons
-                name={expandedSection === "clothing" ? "remove" : "add"}
-                size={20}
-                color={THEME.textSecondary}
-              />
-            </TouchableOpacity>
-
-            {expandedSection === "clothing" && (
-              <View style={styles.registryContent}>
-                <SizeSelector
-                  label="HAUTS / VESTES"
-                  options={CLOTHING_SIZES.top}
-                  selected={formData.clothing?.topSize}
-                  onSelect={(v) => updateNested("clothing", "topSize", v)}
-                />
-                <SizeSelector
-                  label="BAS / PANTALONS"
-                  options={CLOTHING_SIZES.bottom}
-                  selected={formData.clothing?.bottomSize}
-                  onSelect={(v) => updateNested("clothing", "bottomSize", v)}
-                />
-                <SizeSelector
-                  label="POINTURE"
-                  options={CLOTHING_SIZES.shoe}
-                  selected={formData.clothing?.shoeSize}
-                  onSelect={(v) => updateNested("clothing", "shoeSize", v)}
-                />
-              </View>
-            )}
-          </View>
-
-          {/* SECTION JOAILLERIE */}
-          <View style={styles.registryBlock}>
-            <TouchableOpacity
-              style={styles.registryHeader}
-              onPress={() => toggleSection("jewelry")}
-            >
-              <View style={styles.row}>
-                <Ionicons
-                  name="diamond-outline"
-                  size={20}
-                  color={THEME.accent}
-                  style={{ marginRight: 15 }}
-                />
-                <Text style={styles.registryTitle}>Joaillerie</Text>
-              </View>
-              <Ionicons
-                name={expandedSection === "jewelry" ? "remove" : "add"}
-                size={20}
-                color={THEME.textSecondary}
-              />
-            </TouchableOpacity>
-
-            {expandedSection === "jewelry" && (
-              <View style={styles.registryContent}>
-                <EditorialInput
-                  label="TOUR DE DOIGT"
-                  placeholder="Ex: 52"
-                  keyboardType="numeric"
-                  value={formData.jewelry?.ringSize || ""}
-                  onChangeText={(t: string) =>
-                    updateNested("jewelry", "ringSize", t)
+            <View style={styles.chipRow}>
+              {JEWELRY_PREFERENCES.map((pref) => (
+                <PreferenceChip
+                  key={pref.value}
+                  label={pref.label}
+                  active={formData.jewelry?.preference === pref.value}
+                  onPress={() =>
+                    updateNested("jewelry", "preference", pref.value)
                   }
                 />
-                <Text style={[styles.miniLabel, { marginTop: 20 }]}>
-                  PRÉFÉRENCE DE MÉTAL
-                </Text>
-                <View style={styles.chipRow}>
-                  {JEWELRY_PREFERENCES.map((pref) => (
-                    <PreferenceChip
-                      key={pref.value}
-                      label={pref.label}
-                      active={formData.jewelry?.preference === pref.value}
-                      onPress={() =>
-                        updateNested("jewelry", "preference", pref.value)
-                      }
-                    />
-                  ))}
-                </View>
-              </View>
-            )}
-          </View>
+              ))}
+            </View>
+          </RegistryAccordion>
 
-          {/* SECTION ALIMENTATION */}
-          <View style={styles.registryBlock}>
-            <TouchableOpacity
-              style={styles.registryHeader}
-              onPress={() => toggleSection("diet")}
-            >
-              <View style={styles.row}>
-                <Ionicons
-                  name="restaurant-outline"
-                  size={20}
-                  color={THEME.accent}
-                  style={{ marginRight: 15 }}
+          <RegistryAccordion
+            title="Alimentation"
+            icon="restaurant-outline"
+            isOpen={expandedSection === "diet"}
+            onToggle={() =>
+              setExpandedSection(expandedSection === "diet" ? null : "diet")
+            }
+          >
+            <EditorialInput
+              label="ALLERGIES"
+              placeholder="Arachides, lactose..."
+              multiline
+              value={formData.diet?.allergies?.join(", ") || ""}
+              onChangeText={(t) =>
+                updateNested(
+                  "diet",
+                  "allergies",
+                  t
+                    .split(",")
+                    .map((s) => s.trim())
+                    .filter(Boolean),
+                )
+              }
+            />
+            <View style={{ height: 20 }} />
+            <EditorialInput
+              label="RÉGIMES / PRÉFÉRENCES"
+              placeholder="Végétarien, sans gluten..."
+              multiline
+              value={formData.diet?.preferences?.join(", ") || ""}
+              onChangeText={(t) =>
+                updateNested(
+                  "diet",
+                  "preferences",
+                  t
+                    .split(",")
+                    .map((s) => s.trim())
+                    .filter(Boolean),
+                )
+              }
+            />
+          </RegistryAccordion>
+
+          <RegistryAccordion
+            title="Livraison"
+            icon="cube-outline"
+            isOpen={expandedSection === "delivery"}
+            onToggle={() =>
+              setExpandedSection(
+                expandedSection === "delivery" ? null : "delivery",
+              )
+            }
+          >
+            <Text style={styles.miniLabel}>MODALITÉ PRÉFÉRÉE</Text>
+            <View style={styles.chipRow}>
+              {DELIVERY_TYPES.map((type) => (
+                <PreferenceChip
+                  key={type.value}
+                  label={type.label}
+                  icon={type.icon}
+                  active={formData.delivery?.type === type.value}
+                  onPress={() => updateNested("delivery", "type", type.value)}
                 />
-                <Text style={styles.registryTitle}>Alimentation</Text>
-              </View>
-              <Ionicons
-                name={expandedSection === "diet" ? "remove" : "add"}
-                size={20}
-                color={THEME.textSecondary}
+              ))}
+            </View>
+            <View style={{ marginTop: 25 }}>
+              <EditorialInput
+                label="ADRESSE DE RÉSIDENCE"
+                placeholder="Rue et numéro"
+                value={formData.delivery?.address?.street || ""}
+                onChangeText={(t) =>
+                  updateNested("delivery", "address", {
+                    ...formData.delivery?.address,
+                    street: t,
+                  })
+                }
               />
-            </TouchableOpacity>
-
-            {expandedSection === "diet" && (
-              <View style={styles.registryContent}>
-                <EditorialInput
-                  label="ALLERGIES"
-                  placeholder="Arachides, lactose..."
-                  multiline
-                  value={formData.diet?.allergies?.join(", ") || ""}
-                  onChangeText={(t: string) =>
-                    updateNested(
-                      "diet",
-                      "allergies",
-                      t
-                        .split(",")
-                        .map((s) => s.trim())
-                        .filter(Boolean),
-                    )
-                  }
-                />
-                <View style={{ height: 20 }} />
-                <EditorialInput
-                  label="RÉGIMES / PRÉFÉRENCES"
-                  placeholder="Végétarien, sans gluten..."
-                  multiline
-                  value={formData.diet?.preferences?.join(", ") || ""}
-                  onChangeText={(t: string) =>
-                    updateNested(
-                      "diet",
-                      "preferences",
-                      t
-                        .split(",")
-                        .map((s) => s.trim())
-                        .filter(Boolean),
-                    )
-                  }
-                />
-              </View>
-            )}
-          </View>
-
-          {/* SECTION LIVRAISON */}
-          <View style={styles.registryBlock}>
-            <TouchableOpacity
-              style={styles.registryHeader}
-              onPress={() => toggleSection("delivery")}
-            >
-              <View style={styles.row}>
-                <Ionicons
-                  name="cube-outline"
-                  size={20}
-                  color={THEME.accent}
-                  style={{ marginRight: 15 }}
-                />
-                <Text style={styles.registryTitle}>Livraison</Text>
-              </View>
-              <Ionicons
-                name={expandedSection === "delivery" ? "remove" : "add"}
-                size={20}
-                color={THEME.textSecondary}
-              />
-            </TouchableOpacity>
-
-            {expandedSection === "delivery" && (
-              <View style={styles.registryContent}>
-                <Text style={styles.miniLabel}>MODALITÉ PRÉFÉRÉE</Text>
-                <View style={styles.chipRow}>
-                  {DELIVERY_TYPES.map((type) => (
-                    <PreferenceChip
-                      key={type.value}
-                      label={type.label}
-                      icon={type.icon}
-                      active={formData.delivery?.type === type.value}
-                      onPress={() =>
-                        updateNested("delivery", "type", type.value)
-                      }
-                    />
-                  ))}
-                </View>
-                <View style={{ marginTop: 25 }}>
+              <View style={[styles.row, { marginTop: 15 }]}>
+                <View style={{ flex: 1 }}>
                   <EditorialInput
-                    label="ADRESSE DE RÉSIDENCE"
-                    placeholder="Rue et numéro"
-                    value={formData.delivery?.address?.street || ""}
-                    onChangeText={(t: string) =>
+                    label="CODE POSTAL"
+                    placeholder="75000"
+                    keyboardType="numeric"
+                    value={formData.delivery?.address?.postalCode || ""}
+                    onChangeText={(t) =>
                       updateNested("delivery", "address", {
-                        ...(formData.delivery?.address || {}),
-                        street: t,
+                        ...formData.delivery?.address,
+                        postalCode: t,
                       })
                     }
                   />
-                  <View style={[styles.row, { marginTop: 15 }]}>
-                    <View style={{ flex: 1 }}>
-                      <EditorialInput
-                        label="CODE POSTAL"
-                        placeholder="75000"
-                        keyboardType="numeric"
-                        value={formData.delivery?.address?.postalCode || ""}
-                        onChangeText={(t: string) =>
-                          updateNested("delivery", "address", {
-                            ...(formData.delivery?.address || {}),
-                            postalCode: t,
-                          })
-                        }
-                      />
-                    </View>
-                    <View style={{ flex: 2, marginLeft: 20 }}>
-                      <EditorialInput
-                        label="VILLE"
-                        placeholder="Paris"
-                        value={formData.delivery?.address?.city || ""}
-                        onChangeText={(t: string) =>
-                          updateNested("delivery", "address", {
-                            ...(formData.delivery?.address || {}),
-                            city: t,
-                          })
-                        }
-                      />
-                    </View>
-                  </View>
+                </View>
+                <View style={{ flex: 2, marginLeft: 20 }}>
+                  <EditorialInput
+                    label="VILLE"
+                    placeholder="Paris"
+                    value={formData.delivery?.address?.city || ""}
+                    onChangeText={(t) =>
+                      updateNested("delivery", "address", {
+                        ...formData.delivery?.address,
+                        city: t,
+                      })
+                    }
+                  />
                 </View>
               </View>
-            )}
-          </View>
+            </View>
+          </RegistryAccordion>
 
           <View style={{ height: 100 }} />
         </ScrollView>
@@ -453,106 +325,6 @@ export default function PrivateInfoScreen() {
   );
 }
 
-// --- SOUS-COMPOSANTS ---
-
-const SizeSelector = ({
-  label,
-  options,
-  selected,
-  onSelect,
-}: {
-  label: string;
-  options: string[];
-  selected?: string;
-  onSelect: (v: string) => void;
-}) => (
-  <View style={{ marginBottom: 25 }}>
-    <Text style={styles.miniLabel}>{label}</Text>
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      style={{ marginTop: 10 }}
-    >
-      {options.map((opt: string) => (
-        <TouchableOpacity
-          key={opt}
-          style={[styles.sizeItem, selected === opt && styles.sizeItemActive]}
-          onPress={() => {
-            Haptics.selectionAsync();
-            onSelect(opt);
-          }}
-        >
-          <Text
-            style={[
-              styles.sizeItemText,
-              selected === opt && styles.sizeItemTextActive,
-            ]}
-          >
-            {opt}
-          </Text>
-        </TouchableOpacity>
-      ))}
-    </ScrollView>
-  </View>
-);
-
-const EditorialInput = ({
-  label,
-  value,
-  onChangeText,
-  ...props
-}: {
-  label: string;
-  value?: string;
-  onChangeText?: (t: string) => void;
-  [key: string]: any;
-}) => (
-  <View style={styles.inputGroup}>
-    <Text style={styles.miniLabel}>{label}</Text>
-    <TextInput
-      style={styles.editorialInput}
-      value={value}
-      onChangeText={onChangeText}
-      placeholderTextColor="#BCBCBC"
-      selectionColor={THEME.accent}
-      {...props}
-    />
-  </View>
-);
-
-const PreferenceChip = ({
-  label,
-  icon,
-  active,
-  onPress,
-}: {
-  label: string;
-  icon?: any;
-  active?: boolean;
-  onPress: () => void;
-}) => (
-  <TouchableOpacity
-    style={[styles.prefChip, active && styles.prefChipActive]}
-    onPress={() => {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      onPress();
-    }}
-  >
-    {icon && (
-      <Ionicons
-        name={icon}
-        size={14}
-        color={active ? "#FFF" : THEME.textMain}
-        style={{ marginRight: 6 }}
-      />
-    )}
-    <Text style={[styles.prefChipText, active && styles.prefChipTextActive]}>
-      {label}
-    </Text>
-  </TouchableOpacity>
-);
-
-// --- STYLES ---
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: THEME.background },
   navBar: {
@@ -576,47 +348,7 @@ const styles = StyleSheet.create({
     alignItems: "flex-end",
   },
   saveActionText: { fontSize: 14, fontWeight: "800", color: THEME.accent },
-
   scrollContent: { paddingHorizontal: 30, paddingTop: 20 },
-
-  heroSection: { marginBottom: 40 },
-  heroTitle: {
-    fontSize: 38,
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-    color: THEME.textMain,
-    lineHeight: 44,
-    letterSpacing: -1,
-  },
-  titleDivider: {
-    width: 35,
-    height: 2,
-    backgroundColor: THEME.accent,
-    marginVertical: 25,
-  },
-  heroSubtitle: {
-    fontSize: 14,
-    color: THEME.textSecondary,
-    lineHeight: 22,
-    fontStyle: "italic",
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-  },
-
-  /* REGISTRY */
-  registryBlock: { borderBottomWidth: 1, borderBottomColor: THEME.border },
-  registryHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingVertical: 25,
-  },
-  registryTitle: {
-    fontSize: 18,
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-    color: THEME.textMain,
-  },
-  registryContent: { paddingBottom: 30 },
-
-  /* ELEMENTS */
   row: { flexDirection: "row", alignItems: "center" },
   miniLabel: {
     fontSize: 9,
@@ -625,47 +357,5 @@ const styles = StyleSheet.create({
     letterSpacing: 1.5,
     marginBottom: 8,
   },
-
-  sizeItem: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    marginRight: 10,
-    borderRadius: 0,
-    borderWidth: 1,
-    borderColor: THEME.border,
-    backgroundColor: "#FFF",
-  },
-  sizeItemActive: {
-    backgroundColor: THEME.primary,
-    borderColor: THEME.primary,
-  },
-  sizeItemText: { fontSize: 13, fontWeight: "600", color: THEME.textMain },
-  sizeItemTextActive: { color: "#FFF" },
-
-  inputGroup: { marginBottom: 5 },
-  editorialInput: {
-    fontSize: 16,
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-    color: THEME.textMain,
-    borderBottomWidth: 1,
-    borderBottomColor: THEME.border,
-    paddingVertical: 8,
-  },
-
   chipRow: { flexDirection: "row", flexWrap: "wrap", gap: 10, marginTop: 5 },
-  prefChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-    borderWidth: 1,
-    borderColor: THEME.border,
-    backgroundColor: "#FFF",
-  },
-  prefChipActive: {
-    backgroundColor: THEME.primary,
-    borderColor: THEME.primary,
-  },
-  prefChipText: { fontSize: 12, fontWeight: "700", color: THEME.textMain },
-  prefChipTextActive: { color: "#FFF" },
 });

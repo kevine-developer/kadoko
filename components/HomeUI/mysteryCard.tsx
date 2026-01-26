@@ -45,7 +45,7 @@ const MysteryCard = ({
           <Image
             source={{ uri: gift.imageUrl }}
             style={StyleSheet.absoluteFillObject}
-            blurRadius={20}
+            blurRadius={80}
           />
         )}
 
@@ -80,9 +80,9 @@ const styles = StyleSheet.create({
   /* MYSTERY CARDS */
   mysteryScroll: { paddingHorizontal: 25, gap: 15 },
   mysteryCard: {
-    width: 160,
-    height: 220,
-    borderRadius: 0, // Rectangulaire luxe
+    width: 150,
+    height: 180,
+    borderRadius: 0, 
     overflow: "hidden",
     position: "relative",
     backgroundColor: "#000",
