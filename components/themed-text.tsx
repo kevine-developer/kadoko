@@ -65,8 +65,8 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     letterSpacing: 2,
   },
-  default: { fontSize: 16, lineHeight: 24, fontWeight: "400" },
-  defaultBold: { fontSize: 16, lineHeight: 24, fontWeight: "bold" },
+  default: { fontSize: 14, lineHeight: 24, fontWeight: "400" },
+  defaultBold: { fontSize: 14, lineHeight: 24, fontWeight: 700 },
   caption: { fontSize: 13, lineHeight: 18 },
   link: { fontSize: 14, fontWeight: "700", textDecorationLine: "underline" },
 });

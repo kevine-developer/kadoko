@@ -1,4 +1,3 @@
-import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
@@ -8,7 +7,6 @@ import {
   Platform,
   ScrollView,
   StyleSheet,
-  Text,
   TextInput,
   TouchableOpacity,
   TouchableWithoutFeedback,
@@ -17,24 +15,20 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import { MotiView } from "moti";
-import { showErrorToast, showSuccessToast } from "@/lib/toast";
-import { authClient } from "@/features/auth";
 
-// --- THEME ÉDITORIAL ---
-const THEME = {
-  background: "#FDFBF7", // Bone Silk
-  surface: "#FFFFFF",
-  textMain: "#1A1A1A",
-  textSecondary: "#8E8E93",
-  primary: "#1A1A1A",
-  accent: "#AF9062", // Or brossé
-  border: "rgba(0,0,0,0.08)",
-  success: "#4A6741", // Vert forêt (plus luxe que le vert flash)
-};
+// Hooks & Components
+import { authClient } from "@/features/auth";
+import { showErrorToast, showSuccessToast } from "@/lib/toast";
+import { ThemedText } from "@/components/themed-text";
+import Icon from "@/components/themed-icon";
+import { useAppTheme } from "@/hooks/custom/use-app-theme";
+import SettingsNavBar from "@/components/Settings/SettingsNavBar";
 
 export default function ChangeEmailScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const theme = useAppTheme();
+
   const [loading, setLoading] = useState(false);
   const [newEmail, setNewEmail] = useState("");
 
@@ -114,19 +108,9 @@ export default function ChangeEmailScreen() {
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-      <View style={styles.container}>
+      <View style={[styles.container, { backgroundColor: theme.background }]}>
         {/* NAV BAR MINIMALISTE */}
-        <View style={[styles.navBar, { paddingTop: insets.top + 10 }]}>
-          <TouchableOpacity
-            onPress={() => router.back()}
-            style={styles.backBtn}
-          >
-            <Ionicons name="chevron-back" size={24} color={THEME.textMain} />
-          </TouchableOpacity>
-          <Text style={styles.navTitle}>COORDONNÉES</Text>
-          <View style={{ width: 44 }} />
-        </View>
-
+        <SettingsNavBar title="Changer mon adresse email" />
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : "height"}
           style={{ flex: 1 }}
@@ -142,28 +126,40 @@ export default function ChangeEmailScreen() {
               transition={{ type: "timing", duration: 700 }}
               style={styles.heroSection}
             >
-              <Text style={styles.heroTitle}>Nouvelle{"\n"}adresse email.</Text>
-              <View style={styles.titleDivider} />
-              <Text style={styles.heroSubtitle}>
+              <ThemedText type="hero">Nouvelle{"\n"}adresse email.</ThemedText>
+              <View
+                style={[styles.titleDivider, { backgroundColor: theme.accent }]}
+              />
+              <ThemedText type="subtitle" colorName="textSecondary">
                 Pour garantir la sécurité de votre compte, une vérification sera
                 nécessaire sur votre nouvelle boîte de réception.
-              </Text>
+              </ThemedText>
             </MotiView>
 
             {/* REGISTRE DES ADRESSES */}
             <View style={styles.registrySection}>
-              <View style={styles.registryRow}>
+              <View
+                style={[
+                  styles.registryRow,
+                  { borderBottomColor: theme.border },
+                ]}
+              >
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.registryLabel}>ADRESSE ACTUELLE</Text>
-                  <Text style={styles.registryValue}>
+                  <ThemedText type="label" colorName="textSecondary">
+                    ADRESSE ACTUELLE
+                  </ThemedText>
+                  <ThemedText
+                    type="title"
+                    style={{ fontSize: 18, marginTop: 4 }}
+                  >
                     {currentEmail || "—"}
-                  </Text>
+                  </ThemedText>
                 </View>
                 {session?.user?.emailVerified && (
-                  <Ionicons
+                  <Icon
                     name="checkmark-circle-outline"
-                    size={20}
-                    color={THEME.success}
+                    size={22}
+                    colorName="success"
                   />
                 )}
               </View>
@@ -171,50 +167,53 @@ export default function ChangeEmailScreen() {
               {!session?.user?.emailVerified && (
                 <TouchableOpacity
                   onPress={handleVerifyCurrentEmail}
-                  style={styles.verifyActionRow}
+                  style={[
+                    styles.verifyActionRow,
+                    { borderLeftColor: theme.accent },
+                  ]}
                   activeOpacity={0.7}
                 >
                   <View style={styles.row}>
-                    <Ionicons
+                    <Icon
                       name="shield-checkmark-outline"
                       size={18}
-                      color={THEME.accent}
+                      colorName="accent"
                     />
-                    <Text style={styles.verifyActionText}>
+                    <ThemedText
+                      type="label"
+                      colorName="accent"
+                      style={{ marginLeft: 12 }}
+                    >
                       VÉRIFIER MON IDENTITÉ
-                    </Text>
+                    </ThemedText>
                   </View>
-                  <Ionicons
-                    name="chevron-forward"
-                    size={14}
-                    color={THEME.accent}
-                  />
+                  <Icon name="chevron-forward" size={14} colorName="accent" />
                 </TouchableOpacity>
               )}
 
               {/* Ligne : Nouvelle (Input) */}
-              <View
-                style={[
-                  styles.registryRow,
-                  { borderBottomWidth: 0, marginTop: 10 },
-                ]}
-              >
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.registryLabel}>NOUVELLE DESTINATION</Text>
-                  <View style={styles.inputWrapper}>
-                    <TextInput
-                      style={styles.input}
-                      placeholder="nom@domaine.com"
-                      placeholderTextColor="#BCBCBC"
-                      keyboardType="email-address"
-                      autoCapitalize="none"
-                      value={newEmail}
-                      onChangeText={setNewEmail}
-                      autoCorrect={false}
-                      selectionColor={THEME.accent}
-                    />
-                  </View>
-                </View>
+              <View style={styles.inputSection}>
+                <ThemedText type="label" colorName="textSecondary">
+                  NOUVELLE DESTINATION
+                </ThemedText>
+                <TextInput
+                  style={[
+                    styles.input,
+                    {
+                      color: theme.textMain,
+                      borderBottomColor: theme.accent,
+                      fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
+                    },
+                  ]}
+                  placeholder="nom@domaine.com"
+                  placeholderTextColor={theme.textSecondary}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  value={newEmail}
+                  onChangeText={setNewEmail}
+                  autoCorrect={false}
+                  selectionColor={theme.accent}
+                />
               </View>
             </View>
 
@@ -223,24 +222,29 @@ export default function ChangeEmailScreen() {
               <TouchableOpacity
                 style={[
                   styles.primaryBtn,
-                  (!newEmail || loading) && styles.primaryBtnDisabled,
+                  { backgroundColor: theme.textMain },
+                  (!newEmail || loading) && { opacity: 0.5 },
                 ]}
                 onPress={handleRequestChange}
                 disabled={loading || !newEmail}
                 activeOpacity={0.9}
               >
                 {loading ? (
-                  <ActivityIndicator color="#FFF" size="small" />
+                  <ActivityIndicator color={theme.background} size="small" />
                 ) : (
-                  <Text style={styles.primaryBtnText}>
+                  <ThemedText type="label" lightColor="#FFF" darkColor="#000">
                     Mettre à jour mon profil
-                  </Text>
+                  </ThemedText>
                 )}
               </TouchableOpacity>
 
-              <Text style={styles.helperText}>
+              <ThemedText
+                type="caption"
+                colorName="textSecondary"
+                style={styles.helperText}
+              >
                 Un code de confirmation sera envoyé instantanément.
-              </Text>
+              </ThemedText>
             </View>
           </ScrollView>
         </KeyboardAvoidingView>
@@ -250,18 +254,12 @@ export default function ChangeEmailScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: THEME.background,
-  },
-
-  /* NAV BAR */
+  container: { flex: 1 },
   navBar: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 15,
-    paddingBottom: 15,
   },
   backBtn: {
     width: 44,
@@ -269,114 +267,31 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  navTitle: {
-    fontSize: 10,
-    fontWeight: "800",
-    color: THEME.textMain,
-    letterSpacing: 2,
-  },
-
-  scrollContent: {
-    paddingHorizontal: 30,
-    flexGrow: 1,
-  },
-
-  /* HERO */
-  heroSection: {
-    marginTop: 30,
-    marginBottom: 40,
-  },
-  heroTitle: {
-    fontSize: 38,
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-    color: THEME.textMain,
-    lineHeight: 44,
-    letterSpacing: -1,
-  },
-  titleDivider: {
-    width: 35,
-    height: 2,
-    backgroundColor: THEME.accent,
-    marginVertical: 25,
-  },
-  heroSubtitle: {
-    fontSize: 15,
-    color: THEME.textSecondary,
-    lineHeight: 24,
-    fontStyle: "italic",
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-  },
-
-  /* REGISTRY SECTION */
-  registrySection: {
-    marginBottom: 40,
-  },
+  scrollContent: { paddingHorizontal: 32, flexGrow: 1 },
+  heroSection: { marginTop: 30, marginBottom: 40 },
+  titleDivider: { width: 35, height: 2, marginVertical: 25 },
+  registrySection: { marginBottom: 40 },
   registryRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingVertical: 20,
     borderBottomWidth: 1,
-    borderBottomColor: THEME.border,
   },
-  registryLabel: {
-    fontSize: 9,
-    fontWeight: "800",
-    color: THEME.textSecondary,
-    letterSpacing: 1.5,
-    marginBottom: 8,
-  },
-  registryValue: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: THEME.textMain,
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-  },
-
-  /* INPUT */
-  inputWrapper: {
-    width: "100%",
-    marginTop: 5,
-  },
+  inputSection: { marginTop: 30 },
   input: {
     fontSize: 22,
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-    color: THEME.textMain,
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: THEME.accent, // Ligne dorée pour l'input actif
   },
-
-  /* FOOTER & BUTTON */
-  footer: {
-    marginTop: "auto",
-    paddingBottom: 30,
-  },
+  footer: { marginTop: "auto", paddingBottom: 30 },
   primaryBtn: {
-    backgroundColor: THEME.primary,
     height: 60,
-    borderRadius: 0, // Rectangulaire luxe
+    borderRadius: 0,
     alignItems: "center",
     justifyContent: "center",
   },
-  primaryBtnDisabled: {
-    backgroundColor: "#E5E7EB",
-    opacity: 0.6,
-  },
-  primaryBtnText: {
-    color: "#FFFFFF",
-    fontSize: 14,
-    fontWeight: "700",
-    letterSpacing: 1,
-    textTransform: "uppercase",
-  },
-  helperText: {
-    marginTop: 15,
-    fontSize: 11,
-    color: THEME.textSecondary,
-    textAlign: "center",
-    letterSpacing: 0.5,
-  },
+  helperText: { marginTop: 15, textAlign: "center" },
   row: { flexDirection: "row", alignItems: "center" },
   verifyActionRow: {
     flexDirection: "row",
@@ -386,13 +301,5 @@ const styles = StyleSheet.create({
     padding: 15,
     marginTop: 10,
     borderLeftWidth: 2,
-    borderLeftColor: THEME.accent,
-  },
-  verifyActionText: {
-    fontSize: 10,
-    fontWeight: "800",
-    color: THEME.accent,
-    letterSpacing: 1,
-    marginLeft: 12,
   },
 });

@@ -1,12 +1,9 @@
-import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState, useEffect } from "react";
 import {
   ActivityIndicator,
   FlatList,
-  Platform,
   StyleSheet,
-  Text,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -14,23 +11,20 @@ import { Image } from "expo-image";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import { MotiView } from "moti";
+
+// Hooks & Components
 import { userService } from "@/lib/services/user-service";
 import { showErrorToast, showSuccessToast, showCustomAlert } from "@/lib/toast";
-
-// --- THEME ÉDITORIAL ---
-const THEME = {
-  background: "#FDFBF7", // Papier / Bone
-  surface: "#FFFFFF",
-  textMain: "#1A1A1A",
-  textSecondary: "#8E8E93",
-  accent: "#AF9062", // Or brossé
-  border: "rgba(0,0,0,0.05)",
-  danger: "#C34A4A",
-};
+import { ThemedText } from "@/components/themed-text";
+import Icon from "@/components/themed-icon";
+import { useAppTheme } from "@/hooks/custom/use-app-theme";
+import SettingsNavBar from "@/components/Settings/SettingsNavBar";
 
 export default function BlockedUsersScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const theme = useAppTheme();
+  
   const [blockedUsers, setBlockedUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
@@ -55,6 +49,7 @@ export default function BlockedUsersScreen() {
   const handleUnblock = (user: any) => {
     if (processingIds.has(user.id)) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    
     showCustomAlert(
       "Rétablir l'accès ?",
       `Voulez-vous autoriser ${user.name} à consulter de nouveau votre profil ?`,
@@ -67,9 +62,7 @@ export default function BlockedUsersScreen() {
             try {
               const res = await userService.unblockUser(user.id);
               if (res.success) {
-                Haptics.notificationAsync(
-                  Haptics.NotificationFeedbackType.Success,
-                );
+                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
                 showSuccessToast("Accès rétabli");
                 fetchBlockedUsers();
               }
@@ -88,20 +81,17 @@ export default function BlockedUsersScreen() {
     );
   };
 
-  // --- RENDERS ---
-
   const renderHeader = () => (
     <MotiView
       from={{ opacity: 0, translateY: 10 }}
       animate={{ opacity: 1, translateY: 0 }}
       style={styles.listHeader}
     >
-      <Text style={styles.heroTitle}>Accès{"\n"}restreints.</Text>
-      <View style={styles.titleDivider} />
-      <Text style={styles.heroSubtitle}>
-        Registre des personnes n&apos;ayant plus accès à vos collections et
-        listes privées.
-      </Text>
+      <ThemedText type="hero">Accès{"\n"}restreints.</ThemedText>
+      <View style={[styles.titleDivider, { backgroundColor: theme.accent }]} />
+      <ThemedText type="subtitle" colorName="textSecondary">
+        Registre des personnes n&apos;ayant plus accès à vos collections et listes privées.
+      </ThemedText>
     </MotiView>
   );
 
@@ -112,30 +102,24 @@ export default function BlockedUsersScreen() {
       transition={{ delay: 300 }}
       style={styles.emptyContainer}
     >
-      <View style={styles.placeholderCircle}>
-        <Ionicons name="shield-outline" size={30} color={THEME.accent} />
+      <View style={[styles.placeholderCircle, { borderColor: theme.border, backgroundColor: theme.surface }]}>
+        <Icon name="shield-outline" size={30} colorName="accent" />
       </View>
-      <Text style={styles.emptyTitle}>Cercle protégé</Text>
-      <Text style={styles.emptyText}>
+      <ThemedText type="title" style={styles.emptyTitle}>Cercle protégé</ThemedText>
+      <ThemedText type="subtitle" colorName="textSecondary" style={styles.emptyText}>
         Votre liste de blocage est actuellement vide.
-      </Text>
+      </ThemedText>
     </MotiView>
   );
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       {/* HEADER NAV */}
-      <View style={[styles.navBar, { paddingTop: insets.top + 10 }]}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Ionicons name="chevron-back" size={24} color={THEME.textMain} />
-        </TouchableOpacity>
-        <Text style={styles.navTitle}>CONFIDENTIALITÉ</Text>
-        <View style={{ width: 44 }} />
-      </View>
+      <SettingsNavBar title="Blocage" />
 
       {loading ? (
         <View style={styles.center}>
-          <ActivityIndicator size="small" color={THEME.accent} />
+          <ActivityIndicator size="small" color={theme.accent} />
         </View>
       ) : (
         <FlatList
@@ -150,7 +134,7 @@ export default function BlockedUsersScreen() {
               from={{ opacity: 0, translateX: -10 }}
               animate={{ opacity: 1, translateX: 0 }}
               transition={{ delay: index * 50 }}
-              style={styles.userRow}
+              style={[styles.userRow, { borderBottomColor: theme.border }]}
             >
               <View style={styles.rowLeft}>
                 <Image
@@ -159,10 +143,10 @@ export default function BlockedUsersScreen() {
                   contentFit="cover"
                 />
                 <View style={styles.userInfo}>
-                  <Text style={styles.userName}>{item.name}</Text>
-                  <Text style={styles.userHandle}>
+                  <ThemedText type="title" style={{ fontSize: 16 }}>{item.name}</ThemedText>
+                  <ThemedText type="caption" colorName="textSecondary">
                     @{item.username || "utilisateur"}
-                  </Text>
+                  </ThemedText>
                 </View>
               </View>
 
@@ -172,9 +156,9 @@ export default function BlockedUsersScreen() {
                 disabled={processingIds.has(item.id)}
               >
                 {processingIds.has(item.id) ? (
-                  <ActivityIndicator size="small" color={THEME.accent} />
+                  <ActivityIndicator size="small" color={theme.accent} />
                 ) : (
-                  <Text style={styles.ghostActionText}>DÉBLOQUER</Text>
+                  <ThemedText type="label" colorName="accent">Débloquer</ThemedText>
                 )}
               </TouchableOpacity>
             </MotiView>
@@ -186,12 +170,7 @@ export default function BlockedUsersScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: THEME.background,
-  },
-
-  /* NAVBAR */
+  container: { flex: 1 },
   navBar: {
     flexDirection: "row",
     alignItems: "center",
@@ -199,132 +178,32 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     paddingBottom: 15,
   },
-  backBtn: {
-    width: 44,
-    height: 44,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  navTitle: {
-    fontSize: 10,
-    fontWeight: "800",
-    color: THEME.textMain,
-    letterSpacing: 2,
-  },
-
-  /* LIST CONTENT */
-  listContent: {
-    paddingHorizontal: 30,
-    paddingBottom: 40,
-  },
-  listHeader: {
-    marginTop: 20,
-    marginBottom: 40,
-  },
-  heroTitle: {
-    fontSize: 40,
-    color: THEME.textMain,
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-    lineHeight: 44,
-    letterSpacing: -1,
-  },
-  titleDivider: {
-    width: 35,
-    height: 2,
-    backgroundColor: THEME.accent,
-    marginVertical: 20,
-  },
-  heroSubtitle: {
-    fontSize: 15,
-    color: THEME.textSecondary,
-    lineHeight: 22,
-    fontStyle: "italic",
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-  },
-
-  /* USER ROW - STYLE REGISTRE */
+  backBtn: { width: 44, height: 44, justifyContent: "center", alignItems: "center" },
+  center: { flex: 1, alignItems: "center", justifyContent: "center" },
+  listContent: { paddingHorizontal: 30, paddingBottom: 40 },
+  listHeader: { marginTop: 20, marginBottom: 40 },
+  titleDivider: { width: 35, height: 2, marginVertical: 20 },
   userRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingVertical: 15,
+    paddingVertical: 18,
     borderBottomWidth: 1,
-    borderBottomColor: THEME.border,
   },
-  rowLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 15,
-    flex: 1,
-  },
-  avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: "#F2F2F7",
-  },
-  userInfo: {
-    flex: 1,
-  },
-  userName: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: THEME.textMain,
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-  },
-  userHandle: {
-    fontSize: 12,
-    color: THEME.textSecondary,
-    marginTop: 2,
-    letterSpacing: 0.2,
-  },
-
-  /* ACTION BUTTON - GHOST STYLE */
-  ghostActionBtn: {
-    paddingVertical: 6,
-    paddingLeft: 10,
-  },
-  ghostActionText: {
-    fontSize: 10,
-    fontWeight: "800",
-    color: THEME.accent,
-    letterSpacing: 1,
-  },
-
-  /* EMPTY STATE */
-  center: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  emptyContainer: {
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 80,
-  },
+  rowLeft: { flexDirection: "row", alignItems: "center", gap: 15, flex: 1 },
+  avatar: { width: 44, height: 44, borderRadius: 0, backgroundColor: "#F2F2F7" },
+  userInfo: { flex: 1 },
+  ghostActionBtn: { paddingVertical: 6, paddingLeft: 10 },
+  emptyContainer: { alignItems: "center", justifyContent: "center", marginTop: 80 },
   placeholderCircle: {
     width: 70,
     height: 70,
     borderRadius: 35,
-    backgroundColor: THEME.surface,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: THEME.border,
   },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: THEME.textMain,
-    marginBottom: 8,
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-  },
-  emptyText: {
-    fontSize: 14,
-    color: THEME.textSecondary,
-    textAlign: "center",
-    lineHeight: 20,
-    paddingHorizontal: 20,
-  },
+  emptyTitle: { marginBottom: 8 },
+  emptyText: { textAlign: "center", paddingHorizontal: 20 },
 });
