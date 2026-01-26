@@ -1,70 +1,83 @@
-/**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
- */
-
 import { Platform } from "react-native";
 
-const tintColorLight = "#0a7ea4";
-const tintColorDark = "#fff";
+// --- 1. PALETTE DE COULEURS BRUTES ---
+// On définit les couleurs une seule fois ici pour éviter la répétition.
+const palette = {
+  boneSilk: "#FDFBF7",
+  white: "#FFFFFF",
+  deepBlack: "#1A1A1A",
+  charcoal: "#2C2C2C",
+  coolGrey: "#8E8E93",
+  brushedGold: "#AF9062",
+  brushedGoldLight: "#C8A97E", // Or plus clair pour le Dark Mode
+  brickRed: "#C34A4A",
+  forestGreen: "#4A6741",
 
+};
+
+// --- 2. THEME : LIGHT & DARK MODE ---
 export const Colors = {
   light: {
-    text: "#11181C",
-    background: "#fff",
-    tint: tintColorLight,
-    icon: "#687076",
-    tabIconDefault: "#687076",
-    tabIconSelected: tintColorLight,
-     // Textes
-    textPrimary: '#1a1a1a',       
-    textSecondary: '#6b7280',      
     // Arrière-plans
-    backgroundPrimary: '#ffffff',   
-    backgroundSecondary: '#f3f4f6', 
-    // Inputs    
-    border: '#d1d5db',        
+    background: palette.boneSilk,
+    surface: palette.white,
+
+    // Textes
+    textMain: palette.deepBlack,
+    textSecondary: palette.coolGrey,
+
+    // Actions & Accents
+    primary: palette.deepBlack, // Utilisé pour les boutons principaux
+    accent: palette.brushedGold, // L'or pour les icônes, loaders, dividers
+
+    // États
+    border: "rgba(0,0,0,0.06)", // Hairline subtile
+    danger: palette.brickRed,
+    success: palette.forestGreen,
+
+    // Navigation (Tabs)
+    tabIconDefault: palette.coolGrey,
+    tabIconSelected: palette.deepBlack,
   },
   dark: {
-    text: "#ECEDEE",
-    background: "#1A1A1A",
-    tint: tintColorDark,
-    icon: "#9BA1A6",
-    tabIconDefault: "#9BA1A6",
-    tabIconSelected: tintColorDark,
+    // Arrière-plans (Inversion Luxe)
+    background: palette.deepBlack,
+    surface: palette.charcoal,
+
     // Textes
-    textPrimary: '#f9fafb',       
-    textSecondary: '#9ca3af',      
-    // Arrière-plans
-    backgroundPrimary: '#111827',   
-    backgroundSecondary: '#1f2937', 
-    // Inputs     
-    border: '#374151',        
+    textMain: palette.boneSilk,
+    textSecondary: palette.coolGrey,
+
+    // Actions & Accents
+    primary: palette.boneSilk, // Boutons blancs sur fond noir
+    accent: palette.brushedGoldLight, // Or un peu plus clair pour contraster
+
+    // États
+    border: "rgba(255,255,255,0.08)", // Hairline blanche subtile
+    danger: "#E57373", // Rouge plus doux pour le dark mode
+    success: "#81C784", // Vert plus doux pour le dark mode
+
+    // Navigation
+    tabIconDefault: palette.coolGrey,
+    tabIconSelected: palette.boneSilk,
   },
 };
 
+// --- 3. TYPOGRAPHIE ÉDITORIALE ---
 export const Fonts = Platform.select({
   ios: {
-    /** iOS `UIFontDescriptorSystemDesignDefault` */
-    sans: "system-ui",
-    /** iOS `UIFontDescriptorSystemDesignSerif` */
-    serif: "ui-serif",
-    /** iOS `UIFontDescriptorSystemDesignRounded` */
-    rounded: "ui-rounded",
-    /** iOS `UIFontDescriptorSystemDesignMonospaced` */
-    mono: "ui-monospace",
+    serif: "Georgia", // La police signature du thème
+    sans: "System", // Pour les labels techniques (ex: 9px, gras, espacé)
+    mono: "Courier",
   },
-  default: {
-    sans: "normal",
+  android: {
     serif: "serif",
-    rounded: "normal",
+    sans: "sans-serif",
     mono: "monospace",
   },
-  web: {
-    sans: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
-    serif: "Georgia, 'Times New Roman', serif",
-    rounded:
-      "'SF Pro Rounded', 'Hiragino Maru Gothic ProN', Meiryo, 'MS PGothic', sans-serif",
-    mono: "SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
+  default: {
+    serif: "serif",
+    sans: "sans-serif",
+    mono: "monospace",
   },
 });

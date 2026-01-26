@@ -1,13 +1,10 @@
-import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { router } from "expo-router";
 import React, { useRef } from "react";
 import {
   Animated,
   Dimensions,
-  Platform,
   StyleSheet,
-  Text,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -15,19 +12,13 @@ import * as Haptics from "expo-haptics";
 
 import { WishlistPhotoSummary } from "@/lib/getWishlistPhotos";
 import { WishlistVisibility } from "@/types/gift";
-
-// --- THEME ÉDITORIAL COHÉRENT ---
-const THEME = {
-  background: "#FDFBF7", // Bone Silk
-  surface: "#FFFFFF",
-  textMain: "#1A1A1A",
-  textSecondary: "#8E8E93",
-  accent: "#AF9062", // Or brossé
-  border: "rgba(0,0,0,0.08)",
-};
+import Icon from "../themed-icon";
+import { ThemedText } from "@/components/themed-text";
+import { useThemeColor } from "@/hooks/use-theme-color";
+import { useAppTheme } from "@/hooks/custom/use-app-theme";
 
 const { width } = Dimensions.get("window");
-const CARD_WIDTH = (width - 80) / 2; // Ajusté pour les marges éditoriales
+const CARD_WIDTH = (width - 80) / 2;
 const IMAGE_HEIGHT = 180;
 
 // --- SOUS-COMPOSANT : GRILLE "MOSAÏQUE" ---
@@ -39,7 +30,8 @@ const ImageGrid = ({
   coverUrl?: string;
 }) => {
   const count = images?.length ?? 0;
-  const GAP = 1; // Hairline gap pour le luxe
+  const GAP = 1;
+  const borderColor = useThemeColor({}, "border");
 
   if (count === 0) {
     if (coverUrl) {
@@ -54,7 +46,7 @@ const ImageGrid = ({
     }
     return (
       <View style={[styles.gridContainer, styles.placeholder]}>
-        <Ionicons name="images-outline" size={20} color={THEME.border} />
+        <Icon name="images-outline" color={borderColor} />
       </View>
     );
   }
@@ -76,7 +68,6 @@ const ImageGrid = ({
     );
   }
 
-  // 3+ Images style Galerie
   return (
     <View style={[styles.gridContainer, { flexDirection: "row", gap: GAP }]}>
       <RenderImage uri={images![0]} style={styles.flex1} />
@@ -98,6 +89,8 @@ export default function GiftWishlistCard({
   coverUrl,
 }: WishlistPhotoSummary & { coverUrl?: string }) {
   const scaleAnim = useRef(new Animated.Value(1)).current;
+
+const theme = useAppTheme();
 
   const handlePressIn = () => {
     Animated.spring(scaleAnim, {
@@ -143,31 +136,35 @@ export default function GiftWishlistCard({
         onPressOut={handlePressOut}
       >
         {/* CADRE IMAGE "GALERIE" */}
-        <View style={styles.imageFrame}>
+        <View style={[styles.imageFrame, { borderColor: theme.border }]}>
           <ImageGrid images={images?.slice(0, 3)} coverUrl={coverUrl} />
 
           {/* Badge de décompte style "Numéro d'inventaire" */}
-          <View style={styles.countBadge}>
-            <Text style={styles.countText}>
+          <View style={[styles.countBadge, { borderColor: theme.border }]}>
+            <ThemedText type="label" style={styles.countText}>
               {totalGifts.toString().padStart(2, "0")}
-            </Text>
+            </ThemedText>
           </View>
         </View>
 
         {/* CONTENU ÉDITORIAL */}
         <View style={styles.infoContent}>
           <View style={styles.metaRow}>
-            <Text style={styles.visibilityLabel}>{getVisibilityLabel()}</Text>
-            <View style={styles.dot} />
-            <Text style={styles.collectionLabel}>COLLECTION</Text>
+            <ThemedText type="label" style={{ color: theme.accent }}>
+              {getVisibilityLabel()}
+            </ThemedText>
+            <View style={[styles.dot, { backgroundColor: theme.border }]} />
+            <ThemedText type="label" style={{ color: theme.textSecondary }}>
+              COLLECTION
+            </ThemedText>
           </View>
 
-          <Text style={styles.title} numberOfLines={1}>
+          <ThemedText type="title" style={styles.title} numberOfLines={1}>
             {wishlistTitle}
-          </Text>
+          </ThemedText>
 
           {/* Ligne de signature Or brossé */}
-          <View style={styles.accentLine} />
+          <View style={[styles.accentLine, { backgroundColor: theme.accent }]} />
         </View>
       </TouchableOpacity>
     </Animated.View>
@@ -177,20 +174,17 @@ export default function GiftWishlistCard({
 const styles = StyleSheet.create({
   card: {
     width: CARD_WIDTH,
-    backgroundColor: "transparent", // Pas de fond pour laisser respirer le Bone Silk
+    backgroundColor: "transparent",
     marginBottom: 10,
   },
-
-  /* IMAGE FRAME */
   imageFrame: {
     height: IMAGE_HEIGHT,
     width: "100%",
-    borderRadius: 0, // Rectangulaire luxe
+    borderRadius: 0,
     overflow: "hidden",
     position: "relative",
     backgroundColor: "#F2F2F7",
     borderWidth: 1,
-    borderColor: THEME.border,
   },
   gridContainer: {
     flex: 1,
@@ -204,7 +198,6 @@ const styles = StyleSheet.create({
   flex1: { flex: 1, height: "100%" },
   imgFull: { width: "100%", height: "100%" },
 
-  /* BADGE INVENTAIRE */
   countBadge: {
     position: "absolute",
     top: 10,
@@ -213,16 +206,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderWidth: 0.5,
-    borderColor: THEME.border,
   },
   countText: {
-    color: THEME.textMain,
     fontSize: 9,
-    fontWeight: "800",
     letterSpacing: 1,
   },
-
-  /* INFO CONTENT */
   infoContent: {
     paddingTop: 15,
     paddingHorizontal: 2,
@@ -232,36 +220,20 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 8,
   },
-  visibilityLabel: {
-    fontSize: 8,
-    fontWeight: "800",
-    color: THEME.accent, // Or brossé
-    letterSpacing: 1.2,
-  },
-  collectionLabel: {
-    fontSize: 8,
-    fontWeight: "800",
-    color: THEME.textSecondary,
-    letterSpacing: 1.2,
-  },
   dot: {
     width: 2,
     height: 2,
     borderRadius: 1,
-    backgroundColor: THEME.border,
     marginHorizontal: 8,
   },
   title: {
-    fontSize: 18,
-    color: THEME.textMain,
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif", // Serif pour le prestige
+    fontSize: 14,
     lineHeight: 22,
     letterSpacing: -0.3,
   },
   accentLine: {
     width: 25,
     height: 1,
-    backgroundColor: THEME.accent,
     marginTop: 12,
     opacity: 0.4,
   },

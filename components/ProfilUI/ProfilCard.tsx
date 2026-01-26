@@ -1,61 +1,79 @@
-import {
-  Platform,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { StyleSheet, TouchableOpacity, View } from "react-native";
 import React from "react";
 import { Image } from "expo-image";
-import { Ionicons } from "@expo/vector-icons";
-
-const THEME = {
-  textMain: "#1A1A1A",
-  textSecondary: "#8E8E93",
-  accent: "#AF9062",
-  border: "rgba(0,0,0,0.06)",
-};
+import Icon from "../themed-icon";
+import { ThemedText } from "@/components/themed-text";
+import { useAppTheme } from "@/hooks/custom/use-app-theme";
 
 const ProfilCard = ({ user, onEditAvatar }: any) => {
+
+  const theme = useAppTheme();
   return (
     <View style={styles.container}>
-      <TouchableOpacity
-        style={styles.avatarContainer}
-        onPress={onEditAvatar}
-        activeOpacity={0.9}
-      >
-        <Image
-          source={{ uri: user?.image || "https://i.pravatar.cc/150" }}
-          style={styles.avatar}
-        />
-        <View style={styles.editBadge}>
-          <Ionicons name="camera" size={12} color="#FFF" />
-        </View>
-      </TouchableOpacity>
+      <View style={styles.avatarAndInfoContainer}>
+        <TouchableOpacity
+          style={styles.avatarContainer}
+          onPress={onEditAvatar}
+          activeOpacity={0.9}
+        >
+          <Image
+            source={{
+              uri:
+                user?.image ||
+                "https://images.unsplash.com/photo-1511367461989-f85a21fda167?w=400&h=400&fit=crop&q=60",
+            }}
+            style={[styles.avatar, { borderColor: theme.border }]}
+          />
+          <View
+            style={[
+              styles.editBadge,
+              { backgroundColor: theme.primary, borderColor: theme.background },
+            ]}
+          >
+            <Icon name="camera" size={12} color="#FFF" />
+          </View>
+        </TouchableOpacity>
+        <View style={styles.info}>
+          <ThemedText type="defaultBold" style={styles.name}>
+            {user?.name}
+          </ThemedText>
 
-      <View style={styles.info}>
-        <Text style={styles.name}>{user?.name}</Text>
-        <Text style={styles.handle}>
-          {user?.username ? `@${user.username}` : "Alias non défini"}
-        </Text>
-        {user?.description && (
-          <Text style={styles.bio}>{user.description}</Text>
-        )}
+          <ThemedText type="label" style={{ color: theme.accent, marginTop: 2 }}>
+            {user?.username ? `@${user.username}` : "Alias non défini"}
+          </ThemedText>
+        </View>
       </View>
+
+      {user?.description && (
+        <ThemedText
+          type="subtitle"
+          style={[styles.bio, { color: theme.textSecondary }]}
+        >
+          {user.description}
+        </ThemedText>
+      )}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flexDirection: "row", alignItems: "center", marginBottom: 30 },
-  avatarContainer: { position: "relative" },
+  container: {
+    marginBottom: 5,
+  },
+  avatarAndInfoContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  avatarContainer: {
+    position: "relative",
+  },
   avatar: {
     width: 80,
     height: 80,
     borderRadius: 0,
     backgroundColor: "#F2F2F7",
     borderWidth: 1,
-    borderColor: THEME.border,
   },
   editBadge: {
     position: "absolute",
@@ -64,32 +82,20 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: THEME.textMain,
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 2,
-    borderColor: "#FDFBF7",
   },
-  info: { flex: 1, marginLeft: 25 },
+  info: {
+    flex: 1,
+    marginLeft: 20,
+  },
   name: {
-    fontSize: 28,
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-    color: THEME.textMain,
     letterSpacing: -1,
   },
-  handle: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: THEME.accent,
-    marginTop: 4,
-    letterSpacing: 0.5,
-  },
   bio: {
-    fontSize: 13,
-    color: THEME.textSecondary,
-    marginTop: 8,
-    lineHeight: 18,
-    fontStyle: "italic",
+    fontSize: 14,
+    lineHeight: 20,
   },
 });
 
