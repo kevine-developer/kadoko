@@ -1,4 +1,3 @@
-import { Ionicons } from "@expo/vector-icons";
 import React, { useRef, useState, useCallback, useMemo } from "react";
 import { wishlistService } from "@/lib/services/wishlist-service";
 import { giftService } from "@/lib/services/gift-service";
@@ -9,7 +8,6 @@ import {
   ScrollView,
   StatusBar,
   StyleSheet,
-  Text,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -29,20 +27,16 @@ import { userService } from "@/lib/services/user-service";
 import TopBarSettingQr from "@/components/ProfilUI/TopBarSettingQr";
 import { showErrorToast } from "@/lib/toast";
 import { ProfileHeaderSkeleton } from "@/components/ui/SkeletonGroup";
-
-// --- THEME ÉDITORIAL COHÉRENT ---
-const THEME = {
-  background: "#FDFBF7", // Bone Silk
-  surface: "#FFFFFF",
-  textMain: "#1A1A1A",
-  textSecondary: "#8E8E93",
-  accent: "#AF9062", // Or brossé
-  border: "rgba(0,0,0,0.08)",
-};
+import { ThemedText } from "@/components/themed-text";
+import Icon from "@/components/themed-icon";
+import { useAppTheme } from "@/hooks/custom/use-app-theme";
 
 export default function ModernUserProfileScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+
+const theme = useAppTheme();
+
   const [activePage, setActivePage] = useState(0);
   const pagerRef = useRef<PagerView>(null);
   const scrollY = useRef(new Animated.Value(0)).current;
@@ -102,45 +96,27 @@ export default function ModernUserProfileScreen() {
   });
 
   const handleUnreserve = async (giftId: string) => {
-    const previous = [...reservedGifts];
-    setReservedGifts((prev) => prev.filter((g) => g.id !== giftId));
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-
     try {
-      const res = await giftService.releaseGift(giftId);
-      if (!res.success) setReservedGifts(previous);
+      await giftService.releaseGift(giftId);
       loadProfileData();
     } catch {
-      setReservedGifts(previous);
+      showErrorToast("Erreur lors de la libération");
     }
   };
 
   const handleMarkAsPurchased = async (giftId: string) => {
-    const previousReserved = [...reservedGifts];
-    const previousPurchased = [...purchasedGifts];
-    const gift = reservedGifts.find((g) => g.id === giftId);
-
-    if (gift) {
-      setReservedGifts((prev) => prev.filter((g) => g.id !== giftId));
-      setPurchasedGifts((prev) => [{ ...gift, status: "PURCHASED" }, ...prev]);
-    }
-
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-
     try {
-      const res = await giftService.purchaseGift(giftId);
-      if (!res.success) {
-        setReservedGifts(previousReserved);
-        setPurchasedGifts(previousPurchased);
-      }
+      await giftService.purchaseGift(giftId);
       loadProfileData();
     } catch {
-      setReservedGifts(previousReserved);
-      setPurchasedGifts(previousPurchased);
+      showErrorToast("Erreur lors de la confirmation");
     }
   };
 
   const handleTabPress = (index: number) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setActivePage(index);
     pagerRef.current?.setPage(index);
   };
@@ -169,8 +145,6 @@ export default function ModernUserProfileScreen() {
             loadProfileData();
           }
         }
-      } catch (error) {
-        console.error(error);
       } finally {
         setLoading(false);
       }
@@ -178,19 +152,17 @@ export default function ModernUserProfileScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       <StatusBar barStyle="dark-content" />
 
-      {/* 1. HEADER PARALLAX ARTISTIQUE */}
       <HeaderParallax
         user={user}
         headerOpacity={headerOpacity}
-        imageScale={new Animated.Value(1)} // Scale statique pour plus de sobriété
+        imageScale={new Animated.Value(1)}
       />
 
-      {/* 2. TOP BAR MINIMALISTE */}
       <View style={[styles.navBar, { top: insets.top + 10 }]}>
-        <View style={{ flexDirection: "row" }} />
+        <View />
         <TopBarSettingQr
           handleSettingsPress={() => router.push("/(screens)/settingsScreen")}
           onQrPress={() => {
@@ -207,14 +179,13 @@ export default function ModernUserProfileScreen() {
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingTop: 100 }}
+        contentContainerStyle={{ paddingTop: 80 }}
         onScroll={Animated.event(
           [{ nativeEvent: { contentOffset: { y: scrollY } } }],
           { useNativeDriver: false },
         )}
         scrollEventThrottle={16}
       >
-        {/* 3. SECTION IDENTITÉ */}
         <View style={styles.profileContent}>
           {loading ? (
             <ProfileHeaderSkeleton />
@@ -230,50 +201,49 @@ export default function ModernUserProfileScreen() {
 
               {!user?.username && (
                 <TouchableOpacity
-                  style={styles.alertBanner}
+                  style={[styles.alertBanner, { borderLeftColor: theme.accent }]}
                   onPress={() => router.push("/(screens)/usernameSetupScreen")}
                 >
-                  <Ionicons name="at-outline" size={16} color={THEME.accent} />
-                  <Text style={styles.alertText}>
-                    Complétez votre signature numérique
-                  </Text>
-                  <Ionicons
-                    name="chevron-forward"
-                    size={14}
-                    color={THEME.accent}
-                  />
+                  <Icon name="at-outline" size={16} color={theme.accent} />
+                  <ThemedText type="label" style={[styles.alertText]}>
+                    Ajoutez un pseudo pour commencer
+                  </ThemedText>
+                  <Icon name="chevron-forward" size={14} color={theme.accent} />
                 </TouchableOpacity>
               )}
             </>
           )}
         </View>
 
-        {/* 4. TABS NAVIGATION (Style Menu Boutique) */}
+        {/* TABS ÉDITORIAUX */}
         <View style={styles.tabsWrapper}>
-          <View style={styles.tabsHeader}>
-            {["À OFFRIR", "COLLECTIONS", "HISTORIQUE"].map((label, index) => (
-              <TouchableOpacity
-                key={label}
-                onPress={() => handleTabPress(index)}
-                style={[
-                  styles.tabItem,
-                  activePage === index && styles.tabItemActive,
-                ]}
-              >
-                <Text
+          <View style={[styles.tabsHeader, { borderBottomColor: theme.border }]}>
+            {["À OFFRIR", "COLLECTIONS", "HISTORIQUE"].map((label, index) => {
+              const isActive = activePage === index;
+              return (
+                <TouchableOpacity
+                  key={label}
+                  onPress={() => handleTabPress(index)}
                   style={[
-                    styles.tabText,
-                    activePage === index && styles.tabTextActive,
+                    styles.tabItem,
+                    isActive && {
+                      borderBottomColor: theme.textMain,
+                      borderBottomWidth: 2,
+                    },
                   ]}
                 >
-                  {label}
-                </Text>
-              </TouchableOpacity>
-            ))}
+                  <ThemedText
+                    type="label"
+                    style={{ color: isActive ? theme.textMain : theme.textSecondary }}
+                  >
+                    {label}
+                  </ThemedText>
+                </TouchableOpacity>
+              );
+            })}
           </View>
         </View>
 
-        {/* 5. ZONE DE CONTENU */}
         <View style={{ minHeight: 600 }}>
           <PagerView
             ref={pagerRef}
@@ -281,7 +251,7 @@ export default function ModernUserProfileScreen() {
             initialPage={0}
             onPageSelected={(e) => setActivePage(e.nativeEvent.position)}
           >
-            {/* RÉSERVATIONS (Registry Style) */}
+            {/* RÉSERVATIONS */}
             <LayoutPagerView pageNumber={1}>
               <View style={styles.listContainer}>
                 {reservedGifts.length > 0 ? (
@@ -296,14 +266,14 @@ export default function ModernUserProfileScreen() {
                   ))
                 ) : (
                   <EmptyListTab
-                    title="Votre registre de réservations est vide."
+                    title="Le registre est vide."
                     icon="gift-outline"
                   />
                 )}
               </View>
             </LayoutPagerView>
 
-            {/* WISHES (Grid Style) */}
+            {/* COLLECTIONS */}
             <LayoutPagerView pageNumber={2}>
               <View style={styles.gridContainer}>
                 {wishesMapped.map((wishlist: any) => (
@@ -311,15 +281,17 @@ export default function ModernUserProfileScreen() {
                 ))}
               </View>
               <TouchableOpacity
-                style={styles.addBtnRegistry}
+                style={[styles.addBtnRegistry, { borderColor: theme.border }]}
                 onPress={() => router.push("/(screens)/createEventScreen")}
               >
-                <Ionicons name="add" size={20} color={THEME.textMain} />
-                <Text style={styles.addBtnText}>NOUVELLE COLLECTION</Text>
+                <Icon name="add" />
+                <ThemedText type="label" style={[styles.addBtnText]}>
+                  NOUVELLE COLLECTION
+                </ThemedText>
               </TouchableOpacity>
             </LayoutPagerView>
 
-            {/* BOUGHT (History Style) */}
+            {/* HISTORIQUE */}
             <LayoutPagerView pageNumber={3}>
               <View style={styles.listContainer}>
                 {purchasedGifts.length > 0 ? (
@@ -333,7 +305,7 @@ export default function ModernUserProfileScreen() {
                   ))
                 ) : (
                   <EmptyListTab
-                    title="Aucune collection offerte pour le moment."
+                    title="Aucune attention passée."
                     icon="receipt-outline"
                   />
                 )}
@@ -347,7 +319,7 @@ export default function ModernUserProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: THEME.background },
+  container: { flex: 1 },
   navBar: {
     position: "absolute",
     left: 0,
@@ -358,43 +330,26 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
   },
-
-  profileContent: { paddingHorizontal: 32, paddingTop: 40, marginBottom: 40 },
+  profileContent: { paddingHorizontal: 22, paddingTop: 20 },
   alertBanner: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "rgba(175, 144, 98, 0.05)",
     padding: 12,
     borderLeftWidth: 2,
-    borderLeftColor: THEME.accent,
     marginTop: 25,
   },
   alertText: {
     flex: 1,
-    fontSize: 11,
-    fontWeight: "700",
-    color: THEME.textMain,
-    letterSpacing: 0.2,
     marginLeft: 10,
   },
-
-  tabsWrapper: { paddingHorizontal: 32, marginBottom: 30 },
+  tabsWrapper: { paddingHorizontal: 22, marginBottom: 30 },
   tabsHeader: {
     flexDirection: "row",
     borderBottomWidth: 1,
-    borderBottomColor: THEME.border,
   },
   tabItem: { flex: 1, paddingVertical: 18, alignItems: "center" },
-  tabItemActive: { borderBottomWidth: 2, borderBottomColor: THEME.textMain },
-  tabText: {
-    fontSize: 10,
-    fontWeight: "800",
-    color: THEME.textSecondary,
-    letterSpacing: 1.5,
-  },
-  tabTextActive: { color: THEME.textMain },
-
-  listContainer: { paddingHorizontal: 32 },
+  listContainer: { paddingHorizontal: 22 },
   gridContainer: {
     paddingHorizontal: 10,
     flexDirection: "row",
@@ -402,23 +357,17 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     gap: 10,
   },
-
   addBtnRegistry: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 18,
-    marginHorizontal: 32,
+    marginHorizontal: 22,
     borderWidth: 1,
-    borderColor: THEME.border,
     borderStyle: "dashed",
     marginTop: 25,
   },
   addBtnText: {
-    fontSize: 10,
-    fontWeight: "800",
-    color: THEME.textMain,
-    letterSpacing: 1,
     marginLeft: 10,
   },
 });

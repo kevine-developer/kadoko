@@ -1,34 +1,33 @@
-import { StyleSheet, Text, View, Platform } from "react-native";
+import { StyleSheet, View } from "react-native";
 import React from "react";
+import { useAppTheme } from "@/hooks/custom/use-app-theme";
+import { Gift, GiftWishlist } from "@/types/gift";
+import { StatEntry } from "./ui/StatEntry";
 
-const THEME = {
-  textMain: "#1A1A1A",
-  textSecondary: "#8E8E93",
-  accent: "#AF9062", // Or brossé
-  border: "rgba(0,0,0,0.06)",
-};
+interface StatsMinimalistesProps {
+  userWishlists: GiftWishlist[];
+  reservedGifts: Gift[];
+  purchasedGifts: Gift[];
+}
 
-const StatsMinimalistes = ({ userWishlists, reservedGifts, purchasedGifts }: any) => {
+const StatsMinimalistes = ({
+  userWishlists,
+  reservedGifts,
+  purchasedGifts,
+}: StatsMinimalistesProps) => {
+
+  const theme = useAppTheme();
   return (
-    <View style={styles.statsContainer}>
-      <View style={styles.statItem}>
-        <Text style={styles.statNumber}>{userWishlists?.length || 0}</Text>
-        <Text style={styles.statLabel}>Collections</Text>
-      </View>
-      
-      <View style={styles.divider} />
-      
-      <View style={styles.statItem}>
-        <Text style={styles.statNumber}>{reservedGifts?.length || 0}</Text>
-        <Text style={styles.statLabel}>Réservés</Text>
-      </View>
-      
-      <View style={styles.divider} />
-      
-      <View style={styles.statItem}>
-        <Text style={styles.statNumber}>{purchasedGifts?.length || 0}</Text>
-        <Text style={styles.statLabel}>Offerts</Text>
-      </View>
+    <View style={[styles.statsContainer, { borderColor: theme.border }]}>
+      <StatEntry value={userWishlists?.length} label="Collections" />
+
+      <View style={[styles.divider, { backgroundColor: theme.accent }]} />
+
+      <StatEntry value={reservedGifts?.length} label="Réservés" />
+
+      <View style={[styles.divider, { backgroundColor: theme.accent }]} />
+
+      <StatEntry value={purchasedGifts?.length} label="Offerts" />
     </View>
   );
 };
@@ -40,33 +39,14 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-around",
     alignItems: "center",
-    paddingVertical: 20,
+    paddingVertical: 10,
     borderTopWidth: 1,
     borderBottomWidth: 1,
-    borderColor: THEME.border,
     marginTop: 10,
-  },
-  statItem: {
-    alignItems: "center",
-    flex: 1,
-  },
-  statNumber: {
-    fontSize: 22,
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-    color: THEME.textMain,
-    marginBottom: 4,
-  },
-  statLabel: {
-    fontSize: 9,
-    color: THEME.textSecondary,
-    fontWeight: "800",
-    textTransform: "uppercase",
-    letterSpacing: 1.5,
   },
   divider: {
     width: 1,
     height: 15,
-    backgroundColor: THEME.accent,
-    opacity: 0.4,
+    opacity: 0.3,
   },
 });

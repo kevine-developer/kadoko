@@ -1,29 +1,38 @@
 import { StyleSheet, TouchableOpacity, View, Platform } from "react-native";
 import React from "react";
-import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
+import Icon from "../themed-icon";
+import { Ionicons } from "@expo/vector-icons";
 
-// --- THEME ÉDITORIAL COHÉRENT ---
-const THEME = {
-  textMain: "#1A1A1A",
-  surface: "#FFFFFF",
-  border: "rgba(0,0,0,0.08)",
-  background: "#FDFBF7",
-  premiumCard: "#AF9062",
-};
 
 interface TopBarSettingQrProps {
   handleSettingsPress: () => void;
   onQrPress?: () => void;
   showPremiumCard?: () => void;
 }
+interface ItemTopBarProps {
+  onPress: () => void;
+  name: keyof typeof Ionicons.glyphMap;
+  color?: string;
+}
+
+const ItemTopBar = ({ onPress, name, color }: ItemTopBarProps) => {
+  return (
+    <TouchableOpacity
+      style={styles.iconButtonRegistry}
+      onPress={onPress}
+      activeOpacity={0.7}
+    >
+      <Icon name={name} color={color} />
+    </TouchableOpacity>
+  );
+};
 
 const TopBarSettingQr = ({
   handleSettingsPress,
   onQrPress,
   showPremiumCard,
 }: TopBarSettingQrProps) => {
-  
   const handlePress = (callback?: () => void) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     callback?.();
@@ -31,32 +40,23 @@ const TopBarSettingQr = ({
 
   return (
     <View style={styles.navActions}>
-        {/* Premium card */}
-      <TouchableOpacity
-        style={styles.iconButtonRegistry}
+      {/* Premium card */}
+      <ItemTopBar
         onPress={() => handlePress(showPremiumCard)}
-        activeOpacity={0.7}
-      >
-        <Ionicons name="card-outline" size={20} color={THEME.premiumCard} />
-      </TouchableOpacity>
+        name="card-outline"
+      />
       {/* Bouton QR Code */}
-      <TouchableOpacity 
-        style={styles.iconButtonRegistry} 
+      <ItemTopBar
         onPress={() => handlePress(onQrPress)}
-        activeOpacity={0.7}
-      >
-        <Ionicons name="qr-code-outline" size={20} color={THEME.textMain} />
-      </TouchableOpacity>
-
+        name="qr-code-outline"
+        color="#1A1A1A"
+      />
       {/* Bouton Paramètres */}
-      <TouchableOpacity
-        style={styles.iconButtonRegistry}
+      <ItemTopBar
         onPress={() => handlePress(handleSettingsPress)}
-        activeOpacity={0.7}
-      >
-        <Ionicons name="settings-outline" size={20} color={THEME.textMain} />
-      </TouchableOpacity>
-    
+        name="settings-outline"
+        color="#1A1A1A"
+      />
     </View>
   );
 };
@@ -66,19 +66,17 @@ export default TopBarSettingQr;
 const styles = StyleSheet.create({
   navActions: {
     flexDirection: "row",
-    gap: 10, // Espacement légèrement réduit pour plus de finesse
+    gap: 10,
   },
   iconButtonRegistry: {
     width: 42,
     height: 42,
-    borderRadius: 0, // Optionnel : passer à 0 pour un look "carré luxe" ou garder 21 pour du rond
-    backgroundColor: THEME.surface,
+    borderRadius: 0,
+    backgroundColor: "#FFFFFF",
     alignItems: "center",
     justifyContent: "center",
-    // Bordure Hairline (très fine)
     borderWidth: 1,
-    borderColor: THEME.border,
-    // Ombre très subtile (pas de gros flou)
+    borderColor: "rgba(0,0,0,0.08)",
     ...Platform.select({
       ios: {
         shadowColor: "#000",

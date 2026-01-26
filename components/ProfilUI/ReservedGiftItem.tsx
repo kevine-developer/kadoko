@@ -3,21 +3,13 @@ import { Image } from "expo-image";
 import React, { useRef } from "react";
 import {
   Animated,
-  Platform,
   StyleSheet,
-  Text,
   TouchableOpacity,
   View,
   ActivityIndicator,
 } from "react-native";
-
-const THEME = {
-  textMain: "#1A1A1A",
-  textSecondary: "#8E8E93",
-  accent: "#AF9062",
-  border: "rgba(0,0,0,0.08)",
-  success: "#4A6741",
-};
+import { ThemedText } from "@/components/themed-text";
+import { useAppTheme } from "@/hooks/custom/use-app-theme";
 
 export default function ReservedGiftItem({
   gift,
@@ -30,31 +22,56 @@ export default function ReservedGiftItem({
 }: any) {
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
+  const theme = useAppTheme();
   return (
-    <Animated.View style={[styles.row, { transform: [{ scale: scaleAnim }] }]}>
-      <Image source={gift.imageUrl} style={styles.image} contentFit="cover" />
+    <Animated.View
+      style={[
+        styles.row,
+        { borderBottomColor: theme.border, transform: [{ scale: scaleAnim }] },
+      ]}
+    >
+      {/* Image format carré "Galerie" */}
+      <Image
+        source={gift.imageUrl}
+        style={[styles.image, { backgroundColor: theme.surface }]}
+        contentFit="cover"
+      />
 
       <View style={styles.content}>
         <View style={styles.header}>
-          <Text style={styles.ownerLabel}>
+          <ThemedText
+            type="label"
+            style={{ color: theme.textSecondary, fontSize: 8 }}
+          >
             {isHistory ? "OFFERT À" : "RÉSERVÉ POUR"}
-          </Text>
-          <Text style={styles.ownerName}>{ownerName?.toUpperCase()}</Text>
+          </ThemedText>
+          <ThemedText type="label" style={{ color: theme.accent, fontSize: 9 }}>
+            {ownerName?.toUpperCase()}
+          </ThemedText>
         </View>
 
-        <Text style={styles.title}>{gift.title}</Text>
+        {/* Titre en Serif (Georgia) via type="title" */}
+        <ThemedText type="title" style={styles.title}>
+          {gift.title}
+        </ThemedText>
 
         {!isHistory && (
           <View style={styles.actions}>
             <TouchableOpacity
               onPress={onPurchased}
-              style={[styles.mainAction, isPurchasing && { opacity: 0.7 }]}
+              style={[
+                styles.mainAction,
+                { backgroundColor: theme.textMain },
+                isPurchasing && { opacity: 0.7 },
+              ]}
               disabled={isPurchasing || isReleasing}
             >
               {isPurchasing ? (
-                <ActivityIndicator size="small" color="#FFF" />
+                <ActivityIndicator size="small" color={theme.surface} />
               ) : (
-                <Text style={styles.mainActionText}>MARQUER ACHETÉ</Text>
+                <ThemedText type="label" style={styles.mainActionText}>
+                  MARQUER ACHETÉ
+                </ThemedText>
               )}
             </TouchableOpacity>
 
@@ -64,12 +81,12 @@ export default function ReservedGiftItem({
               disabled={isPurchasing || isReleasing}
             >
               {isReleasing ? (
-                <ActivityIndicator size="small" color={THEME.textSecondary} />
+                <ActivityIndicator size="small" color={theme.textSecondary} />
               ) : (
                 <Ionicons
                   name="trash-outline"
                   size={16}
-                  color={THEME.textSecondary}
+                  color={theme.textSecondary}
                 />
               )}
             </TouchableOpacity>
@@ -78,14 +95,21 @@ export default function ReservedGiftItem({
 
         {isHistory && (
           <View style={styles.historyBadge}>
-            <Ionicons name="checkmark-circle" size={14} color={THEME.success} />
-            <Text style={styles.historyText}>Cadeau délivré</Text>
+            <Ionicons name="checkmark-circle" size={14} color={theme.success} />
+            <ThemedText
+              type="caption"
+              style={{ color: theme.success, fontWeight: "600" }}
+            >
+              Cadeau délivré
+            </ThemedText>
           </View>
         )}
       </View>
 
       <View style={styles.priceContainer}>
-        <Text style={styles.price}>{gift.estimatedPrice}€</Text>
+        <ThemedText type="defaultBold" style={{ color: theme.textMain }}>
+          {gift.estimatedPrice}€
+        </ThemedText>
       </View>
     </Animated.View>
   );
@@ -96,30 +120,27 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     paddingVertical: 20,
     borderBottomWidth: 1,
-    borderBottomColor: THEME.border,
     alignItems: "center",
   },
-  image: { width: 60, height: 60, backgroundColor: "#F9FAFB" },
-  content: { flex: 1, marginLeft: 20 },
+  image: {
+    width: 60,
+    height: 60,
+    borderRadius: 0, // Style boutique/carré
+  },
+  content: {
+    flex: 1,
+    marginLeft: 20,
+  },
   header: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
     marginBottom: 5,
   },
-  ownerLabel: {
-    fontSize: 8,
-    fontWeight: "800",
-    color: THEME.textSecondary,
-    letterSpacing: 1,
-  },
-  ownerName: { fontSize: 9, fontWeight: "800", color: THEME.accent },
   title: {
     fontSize: 16,
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-    color: THEME.textMain,
+    lineHeight: 20,
   },
-
   actions: {
     flexDirection: "row",
     alignItems: "center",
@@ -129,24 +150,23 @@ const styles = StyleSheet.create({
   mainAction: {
     paddingVertical: 6,
     paddingHorizontal: 12,
-    backgroundColor: THEME.textMain,
+    borderRadius: 0, // Rectangulaire luxe
   },
   mainActionText: {
     fontSize: 9,
-    fontWeight: "800",
-    color: "#FFF",
-    letterSpacing: 1,
+    color: "#FFF", // On garde blanc car le fond du bouton est textMain (noir)
   },
-  subAction: { padding: 5 },
-
-  priceContainer: { marginLeft: 15, alignItems: "flex-end" },
-  price: { fontSize: 14, fontWeight: "700", color: THEME.textMain },
-
+  subAction: {
+    padding: 5,
+  },
+  priceContainer: {
+    marginLeft: 15,
+    alignItems: "flex-end",
+  },
   historyBadge: {
     flexDirection: "row",
     alignItems: "center",
     gap: 5,
     marginTop: 10,
   },
-  historyText: { fontSize: 11, fontWeight: "600", color: THEME.success },
 });

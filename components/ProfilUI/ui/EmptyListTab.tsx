@@ -1,21 +1,31 @@
-import { Platform, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import React from "react";
-import { Ionicons } from "@expo/vector-icons";
+import ThemedIcon from "@/components/themed-icon";
+import { ThemedText } from "@/components/themed-text";
+import { useAppTheme } from "@/hooks/custom/use-app-theme";
 
-const THEME = {
-  textSecondary: "#8E8E93",
-  accent: "#AF9062",
-  background: "#FDFBF7",
-};
+interface EmptyListTabProps {
+  title: string;
+  icon: any;
+}
 
-const EmptyListTab = ({ title, icon }: any) => {
+const EmptyListTab = ({ title, icon }: EmptyListTabProps) => {
+
+  const theme = useAppTheme();
+
   return (
     <View style={styles.emptyState}>
-      <View style={styles.iconCircle}>
-        <Ionicons name={icon} size={28} color={THEME.accent} />
+      <View style={[styles.iconCircle, { borderColor: `${theme.accent}33` }]}>
+        <ThemedIcon name={icon} size={28} color={theme.accent} />
       </View>
-      <Text style={styles.emptyText}>{title}</Text>
-      <View style={styles.decorativeLine} />
+      <ThemedText
+        type="subtitle"
+        style={[{ color: theme.textSecondary }]}
+      >
+        {title}
+      </ThemedText>
+
+      <View style={[styles.decorativeLine, { backgroundColor: theme.accent }]} />
     </View>
   );
 };
@@ -27,31 +37,20 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 100,
-    paddingHorizontal: 40,
   },
   iconCircle: {
     width: 60,
     height: 60,
     borderRadius: 30,
     borderWidth: 1,
-    borderColor: "rgba(175, 144, 98, 0.2)",
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 20,
-  },
-  emptyText: {
-    color: THEME.textSecondary,
-    fontSize: 14,
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-    fontStyle: "italic",
-    textAlign: "center",
-    lineHeight: 22,
+    marginBottom: 24,
   },
   decorativeLine: {
     width: 30,
     height: 1,
-    backgroundColor: THEME.accent,
-    marginTop: 20,
+    marginTop: 24,
     opacity: 0.4,
   },
 });
