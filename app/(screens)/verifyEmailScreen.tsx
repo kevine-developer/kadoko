@@ -11,19 +11,23 @@ import {
   TouchableOpacity,
   View,
   Keyboard,
+  ActivityIndicator,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { authClient } from "@/features/auth";
 import { showErrorToast, showSuccessToast } from "@/lib/toast";
-import ButtonUI from "@/components/btn-ui";
+import * as Haptics from "expo-haptics";
+import { MotiView } from "moti";
 
+// --- THEME ÉDITORIAL COHÉRENT ---
 const THEME = {
-  background: "#FDFBF7",
+  background: "#FDFBF7", // Bone Silk
   surface: "#FFFFFF",
-  textMain: "#111827",
-  textSecondary: "#6B7280",
-  primary: "#111827",
-  border: "rgba(0,0,0,0.06)",
+  textMain: "#1A1A1A",
+  textSecondary: "#8E8E93",
+  primary: "#1A1A1A",
+  accent: "#AF9062", // Or brossé
+  border: "rgba(0,0,0,0.08)",
 };
 
 export default function VerifyEmailScreen() {
@@ -56,17 +60,17 @@ export default function VerifyEmailScreen() {
   }, [resendTimer]);
 
   const handleOtpChange = (value: string, index: number) => {
-    if (value.length > 1) {
-      // Gérer le copier-coller si possible, sinon tronquer
-      value = value.charAt(0);
-    }
+    // Nettoyage si copier-coller
+    const char = value.slice(-1);
     const newOtp = [...otp];
-    newOtp[index] = value;
+    newOtp[index] = char;
     setOtp(newOtp);
 
-    // Auto-focus prochain input
-    if (value && index < 5) {
-      inputRefs.current[index + 1]?.focus();
+    if (char) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      if (index < 5) {
+        inputRefs.current[index + 1]?.focus();
+      }
     }
   };
 
@@ -79,37 +83,34 @@ export default function VerifyEmailScreen() {
   const handleVerify = async () => {
     const otpCode = otp.join("");
     if (otpCode.length !== 6) {
-      showErrorToast("Veuillez saisir le code complet");
+      showErrorToast("Code incomplet");
       return;
     }
 
     setLoading(true);
     Keyboard.dismiss();
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
     try {
-      // On utilise la route personnalisée du backend qui gère mieux le type 'email-verification'
-      const response = (await authClient.$fetch("/api/auth/verify-otp", {
-        method: "POST",
-        body: { email, otp: otpCode },
-      })) as any;
+      const { error } = await authClient.emailOtp.verifyEmail({
+        email: email!,
+        otp: otpCode,
+      });
 
-      if (!response.success) {
-        showErrorToast(response.message || "Code invalide ou expiré");
+      if (error) {
+        showErrorToast(error.message || "Code invalide");
       } else {
         showSuccessToast(
-          type === "change-email" ? "Email mis à jour !" : "Compte vérifié !",
+          type === "change-email" ? "Identité confirmée" : "Compte vérifié",
         );
-
-        // Si c'était un changement d'email, on retourne aux paramètres
         if (type === "change-email") {
-          router.dismiss(2); // Retourne à Settings (depuis Verify <- ChangeEmail)
+          router.dismiss(2);
         } else {
           router.replace("/(tabs)");
         }
       }
-    } catch (err) {
+    } catch {
       showErrorToast("Une erreur est survenue");
-      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -117,60 +118,60 @@ export default function VerifyEmailScreen() {
 
   const handleResend = async () => {
     if (!canResend) return;
-
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setResendTimer(30);
     setCanResend(false);
 
     try {
-      // On utilise la route personnalisée du backend
-      const response = (await authClient.$fetch(
-        "/api/auth/send-verification-otp",
-        {
-          method: "POST",
-          body: { email },
-        },
-      )) as any;
-
-      if (!response.success) {
-        showErrorToast(response.message || "Erreur lors de l'envoi");
-      } else {
-        showSuccessToast("Nouveau code envoyé !");
-      }
-    } catch (err) {
+      await authClient.emailOtp.sendVerificationOtp({
+        email: email!,
+        type:
+          type === "verify" || type === "change-email"
+            ? "email-verification"
+            : "sign-in",
+      });
+      showSuccessToast("Nouveau code transmis");
+    } catch {
       showErrorToast("Erreur lors de l'envoi");
-      console.error(err);
     }
   };
 
   return (
     <View style={styles.container}>
-      {/* HEADER */}
-      <View style={[styles.header, { paddingTop: insets.top }]}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.navBtn}>
-          <Ionicons name="arrow-back" size={24} color={THEME.textMain} />
+      {/* NAV BAR MINIMALISTE */}
+      <View style={[styles.navBar, { paddingTop: insets.top + 10 }]}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+          <Ionicons name="chevron-back" size={24} color={THEME.textMain} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Vérification</Text>
+        <Text style={styles.navTitle}>SÉCURITÉ</Text>
         <View style={{ width: 44 }} />
       </View>
 
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
       >
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          <View style={styles.introSection}>
-            <Text style={styles.title}>Confirmez votre email</Text>
-            <Text style={styles.subtitle}>
-              Saisissez le code à 6 chiffres envoyé à{"\n"}
+          {/* HERO SECTION */}
+          <MotiView
+            from={{ opacity: 0, translateY: 15 }}
+            animate={{ opacity: 1, translateY: 0 }}
+            transition={{ type: "timing", duration: 700 }}
+            style={styles.heroSection}
+          >
+            <Text style={styles.heroTitle}>Signature{"\n"}numérique.</Text>
+            <View style={styles.titleDivider} />
+            <Text style={styles.heroSubtitle}>
+              Saisissez le code de sécurité transmis à l&apos;adresse{"\n"}
               <Text style={styles.emailHighlight}>{email}</Text>
             </Text>
-          </View>
+          </MotiView>
 
+          {/* OTP INPUTS - STYLE REGISTRE */}
           <View style={styles.otpContainer}>
             {otp.map((digit, index) => (
               <TextInput
@@ -178,42 +179,56 @@ export default function VerifyEmailScreen() {
                 ref={(ref) => {
                   inputRefs.current[index] = ref;
                 }}
-                style={[styles.otpInput, digit ? styles.otpInputFilled : null]}
+                style={[
+                  styles.otpInput,
+                  digit ? styles.otpInputFilled : null,
+                  { borderBottomColor: digit ? THEME.accent : THEME.border },
+                ]}
                 value={digit}
                 onChangeText={(val) => handleOtpChange(val, index)}
                 onKeyPress={(e) => handleKeyPress(e, index)}
                 keyboardType="number-pad"
                 maxLength={1}
                 selectTextOnFocus
+                selectionColor={THEME.accent}
               />
             ))}
           </View>
 
-          <View style={{ marginTop: 20 }}>
-            <ButtonUI
-              title="Vérifier le code"
-              onPress={handleVerify}
-              loading={loading}
-              variant="primary"
-            />
-          </View>
-
-          <TouchableOpacity
-            style={styles.resendBtn}
-            onPress={handleResend}
-            disabled={!canResend}
-          >
-            <Text
+          {/* ACTION BUTTON - RECTANGULAIRE LUXE */}
+          <View style={styles.footer}>
+            <TouchableOpacity
               style={[
-                styles.resendText,
-                !canResend && styles.resendTextDisabled,
+                styles.primaryBtn,
+                otp.join("").length < 6 && styles.primaryBtnDisabled,
               ]}
+              onPress={handleVerify}
+              disabled={loading || otp.join("").length < 6}
             >
-              {canResend
-                ? "Je n'ai pas reçu le code. Renvoyer."
-                : `Renvoyer le code dans ${resendTimer}s`}
-            </Text>
-          </TouchableOpacity>
+              {loading ? (
+                <ActivityIndicator color="#FFF" size="small" />
+              ) : (
+                <Text style={styles.primaryBtnText}>VÉRIFIER LE CODE</Text>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.resendBtn}
+              onPress={handleResend}
+              disabled={!canResend}
+            >
+              <Text
+                style={[
+                  styles.resendText,
+                  !canResend && styles.resendTextDisabled,
+                ]}
+              >
+                {canResend
+                  ? "Renvoyer une nouvelle signature"
+                  : `Nouvel envoi possible dans ${resendTimer}s`}
+              </Text>
+            </TouchableOpacity>
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </View>
@@ -225,94 +240,113 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: THEME.background,
   },
-  header: {
+  /* NAV BAR */
+  navBar: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(0,0,0,0.05)",
-    backgroundColor: THEME.background,
-    zIndex: 10,
+    paddingHorizontal: 15,
   },
-  navBtn: {
+  backBtn: {
     width: 44,
     height: 44,
     justifyContent: "center",
     alignItems: "center",
   },
-  headerTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-    color: THEME.textMain,
-  },
-  scrollContent: {
-    padding: 24,
-  },
-  introSection: {
-    marginBottom: 40,
-    alignItems: "center",
-  },
-  title: {
-    fontSize: 24,
+  navTitle: {
+    fontSize: 10,
     fontWeight: "800",
     color: THEME.textMain,
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-    marginBottom: 12,
-    textAlign: "center",
+    letterSpacing: 2,
   },
-  subtitle: {
+  scrollContent: {
+    paddingHorizontal: 32,
+    flexGrow: 1,
+  },
+  /* HERO SECTION */
+  heroSection: {
+    marginTop: 30,
+    marginBottom: 50,
+  },
+  heroTitle: {
+    fontSize: 38,
+    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
+    color: THEME.textMain,
+    lineHeight: 44,
+    letterSpacing: -1,
+  },
+  titleDivider: {
+    width: 35,
+    height: 2,
+    backgroundColor: THEME.accent,
+    marginVertical: 25,
+  },
+  heroSubtitle: {
     fontSize: 14,
     color: THEME.textSecondary,
     lineHeight: 22,
-    textAlign: "center",
+    fontStyle: "italic",
+    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
   },
   emailHighlight: {
     color: THEME.textMain,
     fontWeight: "700",
+    fontStyle: "normal",
   },
+  /* OTP INPUTS */
   otpContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 40,
+    marginBottom: 60,
   },
   otpInput: {
-    width: 48,
-    height: 64,
-    borderWidth: 2,
-    borderColor: "#E2E8F0",
-    borderRadius: 14,
-    backgroundColor: "#FFF",
+    width: 40,
+    height: 54,
+    borderBottomWidth: 1,
     fontSize: 28,
-    fontWeight: "700",
+    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
     color: THEME.textMain,
     textAlign: "center",
-    // Simulation de profondeur
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
   },
   otpInputFilled: {
-    borderColor: THEME.primary,
-    backgroundColor: "#F8FAFC",
+    color: THEME.accent,
+  },
+  /* FOOTER & BUTTONS */
+  footer: {
+    marginTop: "auto",
+    paddingBottom: 40,
+  },
+  primaryBtn: {
+    backgroundColor: THEME.primary,
+    height: 60,
+    borderRadius: 0, // Rectangulaire luxe
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  primaryBtnDisabled: {
+    opacity: 0.5,
+  },
+  primaryBtnText: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "700",
+    letterSpacing: 1,
+    textTransform: "uppercase",
   },
   resendBtn: {
-    marginTop: 32,
+    marginTop: 25,
     alignItems: "center",
-    padding: 10,
   },
   resendText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: THEME.textMain,
+    fontSize: 11,
+    fontWeight: "700",
+    color: THEME.accent,
+    letterSpacing: 0.5,
     textDecorationLine: "underline",
   },
   resendTextDisabled: {
-    color: "#9CA3AF",
+    color: THEME.textSecondary,
     textDecorationLine: "none",
+    opacity: 0.6,
   },
 });

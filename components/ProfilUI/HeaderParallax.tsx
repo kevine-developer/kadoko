@@ -1,30 +1,30 @@
-import { Animated, StyleSheet, View } from "react-native";
+import { Animated, StyleSheet, View, Platform } from "react-native";
 import React from "react";
+import { useAppTheme } from "@/hooks/custom/use-app-theme";
 
-interface HeaderParallaxProps {
-  user: any;
-  headerOpacity: any;
-  imageScale: any;
-}
+const HeaderParallax = ({ user, headerOpacity, imageScale }: any) => {
+  const theme = useAppTheme();
 
-const HeaderParallax = ({
-  user,
-  headerOpacity,
-  imageScale,
-}: HeaderParallaxProps) => {
   return (
-    <Animated.View style={[styles.headerContainer, { opacity: headerOpacity }]}>
+    <Animated.View
+      style={[
+        styles.headerContainer,
+        { opacity: headerOpacity, backgroundColor: theme.background },
+      ]}
+    >
       <Animated.Image
         source={{
           uri:
             user?.image ||
-            "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=800",
+            "https://images.unsplash.com/photo-1511367461989-f85a21fda167?w=400&h=400&fit=crop&q=60",
         }}
         style={[styles.headerImage, { transform: [{ scale: imageScale }] }]}
+        blurRadius={Platform.OS === "ios" ? 10 : 5}
       />
       <View style={styles.headerOverlay} />
-      {/* Dégradé pour fondre avec la carte */}
-      <View style={styles.headerGradient} />
+      <View
+        style={[styles.bottomGradient, { borderBottomColor: theme.background }]}
+      />
     </Animated.View>
   );
 };
@@ -32,30 +32,31 @@ const HeaderParallax = ({
 export default HeaderParallax;
 
 const styles = StyleSheet.create({
-  /* --- HEADER --- */
   headerContainer: {
     position: "absolute",
     top: 0,
     left: 0,
     right: 0,
-    height: 240,
-    backgroundColor: "#111827",
+    height: 270,
+    overflow: "hidden",
   },
   headerImage: {
     width: "100%",
     height: "100%",
-    opacity: 0.7,
+    opacity: 0.4,
   },
   headerOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.3)",
+    backgroundColor: "rgba(253, 251, 247, 0.2)",
   },
-  headerGradient: {
+  bottomGradient: {
     position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
-    height: 100,
+    height: 150,
     backgroundColor: "transparent",
+    borderBottomWidth: 150,
+    opacity: 0.9,
   },
 });

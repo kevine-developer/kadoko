@@ -1,4 +1,5 @@
 import {
+  Dimensions,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -19,6 +20,8 @@ const THEME = {
   primary: "#111827",
   inputBg: "#FFFFFF",
 };
+
+const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 const LayoutAuth = ({ children }: { children: React.ReactNode }) => {
   return (
     <View style={styles.container}>
@@ -51,12 +54,20 @@ const styles = StyleSheet.create({
     backgroundColor: THEME.background, // Fond noir derrière l'image
   },
   /* --- FORM SHEET --- */
+  /* --- FORM SHEET STYLE "BOUTIQUE" --- */
   formSheet: {
-    backgroundColor: THEME.background, // Blanc cassé
-    borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
-    paddingHorizontal: 24,
-    paddingTop: 40,
-    minHeight: "50%",
+    backgroundColor: THEME.background,
+    // Suppression des arrondis massifs pour un look rectangulaire plus prestigieux
+    borderRadius: 0,
+    paddingHorizontal: 32, // Marges plus larges style magazine
+    paddingTop: 5,
+    minHeight: SCREEN_HEIGHT * 0.6, // Prend 60% de l'écran par défaut
+    // Ombre de contact ultra-subtile
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -10 },
+    shadowOpacity: 0.05,
+    shadowRadius: 20,
+    elevation: 10,
   },
+
 });

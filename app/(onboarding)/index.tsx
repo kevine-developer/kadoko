@@ -100,7 +100,7 @@ export default function OnboardingScreen() {
   const { setHasLaunched } = useIsFirstLaunch();
 
   const completeOnboarding = async () => {
-    setHasLaunched();
+    await setHasLaunched();
     // Redirection vers Auth ou Home
     router.push("/(auth)/sign-up");
   };

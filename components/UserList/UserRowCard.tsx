@@ -1,27 +1,33 @@
-import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { router } from "expo-router";
 import React from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+  Platform,
+  ActivityIndicator,
+} from "react-native";
+import * as Haptics from "expo-haptics";
 
-// --- THEME LUXE ---
+// --- THEME ÉDITORIAL COHÉRENT ---
 const THEME = {
   background: "#FDFBF7",
   surface: "#FFFFFF",
-  textMain: "#111827",
-  textSecondary: "#6B7280",
-  accent: "#111827",
-  border: "rgba(0,0,0,0.06)",
-  success: "#10B981",
-  danger: "#EF4444",
-  disabledBg: "#F3F4F6",
-  disabledText: "#9CA3AF",
+  textMain: "#1A1A1A",
+  textSecondary: "#8E8E93",
+  accent: "#AF9062", // Or brossé
+  border: "rgba(0,0,0,0.08)",
+  danger: "#C34A4A",
+  success: "#4A6741", // Vert forêt luxe
 };
 
 interface UserRowCardProps {
   user: any;
   isFriend?: boolean;
-  isPendingAdd?: boolean; // ✅ Nouvel état : Demande en attente
+  isPendingAdd?: boolean;
+  loading?: boolean;
   handleAddFriend: () => void;
   handleCancelRequest?: () => void;
   handleRemoveFriend?: () => void;
@@ -31,47 +37,34 @@ const UserRowCard = ({
   user,
   isFriend,
   isPendingAdd,
+  loading,
   handleAddFriend,
   handleCancelRequest,
   handleRemoveFriend,
 }: UserRowCardProps) => {
-  // Logique d'affichage dynamique du bouton
-  const renderButtonContent = () => {
+  const handleAction = () => {
+    if (loading) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     if (isFriend) {
-      return (
-        <>
-          <Text style={styles.btnTextDelete}>Retirer</Text>
-          <Ionicons name="trash-outline" size={14} color={THEME.danger} />
-        </>
-      );
+      handleRemoveFriend?.();
+    } else if (isPendingAdd) {
+      handleCancelRequest?.();
+    } else {
+      handleAddFriend();
     }
-    if (isPendingAdd) {
-      return (
-        <>
-          <Text style={styles.btnTextPending}>Envoyé</Text>
-          <Ionicons name="checkmark" size={14} color={THEME.disabledText} />
-        </>
-      );
-    }
-    return (
-      <>
-        <Text style={styles.btnTextSolid}>Ajouter</Text>
-        <Ionicons name="add" size={14} color="#FFF" />
-      </>
-    );
   };
 
-  // Styles dynamiques du bouton
-  const getButtonStyle = () => {
-    if (isFriend) return styles.btnOutlineDelete;
-    if (isPendingAdd) return styles.btnPending;
-    return styles.btnSolid;
+  // Rendu textuel de l'action pour le look "Boutique"
+  const renderActionLabel = () => {
+    if (isFriend) return "RETIRER";
+    if (isPendingAdd) return "EN ATTENTE";
+    return "AJOUTER";
   };
 
   return (
     <TouchableOpacity
-      activeOpacity={0.7}
-      style={styles.userRowContainer}
+      activeOpacity={0.6}
+      style={styles.container}
       onPress={() =>
         router.push({
           pathname: "/profilFriend/[friendId]",
@@ -79,40 +72,56 @@ const UserRowCard = ({
         })
       }
     >
-      {/* INFO GAUCHE */}
-      <View style={styles.userRowLeft}>
+      {/* SECTION IDENTITÉ */}
+      <View style={styles.userInfo}>
         <Image
-          source={{ uri: user.avatarUrl || user.image }}
-          style={styles.rowAvatar}
+          source={{
+            uri: user.avatarUrl || user.image || "https://i.pravatar.cc/150",
+          }}
+          style={styles.avatar}
           contentFit="cover"
         />
-        <View style={styles.rowText}>
-          <Text style={styles.rowName}>{user.name}</Text>
-          <Text style={styles.rowHandle}>
+        <View style={styles.textContainer}>
+          <Text style={styles.name}>{user.name}</Text>
+          <Text style={styles.status}>
             {isFriend
-              ? "Dans votre cercle"
+              ? "CERCLE PROCHE"
               : isPendingAdd
-                ? "Demande envoyée"
-                : "Utilisateur"}
+                ? "DEMANDE ENVOYÉE"
+                : "MEMBRE GIFTFLOW"}
           </Text>
         </View>
       </View>
 
-      {/* BOUTON D'ACTION */}
       <TouchableOpacity
-        style={[styles.rowActionBtn, getButtonStyle()]}
         onPress={(e) => {
-          e.stopPropagation(); // Empêche d'ouvrir le profil au clic sur le bouton
-          if (isFriend) {
-            handleRemoveFriend?.();
-          } else if (isPendingAdd) {
-            handleCancelRequest?.();
-          } else {
-            handleAddFriend();
-          }
+          e.stopPropagation();
+          handleAction();
         }}
+        disabled={loading}
+        style={[
+          styles.actionBtn,
+          isFriend && styles.actionBtnDelete,
+          isPendingAdd && styles.actionBtnPending,
+          loading && { opacity: 0.7 },
+        ]}
       >
-        {renderButtonContent()}
+        {loading ? (
+          <ActivityIndicator
+            size="small"
+            color={isFriend || isPendingAdd ? THEME.textMain : "#FFF"}
+          />
+        ) : (
+          <Text
+            style={[
+              styles.actionText,
+              isFriend && styles.actionTextDelete,
+              isPendingAdd && styles.actionTextPending,
+            ]}
+          >
+            {renderActionLabel()}
+          </Text>
+        )}
       </TouchableOpacity>
     </TouchableOpacity>
   );
@@ -121,103 +130,75 @@ const UserRowCard = ({
 export default UserRowCard;
 
 const styles = StyleSheet.create({
-  /* USER ROWS (Vertical) */
-  userRowContainer: {
+  container: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingVertical: 14, // Un peu plus d'air
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(0,0,0,0.03)",
+    paddingVertical: 18,
+    borderBottomWidth: 0.5,
+    borderBottomColor: THEME.border,
+    backgroundColor: "transparent",
   },
-  userRowLeft: {
+  userInfo: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 14,
-    flex: 1, // Prend la place disponible pour ne pas écraser le bouton
-  },
-  rowAvatar: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: "#F3F4F6",
-    borderWidth: 1,
-    borderColor: "#FFFFFF", // Petit contour blanc propre
-  },
-  rowText: {
-    justifyContent: "center",
+    gap: 16,
     flex: 1,
   },
-  rowName: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: THEME.textMain,
-    marginBottom: 2,
-  },
-  rowHandle: {
-    fontSize: 13,
-    color: THEME.textSecondary,
-  },
-
-  /* BOUTONS ACTIONS */
-  rowActionBtn: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    minWidth: 90, // Assure une largeur constante pour éviter les sauts
-    height: 36,
-  },
-
-  // Style 1: Ajouter (Solid Noir)
-  btnSolid: {
-    backgroundColor: THEME.textMain,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  btnTextSolid: {
-    color: "#FFF",
-    fontSize: 12,
-    fontWeight: "700",
-  },
-
-  // Style 2: Voir (Outline)
-  btnOutline: {
+  avatar: {
+    width: 46,
+    height: 46,
+    borderRadius: 0, // Carré pour le look luxe / boutique
+    backgroundColor: "#F2F2F7",
     borderWidth: 1,
     borderColor: THEME.border,
-    backgroundColor: "transparent",
   },
-  btnTextOutline: {
+  textContainer: {
+    flex: 1,
+  },
+  name: {
+    fontSize: 17,
+    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
     color: THEME.textMain,
-    fontSize: 12,
-    fontWeight: "600",
+    letterSpacing: -0.3,
+  },
+  status: {
+    fontSize: 9,
+    fontWeight: "800",
+    color: THEME.textSecondary,
+    letterSpacing: 1,
+    marginTop: 3,
+    textTransform: "uppercase",
   },
 
-  // Style 3: En attente (Disabled Gray)
-  btnPending: {
-    backgroundColor: THEME.disabledBg, // Gris clair
-    borderWidth: 0,
-  },
-  btnTextPending: {
-    color: THEME.disabledText, // Gris foncé
-    fontSize: 12,
-    fontWeight: "600",
-  },
-  // Style 4: Delete (Red Outline)
-  btnOutlineDelete: {
+  /* BOUTON D'ACTION STYLE ÉDITORIAL */
+  actionBtn: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
     borderWidth: 1,
-    borderColor: THEME.danger,
-    backgroundColor: "transparent",
+    borderColor: THEME.textMain,
+    backgroundColor: THEME.textMain,
+    borderRadius: 0, // Rectangulaire
   },
-  btnTextDelete: {
+  actionBtnPending: {
+    backgroundColor: "transparent",
+    borderColor: THEME.border,
+  },
+  actionBtnDelete: {
+    backgroundColor: "transparent",
+    borderColor: "rgba(195, 74, 74, 0.2)", // Rouge discret
+  },
+  actionText: {
+    fontSize: 10,
+    fontWeight: "800",
+    color: "#FFF",
+    letterSpacing: 1.2,
+    textAlign: "center",
+  },
+  actionTextPending: {
+    color: THEME.textSecondary,
+  },
+  actionTextDelete: {
     color: THEME.danger,
-    fontSize: 12,
-    fontWeight: "600",
   },
 });

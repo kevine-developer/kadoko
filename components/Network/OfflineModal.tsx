@@ -8,13 +8,36 @@ import {
   Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { MotiView, MotiText } from "moti";
+import { MotiView } from "moti";
 import { useNetwork } from "@/hooks/useNetwork";
+import * as Haptics from "expo-haptics";
+
+// --- THEME ÉDITORIAL COHÉRENT ---
+const THEME = {
+  overlay: "rgba(26, 26, 26, 0.85)", // Fond sombre soyeux
+  background: "#FDFBF7", // Bone Silk
+  surface: "#FFFFFF",
+  textMain: "#1A1A1A",
+  textSecondary: "#8E8E93",
+  accent: "#AF9062", // Or brossé
+  border: "rgba(0,0,0,0.08)",
+};
 
 const OfflineModal = () => {
   const { isConnected } = useNetwork();
 
+  // On déclenche un retour haptique léger quand la connexion est perdue
+  React.useEffect(() => {
+    if (isConnected === false) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+    }
+  }, [isConnected]);
+
   if (isConnected !== false) return null;
+
+  const handleRetry = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  };
 
   return (
     <Modal
@@ -25,60 +48,56 @@ const OfflineModal = () => {
     >
       <View style={styles.overlay}>
         <MotiView
-          from={{ opacity: 0, scale: 0.9, translateY: 20 }}
+          from={{ opacity: 0, scale: 0.98, translateY: 10 }}
           animate={{ opacity: 1, scale: 1, translateY: 0 }}
-          transition={{ type: "spring", damping: 15 }}
+          transition={{ type: "timing", duration: 600 }}
           style={styles.container}
         >
-          <View style={styles.iconContainer}>
-            <View style={styles.iconPulse}>
+          {/* LIGNE D'ACCENTUATION OR EN HAUT */}
+          <View style={styles.topAccent} />
+
+          <View style={styles.content}>
+            {/* ICONE BIJOU */}
+            <View style={styles.iconWrapper}>
               <MotiView
-                from={{ scale: 1, opacity: 0.3 }}
-                animate={{ scale: 1.5, opacity: 0 }}
+                from={{ opacity: 0.3, scale: 1 }}
+                animate={{ opacity: 0, scale: 1.4 }}
                 transition={{
                   type: "timing",
-                  duration: 2000,
+                  duration: 2500,
                   loop: true,
                   repeatReverse: false,
                 }}
-                style={styles.pulseDisk}
+                style={styles.pulseRing}
               />
               <Ionicons
-                name="cloud-offline-outline"
-                size={48}
-                color="#EF4444"
+                name="cellular-outline"
+                size={32}
+                color={THEME.accent}
               />
             </View>
-          </View>
 
-          <MotiText
-            from={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 300 }}
-            style={styles.title}
-          >
-            Oups ! Connexion perdue
-          </MotiText>
+            {/* TITRE ÉDITORIAL */}
+            <Text style={styles.title}>Interruption{"\n"}réseau.</Text>
 
-          <Text style={styles.description}>
-            Il semble que vous soyez hors ligne. Vérifiez votre connexion
-            internet pour continuer à utiliser Kadoko.
-          </Text>
+            {/* DESCRIPTION MANUSCRITE */}
+            <Text style={styles.description}>
+              Votre accès au registre semble interrompu. Veuillez vérifier votre
+              connexion internet pour poursuivre l&apos;expérience.
+            </Text>
 
-          <TouchableOpacity
-            style={styles.button}
-            activeOpacity={0.8}
-            onPress={() => {
-              // Le hook useNetwork mettra à jour l'état automatiquement
-              // On peut éventuellement ajouter un vibreur ou un toast ici
-            }}
-          >
-            <Text style={styles.buttonText}>RÉESSAYER</Text>
-          </TouchableOpacity>
+            {/* BOUTON AUTHORITY RECTANGULAIRE */}
+            <TouchableOpacity
+              style={styles.button}
+              activeOpacity={0.9}
+              onPress={handleRetry}
+            >
+              <Text style={styles.buttonText}>TENTER DE RECONNECTER</Text>
+            </TouchableOpacity>
 
-          <View style={styles.footer}>
-            <Ionicons name="wifi-outline" size={14} color="#9CA3AF" />
-            <Text style={styles.footerText}>En attente du réseau...</Text>
+            <View style={styles.footer}>
+              <Text style={styles.footerText}>MODE HORS LIGNE ACTIF</Text>
+            </View>
           </View>
         </MotiView>
       </View>
@@ -91,85 +110,96 @@ export default OfflineModal;
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: "rgba(17, 24, 39, 0.8)", // Gris très foncé semi-transparent
+    backgroundColor: THEME.overlay,
     justifyContent: "center",
     alignItems: "center",
-    padding: 24,
+    paddingHorizontal: 32,
   },
   container: {
     width: "100%",
-    backgroundColor: "#FFFFFF",
-    borderRadius: 32,
-    padding: 32,
-    alignItems: "center",
+    backgroundColor: THEME.background,
+    borderRadius: 0, // Rectangulaire luxe
+    borderWidth: 1,
+    borderColor: THEME.border,
+    overflow: "hidden",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 20 },
     shadowOpacity: 0.2,
-    shadowRadius: 30,
-    elevation: 15,
+    shadowRadius: 40,
+    elevation: 20,
   },
-  iconContainer: {
-    marginBottom: 24,
+  topAccent: {
+    height: 3,
+    backgroundColor: THEME.accent,
+    width: "100%",
   },
-  iconPulse: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: "#FEF2F2",
+  content: {
+    padding: 32,
+    alignItems: "center",
+  },
+  iconWrapper: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: THEME.surface,
     justifyContent: "center",
     alignItems: "center",
-    position: "relative",
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: "rgba(175, 144, 98, 0.2)",
   },
-  pulseDisk: {
+  pulseRing: {
     position: "absolute",
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: "#EF4444",
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    borderWidth: 1,
+    borderColor: THEME.accent,
   },
   title: {
-    fontSize: 22,
-    fontWeight: "800",
-    color: "#111827",
-    marginBottom: 12,
+    fontSize: 28,
+    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
+    color: THEME.textMain,
     textAlign: "center",
-    fontFamily: Platform.OS === "ios" ? "System" : "sans-serif-black",
+    lineHeight: 32,
+    marginBottom: 16,
+    letterSpacing: -0.5,
   },
   description: {
-    fontSize: 15,
-    color: "#6B7280",
+    fontSize: 14,
+    color: THEME.textSecondary,
     textAlign: "center",
     lineHeight: 22,
-    marginBottom: 32,
+    fontStyle: "italic",
+    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
+    marginBottom: 35,
   },
   button: {
     width: "100%",
-    height: 56,
-    backgroundColor: "#111827",
-    borderRadius: 16,
+    height: 60,
+    backgroundColor: THEME.textMain,
+    borderRadius: 0, // Rectangulaire luxe
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 20,
-    shadowColor: "#111827",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 5,
+    marginBottom: 24,
   },
   buttonText: {
     color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "700",
-    letterSpacing: 1.2,
+    fontSize: 11,
+    fontWeight: "800",
+    letterSpacing: 1.5,
   },
   footer: {
-    flexDirection: "row",
+    borderTopWidth: 1,
+    borderTopColor: THEME.border,
+    paddingTop: 16,
+    width: "100%",
     alignItems: "center",
-    gap: 8,
   },
   footerText: {
-    fontSize: 13,
-    color: "#9CA3AF",
-    fontWeight: "500",
+    fontSize: 9,
+    color: THEME.textSecondary,
+    fontWeight: "800",
+    letterSpacing: 2,
   },
 });

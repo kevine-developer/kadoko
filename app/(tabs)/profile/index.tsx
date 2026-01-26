@@ -1,4 +1,3 @@
-import { Ionicons } from "@expo/vector-icons";
 import React, { useRef, useState, useCallback, useMemo } from "react";
 import { wishlistService } from "@/lib/services/wishlist-service";
 import { giftService } from "@/lib/services/gift-service";
@@ -9,11 +8,11 @@ import {
   ScrollView,
   StatusBar,
   StyleSheet,
-  Text,
   TouchableOpacity,
   View,
 } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
+import * as Haptics from "expo-haptics";
 import PagerView from "react-native-pager-view";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { authClient } from "@/features/auth";
@@ -27,24 +26,24 @@ import { uploadService } from "@/lib/services/upload-service";
 import { userService } from "@/lib/services/user-service";
 import TopBarSettingQr from "@/components/ProfilUI/TopBarSettingQr";
 import { showErrorToast } from "@/lib/toast";
-import { HEADER_HEIGHT, TABS } from "@/constants/const";
-import {
-  ProfileHeaderSkeleton,
-  WishlistCardSkeleton,
-} from "@/components/ui/SkeletonGroup";
+import { ProfileHeaderSkeleton } from "@/components/ui/SkeletonGroup";
+import { ThemedText } from "@/components/themed-text";
+import Icon from "@/components/themed-icon";
+import { useAppTheme } from "@/hooks/custom/use-app-theme";
 
 export default function ModernUserProfileScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+
+const theme = useAppTheme();
+
   const [activePage, setActivePage] = useState(0);
   const pagerRef = useRef<PagerView>(null);
   const scrollY = useRef(new Animated.Value(0)).current;
 
-  // Récupération de la session réelle
   const { data: session, refetch } = authClient.useSession();
   const user = session?.user as any;
 
-  // États pour les données réelles
   const [userWishlists, setUserWishlists] = useState<any[]>([]);
   const [reservedGifts, setReservedGifts] = useState<any[]>([]);
   const [purchasedGifts, setPurchasedGifts] = useState<any[]>([]);
@@ -53,22 +52,26 @@ export default function ModernUserProfileScreen() {
   const loadProfileData = useCallback(async () => {
     if (!session) return;
     setLoading(true);
-    const [wlRes, feedRes] = await Promise.all([
-      wishlistService.getMyWishlists(),
-      giftService.getFeed(), // Pour l'instant on prend du feed ou on pourrait avoir une route /me/gifts
-    ]);
+    try {
+      const [wlRes, resRes] = await Promise.all([
+        wishlistService.getMyWishlists(),
+        giftService.getMyReservations(),
+      ]);
 
-    if (wlRes.success) setUserWishlists(wlRes.wishlists);
-    // Filtrer les cadeaux réservés/offerts par l'utilisateur (sera amélioré avec une route dédiée)
-    if (feedRes.success) {
-      // En attendant une route dédiée /users/me/activities
-      setReservedGifts([]);
-      setPurchasedGifts([]);
+      if (wlRes.success) setUserWishlists(wlRes.wishlists);
+      if (resRes.success) {
+        setPurchasedGifts(
+          resRes.gifts.filter((g: any) => g.status === "PURCHASED"),
+        );
+        setReservedGifts(
+          resRes.gifts.filter((g: any) => g.status === "RESERVED"),
+        );
+      }
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, [session]);
 
-  // Actualisation quand l'utilisateur revient sur son profil
   useFocusEffect(
     useCallback(() => {
       loadProfileData();
@@ -82,27 +85,38 @@ export default function ModernUserProfileScreen() {
       totalGifts: wl._count?.gifts || 0,
       wishlistVisibility: wl.visibility,
       images: wl.gifts?.map((g: any) => g.imageUrl).filter(Boolean) || [],
+      coverUrl: wl.coverUrl,
     }));
   }, [userWishlists]);
 
-  const handleSettingsPress = () => {
-    router.push("../../(screens)/settingsScreen");
-  };
-
-  const imageScale = scrollY.interpolate({
-    inputRange: [-100, 0],
-    outputRange: [1.15, 1],
-    extrapolate: "clamp",
-  });
-
   const headerOpacity = scrollY.interpolate({
-    inputRange: [0, HEADER_HEIGHT - 120],
+    inputRange: [0, 80],
     outputRange: [1, 0],
     extrapolate: "clamp",
   });
 
-  // --- HANDLERS ---
+  const handleUnreserve = async (giftId: string) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    try {
+      await giftService.releaseGift(giftId);
+      loadProfileData();
+    } catch {
+      showErrorToast("Erreur lors de la libération");
+    }
+  };
+
+  const handleMarkAsPurchased = async (giftId: string) => {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    try {
+      await giftService.purchaseGift(giftId);
+      loadProfileData();
+    } catch {
+      showErrorToast("Erreur lors de la confirmation");
+    }
+  };
+
   const handleTabPress = (index: number) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setActivePage(index);
     pagerRef.current?.setPage(index);
   };
@@ -127,92 +141,58 @@ export default function ModernUserProfileScreen() {
             avatarUrl: imageUrl,
           });
           if (updateRes.success) {
-            await refetch(); // Forcer le rafraîchissement de la session Better Auth
-            loadProfileData(); // Recharger les données
-          } else {
-            alert("Erreur lors de la mise à jour du profil");
+            await refetch();
+            loadProfileData();
           }
         }
-      } catch (error) {
-        console.error("Avatar upload error:", error);
-        alert("Erreur lors de l'upload");
       } finally {
         setLoading(false);
       }
     }
   };
 
-  const onPageSelected = (e: any) => {
-    setActivePage(e.nativeEvent.position);
-  };
-
-  // --- RENDERERS ---
-  const renderTab = (
-    label: string,
-    icon: keyof typeof Ionicons.glyphMap,
-    index: number,
-  ) => {
-    const isActive = activePage === index;
-    return (
-      <TouchableOpacity
-        onPress={() => handleTabPress(index)}
-        style={[styles.tabItem, isActive && styles.tabItemActive]}
-        activeOpacity={0.8}
-      >
-        <Text style={[styles.tabText, isActive && styles.tabTextActive]}>
-          {label}
-        </Text>
-      </TouchableOpacity>
-    );
-  };
-
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="light-content" />
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <StatusBar barStyle="dark-content" />
 
-      {/* 1. HEADER PARALLAX (Cover Artistique) */}
       <HeaderParallax
         user={user}
         headerOpacity={headerOpacity}
-        imageScale={imageScale}
+        imageScale={new Animated.Value(1)}
       />
-      {/* 2. TOP BAR */}
-      <View style={[styles.navBar, { top: insets.top }]}>
+
+      <View style={[styles.navBar, { top: insets.top + 10 }]}>
         <View />
         <TopBarSettingQr
-          handleSettingsPress={handleSettingsPress}
+          handleSettingsPress={() => router.push("/(screens)/settingsScreen")}
           onQrPress={() => {
-            const hasUsername = user?.username && user.username.length >= 3;
-            if (!hasUsername) {
-              showErrorToast(
-                "Veuillez définir un pseudo avant de partager votre profil.",
-              );
+            if (!user?.username) {
+              showErrorToast("Pseudo requis.");
               router.push("/(screens)/usernameSetupScreen");
             } else {
               router.push("/(screens)/shareProfileScreen");
             }
           }}
+          showPremiumCard={() => router.push("/(screens)/premiumCardScreen")}
         />
       </View>
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingTop: 140 }}
+        contentContainerStyle={{ paddingTop: 80 }}
         onScroll={Animated.event(
           [{ nativeEvent: { contentOffset: { y: scrollY } } }],
           { useNativeDriver: false },
         )}
         scrollEventThrottle={16}
       >
-        {/* 3. PROFILE CARD (Overlap & Luxe) */}
-        <View style={styles.profileCard}>
+        <View style={styles.profileContent}>
           {loading ? (
             <ProfileHeaderSkeleton />
           ) : (
             <>
               <ProfilCard user={user} onEditAvatar={handleEditAvatar} />
 
-              {/* Stats Minimalistes */}
               <StatsMinimalistes
                 userWishlists={userWishlists}
                 reservedGifts={reservedGifts}
@@ -221,251 +201,173 @@ export default function ModernUserProfileScreen() {
 
               {!user?.username && (
                 <TouchableOpacity
-                  style={styles.usernameAlert}
-                  activeOpacity={0.8}
+                  style={[styles.alertBanner, { borderLeftColor: theme.accent }]}
                   onPress={() => router.push("/(screens)/usernameSetupScreen")}
                 >
-                  <View style={styles.alertIcon}>
-                    <Ionicons name="at-circle" size={24} color="#111827" />
-                  </View>
-                  <View style={styles.alertTextContent}>
-                    <Text style={styles.alertTitle}>Définir un pseudo</Text>
-                    <Text style={styles.alertSubtitle}>
-                      Obligatoire pour partager votre profil.
-                    </Text>
-                  </View>
-                  <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
+                  <Icon name="at-outline" size={16} color={theme.accent} />
+                  <ThemedText type="label" style={[styles.alertText]}>
+                    Ajoutez un pseudo pour commencer
+                  </ThemedText>
+                  <Icon name="chevron-forward" size={14} color={theme.accent} />
                 </TouchableOpacity>
               )}
             </>
           )}
         </View>
 
-        {/* 4. TABS FLOTTANTS (Style Menu) */}
-        <View style={styles.tabsContainer}>
-          <View style={styles.tabsInner}>
-            {renderTab("À Offrir", "star", TABS.RESERVED)}
-            {renderTab("Mes Listes", "gift", TABS.WISHES)}
-            {renderTab("Historique", "time", TABS.BOUGHT)}
+        {/* TABS ÉDITORIAUX */}
+        <View style={styles.tabsWrapper}>
+          <View style={[styles.tabsHeader, { borderBottomColor: theme.border }]}>
+            {["À OFFRIR", "COLLECTIONS", "HISTORIQUE"].map((label, index) => {
+              const isActive = activePage === index;
+              return (
+                <TouchableOpacity
+                  key={label}
+                  onPress={() => handleTabPress(index)}
+                  style={[
+                    styles.tabItem,
+                    isActive && {
+                      borderBottomColor: theme.textMain,
+                      borderBottomWidth: 2,
+                    },
+                  ]}
+                >
+                  <ThemedText
+                    type="label"
+                    style={{ color: isActive ? theme.textMain : theme.textSecondary }}
+                  >
+                    {label}
+                  </ThemedText>
+                </TouchableOpacity>
+              );
+            })}
           </View>
         </View>
 
-        {loading && (
-          <View style={styles.gridContainer}>
-            <View style={{ marginBottom: 16 }}>
-              <WishlistCardSkeleton />
-            </View>
-          </View>
-        )}
-
-        {/* 5. CONTENT AREA */}
         <View style={{ minHeight: 600 }}>
           <PagerView
             ref={pagerRef}
-            style={styles.pagerView}
+            style={{ flex: 1 }}
             initialPage={0}
-            onPageSelected={onPageSelected}
+            onPageSelected={(e) => setActivePage(e.nativeEvent.position)}
           >
-            {/* PAGE 1: RESERVED */}
+            {/* RÉSERVATIONS */}
             <LayoutPagerView pageNumber={1}>
-              {reservedGifts.length > 0 ? (
-                reservedGifts.map((gift) => (
-                  <View key={gift.id} style={{ marginBottom: 20 }}>
+              <View style={styles.listContainer}>
+                {reservedGifts.length > 0 ? (
+                  reservedGifts.map((gift) => (
                     <ReservedGiftItem
+                      key={gift.id}
                       gift={gift}
-                      ownerName={gift.wishlist?.user?.name || "Inconnu"}
-                      onPurchased={() => {}}
-                      eventDate={gift.wishlist?.eventDate}
+                      ownerName={gift.wishlist?.user?.name}
+                      onPurchased={() => handleMarkAsPurchased(gift.id)}
+                      onUnreserve={() => handleUnreserve(gift.id)}
                     />
-                  </View>
-                ))
-              ) : (
-                <EmptyListTab
-                  title="Aucune réservation active."
-                  icon="gift-outline"
-                />
-              )}
+                  ))
+                ) : (
+                  <EmptyListTab
+                    title="Le registre est vide."
+                    icon="gift-outline"
+                  />
+                )}
+              </View>
             </LayoutPagerView>
 
-            {/* PAGE 2: WISHES */}
+            {/* COLLECTIONS */}
             <LayoutPagerView pageNumber={2}>
               <View style={styles.gridContainer}>
                 {wishesMapped.map((wishlist: any) => (
-                  <View key={wishlist.wishlistId} style={{ marginBottom: 16 }}>
-                    <GiftWishlistCard {...wishlist} />
-                  </View>
+                  <GiftWishlistCard key={wishlist.wishlistId} {...wishlist} />
                 ))}
               </View>
               <TouchableOpacity
-                style={styles.addListBtn}
+                style={[styles.addBtnRegistry, { borderColor: theme.border }]}
                 onPress={() => router.push("/(screens)/createEventScreen")}
               >
-                <Ionicons name="add" size={24} color="#111827" />
-                <Text style={styles.addListText}>Nouvelle collection</Text>
+                <Icon name="add" />
+                <ThemedText type="label" style={[styles.addBtnText]}>
+                  NOUVELLE COLLECTION
+                </ThemedText>
               </TouchableOpacity>
             </LayoutPagerView>
 
-            {/* PAGE 3: BOUGHT */}
+            {/* HISTORIQUE */}
             <LayoutPagerView pageNumber={3}>
-              {purchasedGifts.length > 0 ? (
-                purchasedGifts.map((gift) => (
-                  <View key={gift.id} style={{ marginBottom: 16 }}>
+              <View style={styles.listContainer}>
+                {purchasedGifts.length > 0 ? (
+                  purchasedGifts.map((gift) => (
                     <ReservedGiftItem
+                      key={gift.id}
                       gift={gift}
-                      ownerName={gift.wishlist?.user?.name || "Inconnu"}
-                      onPurchased={() => {}}
-                      eventDate={gift.wishlist?.eventDate}
+                      ownerName={gift.wishlist?.user?.name}
+                      isHistory
                     />
-                  </View>
-                ))
-              ) : (
-                <EmptyListTab
-                  title="Aucune collection achetée."
-                  icon="receipt-outline"
-                />
-              )}
+                  ))
+                ) : (
+                  <EmptyListTab
+                    title="Aucune attention passée."
+                    icon="receipt-outline"
+                  />
+                )}
+              </View>
             </LayoutPagerView>
           </PagerView>
         </View>
-        <View style={{ height: 40 }} />
       </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-
-  /* --- NAV BAR --- */
+  container: { flex: 1 },
   navBar: {
     position: "absolute",
     left: 0,
     right: 0,
+    paddingHorizontal: 25,
+    zIndex: 20,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 24,
-    paddingTop: 12,
-    zIndex: 10,
   },
-
-  /* --- PROFILE CARD --- */
-  profileCard: {
-    backgroundColor: "#FFFFFF",
-    marginHorizontal: 20,
-    borderRadius: 32,
-    padding: 24,
-    marginBottom: 32,
-    // Ombre diffuse
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 16 },
-    shadowOpacity: 0.08,
-    shadowRadius: 32,
-    elevation: 6,
-  },
-  usernameAlert: {
+  profileContent: { paddingHorizontal: 22, paddingTop: 20 },
+  alertBanner: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#F9FAFB",
-    padding: 16,
-    borderRadius: 20,
-    marginTop: 20,
-    borderWidth: 1,
-    borderColor: "#F3F4F6",
+    backgroundColor: "rgba(175, 144, 98, 0.05)",
+    padding: 12,
+    borderLeftWidth: 2,
+    marginTop: 25,
   },
-  alertIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: "#FFF",
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  alertTextContent: {
+  alertText: {
     flex: 1,
-    marginLeft: 12,
+    marginLeft: 10,
   },
-  alertTitle: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: "#111827",
-  },
-  alertSubtitle: {
-    fontSize: 13,
-    color: "#6B7280",
-    marginTop: 2,
-  },
-  /* --- TABS --- */
-  tabsContainer: {
-    paddingHorizontal: 20,
-    marginBottom: 24,
-  },
-  tabsInner: {
+  tabsWrapper: { paddingHorizontal: 22, marginBottom: 30 },
+  tabsHeader: {
     flexDirection: "row",
-    backgroundColor: "#FFFFFF",
-    borderRadius: 24,
-    padding: 6,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.04,
-    shadowRadius: 12,
-    elevation: 2,
+    borderBottomWidth: 1,
   },
-  tabItem: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 12,
-    borderRadius: 20,
-  },
-  tabItemActive: {
-    backgroundColor: "#111827",
-  },
-  tabText: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#6B7280",
-  },
-  tabTextActive: {
-    color: "#FFFFFF",
-  },
-
-  /* --- CONTENT --- */
-  pagerView: {
-    flex: 1,
-  },
-
+  tabItem: { flex: 1, paddingVertical: 18, alignItems: "center" },
+  listContainer: { paddingHorizontal: 22 },
   gridContainer: {
+    paddingHorizontal: 10,
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-between",
-    gap: 5,
+    gap: 10,
   },
-
-  /* Add List Button (Elegant Outline) */
-  addListBtn: {
+  addBtnRegistry: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 10,
-    marginTop: 16,
     paddingVertical: 18,
-    borderRadius: 20,
+    marginHorizontal: 22,
     borderWidth: 1,
-    borderColor: "#E5E7EB",
-    backgroundColor: "#FFFFFF",
+    borderStyle: "dashed",
+    marginTop: 25,
   },
-  addListText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#111827",
-    letterSpacing: 0.5,
+  addBtnText: {
+    marginLeft: 10,
   },
 });

@@ -5,7 +5,6 @@ import ReservedGiftItem from "@/components/ProfilUI/ReservedGiftItem";
 import { userService } from "@/lib/services/user-service";
 import { friendshipService } from "@/lib/services/friendship-service";
 import { wishlistService } from "@/lib/services/wishlist-service";
-import { WishlistVisibility } from "@/types/gift";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { router, useLocalSearchParams } from "expo-router";
@@ -22,13 +21,20 @@ import {
 } from "react-native";
 import PagerView from "react-native-pager-view";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import * as Haptics from "expo-haptics";
+import HeaderParallax from "@/components/ProfilUI/HeaderParallax";
 
-// --- CONFIG TABS ---
-const TABS = {
-  WISHLISTS: 0,
-  RESERVED_FOR_HIM: 1,
-  ABOUT: 2,
+// --- THEME ÉDITORIAL COHÉRENT ---
+const THEME = {
+  background: "#FDFBF7",
+  surface: "#FFFFFF",
+  textMain: "#1A1A1A",
+  textSecondary: "#8E8E93",
+  accent: "#AF9062", // Or brossé
+  border: "rgba(0,0,0,0.08)",
 };
+
+const TABS = { WISHLISTS: 0, RESERVED: 1, ABOUT: 2 };
 
 export default function FriendProfileScreen() {
   const insets = useSafeAreaInsets();
@@ -40,20 +46,11 @@ export default function FriendProfileScreen() {
   const [friendInfo, setFriendInfo] = useState<any>(null);
   const [friendWishlists, setFriendWishlists] = useState<any[]>([]);
   const [reservedGifts, setReservedGifts] = useState<any[]>([]);
-  const [friendshipStatus, setFriendshipStatus] = useState<{
-    isFriend: boolean;
-    isPendingSent: boolean;
-    isPendingReceived: boolean;
-    friendshipId?: string;
-  }>({
+  const [friendshipStatus, setFriendshipStatus] = useState<any>({
     isFriend: false,
-    isPendingSent: false,
-    isPendingReceived: false,
   });
-  const [loading, setLoading] = useState(true);
 
   const loadProfileData = useCallback(async () => {
-    setLoading(true);
     try {
       const [userRes, wishlistsRes, friendshipsRes, reservationsRes] =
         await Promise.all([
@@ -63,18 +60,14 @@ export default function FriendProfileScreen() {
           friendshipService.getFriendReservations(friendId),
         ]);
 
-      if (userRes.success) {
-        setFriendInfo(userRes.user);
-      }
-      if (wishlistsRes.success) {
-        setFriendWishlists(wishlistsRes.wishlists);
-      }
-      if (reservationsRes.success) {
-        setReservedGifts(reservationsRes.gifts);
-      }
+      if (userRes.success) setFriendInfo(userRes.user);
+      if (wishlistsRes.success) setFriendWishlists(wishlistsRes.wishlists);
+      if (reservationsRes.success) setReservedGifts(reservationsRes.gifts);
 
       if (friendshipsRes.success) {
-        const isFriend = friendshipsRes.friends.some((f) => f.id === friendId);
+        const isFriendRes = friendshipsRes.friends.find(
+          (f) => f.id === friendId,
+        );
         const pendingSent = friendshipsRes.requestsSent.find(
           (r) => r.receiverId === friendId || r.id === friendId,
         );
@@ -83,17 +76,18 @@ export default function FriendProfileScreen() {
         );
 
         setFriendshipStatus({
-          isFriend,
+          isFriend: !!isFriendRes,
           isPendingSent: !!pendingSent,
           isPendingReceived: !!pendingReceived,
+          isFavorite: isFriendRes?.isFavorite || false,
           friendshipId:
-            pendingSent?.friendshipId || pendingReceived?.friendshipId,
+            pendingSent?.friendshipId ||
+            pendingReceived?.friendshipId ||
+            isFriendRes?.friendshipId,
         });
       }
-    } catch (error) {
-      console.error("Error loading friend profile:", error);
-    } finally {
-      setLoading(false);
+    } catch {
+      // Data failure
     }
   }, [friendId]);
 
@@ -101,207 +95,161 @@ export default function FriendProfileScreen() {
     loadProfileData();
   }, [loadProfileData]);
 
-  // Animation Header (Parallax & Blur simulation)
-  const headerHeight = 320; // Plus grand pour l'effet dramatique
-  const imageScale = scrollY.interpolate({
-    inputRange: [-100, 0],
-    outputRange: [1.15, 1],
-    extrapolate: "clamp",
-  });
   const headerOpacity = scrollY.interpolate({
-    inputRange: [0, headerHeight - 120],
+    inputRange: [0, 100],
     outputRange: [1, 0],
     extrapolate: "clamp",
   });
 
   const handleTabPress = (index: number) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setActivePage(index);
     pagerRef.current?.setPage(index);
   };
 
-  const onPageSelected = (e: any) => {
-    setActivePage(e.nativeEvent.position);
+  const navigateToPrivateInfo = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    router.push({
+      pathname: "/profilFriend/friendPrivateInfoScreen",
+      params: { friendId: friendId },
+    });
   };
-
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" />
+      <StatusBar barStyle="dark-content" />
 
-      {/* 1. HEADER IMMERSIF (Cover + Avatar) */}
-      <Animated.View
-        style={[styles.headerContainer, { opacity: headerOpacity }]}
-      >
-        <Animated.Image
-          source={{
-            uri:
-              friendInfo?.coverUrl ||
-              "https://images.unsplash.com/photo-1557683311-eac922347aa1?w=800",
-          }}
-          style={[styles.headerImage, { transform: [{ scale: imageScale }] }]}
-        />
-        <View style={styles.headerOverlay} />
-        {/* Dégradé subtil en bas du header pour fondre avec la carte */}
-        <View style={styles.headerGradient} />
-      </Animated.View>
+      {/* 1. HEADER PARALLAX ÉLÉGANT */}
+      <HeaderParallax
+        user={friendInfo}
+        headerOpacity={headerOpacity}
+        imageScale={new Animated.Value(1)}
+      />
 
-      {/* 2. NAVIGATION BAR (Flottante) */}
-      <View style={[styles.navBar, { top: insets.top }]}>
-        <TouchableOpacity
-          style={styles.iconButtonBlur}
-          onPress={() => router.back()}
-        >
-          <Ionicons name="arrow-back" size={22} color="#FFF" />
+      {/* 2. TOP BAR */}
+      <View style={[styles.navBar, { top: insets.top + 10 }]}>
+        <TouchableOpacity style={styles.iconBtn} onPress={() => router.back()}>
+          <Ionicons name="chevron-back" size={24} color={THEME.textMain} />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.iconButtonBlur}>
-          <Ionicons name="ellipsis-horizontal" size={22} color="#FFF" />
+        <TouchableOpacity style={styles.iconBtn}>
+          <Ionicons
+            name="ellipsis-horizontal"
+            size={20}
+            color={THEME.textMain}
+          />
         </TouchableOpacity>
       </View>
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingTop: 160 }}
+        contentContainerStyle={{ paddingTop: 100 }}
         onScroll={Animated.event(
           [{ nativeEvent: { contentOffset: { y: scrollY } } }],
           { useNativeDriver: false },
         )}
         scrollEventThrottle={16}
-        stickyHeaderIndices={[1]} // Tabs sticky si désiré (ici index 1 car ProfileCard est 0)
       >
-        {/* 3. CARTE D'INFO PRINCIPALE (Luxe Style) */}
-        <View style={styles.profileCard}>
-          <View style={styles.cardHeaderRow}>
-            {/* Avatar qui déborde */}
-            <View style={styles.avatarWrapper}>
-              <Image
-                source={{ uri: friendInfo?.image }}
-                style={styles.avatar}
-                contentFit="cover"
-              />
-              <View style={styles.onlineBadge} />
-            </View>
-
-            {/* Stats minimalistes */}
-            <View style={styles.statsRow}>
+        {/* 3. PROFILE SECTION */}
+        <View style={styles.profileSection}>
+          <View style={styles.avatarRow}>
+            <Image source={{ uri: friendInfo?.image }} style={styles.avatar} />
+            <View style={styles.statsContainer}>
               <View style={styles.statItem}>
-                <Text style={styles.statNumber}>{friendWishlists.length}</Text>
-                <Text style={styles.statLabel}>Collections</Text>
+                <Text style={styles.statNum}>{friendWishlists.length}</Text>
+                <Text style={styles.statLab}>LISTES</Text>
               </View>
+              <View style={styles.statDivider} />
               <View style={styles.statItem}>
-                <Text style={styles.statNumber}>-</Text>
-                <Text style={styles.statLabel}>Amis</Text>
+                <Text style={styles.statNum}>
+                  {friendInfo?.friendsCount ?? 0}
+                </Text>
+                <Text style={styles.statLab}>CERCLE</Text>
               </View>
             </View>
           </View>
 
-          <View style={styles.infoSection}>
+          <View style={styles.identity}>
             <Text style={styles.name}>{friendInfo?.name}</Text>
-            <Text style={styles.username}>
-              @{friendInfo?.username || friendInfo?.email?.split("@")[0]}
+            <Text style={styles.handle}>
+              @{friendInfo?.username || "membre"}
             </Text>
             <Text style={styles.bio}>
               {friendInfo?.description ||
-                "Passionné de design et de belles choses."}
+                "Passionné par les attentions qui font sens."}
             </Text>
           </View>
 
-          {/* 4. ACTION BUTTONS (Noirs & Élégants) */}
+          {/* ACTIONS AUTHORITY */}
           <View style={styles.actionRow}>
             {friendshipStatus.isFriend ? (
               <TouchableOpacity
                 style={styles.secondaryBtn}
                 onPress={async () => {
-                  // Optionnel : Supprimer l'ami ?
-                  // Pour l'instant on laisse "Amis"
-                }}
-              >
-                <Text style={styles.secondaryBtnText}>Amis</Text>
-              </TouchableOpacity>
-            ) : friendshipStatus.isPendingSent ? (
-              <TouchableOpacity
-                style={styles.secondaryBtn}
-                onPress={async () => {
-                  const res = await friendshipService.cancelRequest(friendId);
-                  if (res.success) {
+                  const prev = { ...friendshipStatus };
+                  setFriendshipStatus({ ...prev, isFriend: false });
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                  try {
+                    const res = await friendshipService.removeFriendship(
+                      friendshipStatus.friendshipId,
+                    );
+                    if (!res.success) setFriendshipStatus(prev);
                     loadProfileData();
-                  } else {
-                    alert(res.message || "Erreur lors de l'annulation");
+                  } catch {
+                    setFriendshipStatus(prev);
                   }
                 }}
               >
-                <Text style={styles.secondaryBtnText}>Annuler la demande</Text>
+                <Text style={styles.secondaryBtnText}>MEMBRE DU CERCLE</Text>
               </TouchableOpacity>
-            ) : friendshipStatus.isPendingReceived ? (
-              <>
-                <TouchableOpacity
-                  style={styles.primaryBtn}
-                  onPress={async () => {
-                    const res = await friendshipService.acceptRequest(
-                      friendshipStatus.friendshipId!,
-                    );
-                    if (res.success) {
-                      loadProfileData();
-                    }
-                  }}
-                >
-                  <Text style={styles.primaryBtnText}>Accepter</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.secondaryBtn}
-                  onPress={async () => {
-                    const res = await friendshipService.removeFriendship(
-                      friendshipStatus.friendshipId!,
-                    );
-                    if (res.success) {
-                      loadProfileData();
-                    }
-                  }}
-                >
-                  <Text style={styles.secondaryBtnText}>Refuser</Text>
-                </TouchableOpacity>
-              </>
             ) : (
               <TouchableOpacity
                 style={styles.primaryBtn}
                 onPress={async () => {
-                  const res = await friendshipService.sendRequest(friendId);
-                  if (res.success) {
+                  const prev = { ...friendshipStatus };
+                  setFriendshipStatus({ ...prev, isPendingSent: true });
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  try {
+                    const res = await friendshipService.sendRequest(friendId);
+                    if (!res.success) setFriendshipStatus(prev);
                     loadProfileData();
+                  } catch {
+                    setFriendshipStatus(prev);
                   }
                 }}
               >
-                <Text style={styles.primaryBtnText}>Ajouter</Text>
+                <Text style={styles.primaryBtnText}>
+                  {friendshipStatus.isPendingSent
+                    ? "DEMANDE ENVOYÉE"
+                    : "REJOINDRE LE CERCLE"}
+                </Text>
               </TouchableOpacity>
             )}
-
-            {!friendshipStatus.isPendingReceived && (
-              <TouchableOpacity style={styles.secondaryBtn}>
-                <Text style={styles.secondaryBtnText}>Message</Text>
-              </TouchableOpacity>
-            )}
-
             <TouchableOpacity style={styles.iconActionBtn}>
-              <Ionicons name="share-outline" size={20} color="#111827" />
+              <Ionicons
+                name="chatbubble-outline"
+                size={20}
+                color={THEME.textMain}
+              />
             </TouchableOpacity>
           </View>
         </View>
 
-        {/* 5. TABS NAVIGATION */}
+        {/* 4. TABS STYLE MENU */}
         <View style={styles.tabsWrapper}>
-          <View style={styles.tabsContainer}>
+          <View style={styles.tabsHeader}>
             <RenderTabButton
-              label="Listes"
+              label="SES LISTES"
               index={TABS.WISHLISTS}
               activePage={activePage}
               handleTabPress={handleTabPress}
             />
             <RenderTabButton
-              label="Réservations"
-              index={TABS.RESERVED_FOR_HIM}
+              label="RÉSERVATIONS"
+              index={TABS.RESERVED}
               activePage={activePage}
               handleTabPress={handleTabPress}
             />
             <RenderTabButton
-              label="À propos"
+              label="DÉTAILS"
               index={TABS.ABOUT}
               activePage={activePage}
               handleTabPress={handleTabPress}
@@ -309,149 +257,93 @@ export default function FriendProfileScreen() {
           </View>
         </View>
 
-        {/* 6. CONTENU (PAGER) */}
-        <View style={{ minHeight: 600, backgroundColor: "#FDFBF7" }}>
+        {/* 5. CONTENU */}
+        <View style={{ minHeight: 500 }}>
           <PagerView
             ref={pagerRef}
-            style={styles.pagerView}
+            style={{ flex: 1 }}
             initialPage={0}
-            onPageSelected={onPageSelected}
+            onPageSelected={(e) => setActivePage(e.nativeEvent.position)}
           >
-            {/* PAGE 1 : SES WISHLISTS */}
+            {/* WISHLISTS */}
             <LayoutPagerView pageNumber={0}>
               <View style={styles.contentGrid}>
-                {friendWishlists.map((wishlist) => (
-                  <View key={wishlist.id} style={{ marginBottom: 20 }}>
-                    <GiftWishlistCard
-                      wishlistId={wishlist.id}
-                      wishlistTitle={wishlist.title}
-                      totalGifts={wishlist._count?.gifts || 0}
-                      wishlistVisibility={
-                        wishlist.visibility as WishlistVisibility
-                      }
-                      images={[]} // Pas d'images pour le moment via cette route
-                    />
-                  </View>
+                {friendWishlists.map((wl) => (
+                  <GiftWishlistCard
+                    key={wl.id}
+                    wishlistId={wl.id}
+                    wishlistTitle={wl.title}
+                    totalGifts={wl._count?.gifts || 0}
+                    wishlistVisibility={wl.visibility}
+                    images={[]}
+                  />
                 ))}
-                {!loading && friendWishlists.length === 0 && (
-                  <View style={styles.emptyState}>
-                    <Text style={styles.emptyText}>
-                      Aucune collection publique.
-                    </Text>
-                  </View>
-                )}
               </View>
             </LayoutPagerView>
 
-            {/* PAGE 2 : CE QUE J'AI RÉSERVÉ */}
+            {/* RESERVED */}
             <LayoutPagerView pageNumber={1}>
-              <View style={styles.contentPadding}>
-                <View style={styles.secretNote}>
-                  <Ionicons
-                    name="lock-closed-outline"
-                    size={16}
-                    color="#111827"
-                  />
+              <View style={styles.registryList}>
+                <View style={styles.secretBanner}>
+                  <Ionicons name="lock-closed" size={12} color={THEME.accent} />
                   <Text style={styles.secretText}>
-                    Visible uniquement par vous.
+                    REGISTRE PRIVÉ — SEUL VOUS POUVEZ VOIR CECI
                   </Text>
                 </View>
-
                 {reservedGifts.map((gift) => (
                   <ReservedGiftItem
                     key={gift.id}
                     gift={gift}
                     ownerName={friendInfo?.name}
-                    onPurchased={() => loadProfileData()}
-                    eventDate={new Date()} // Optionnel
+                    onPurchased={loadProfileData}
                   />
                 ))}
-
-                {reservedGifts.length === 0 && (
-                  <View style={styles.emptyState}>
-                    <Text style={styles.emptyText}>Aucun cadeau réservé.</Text>
-                  </View>
-                )}
               </View>
             </LayoutPagerView>
 
-            {/* PAGE 3 : ABOUT */}
+            {/* ABOUT */}
             <LayoutPagerView pageNumber={2}>
-              <View style={styles.contentPadding}>
-                <View style={styles.aboutCard}>
-                  <View style={styles.aboutRow}>
-                    <Text style={styles.aboutLabel}>Membre depuis</Text>
-                    <Text style={styles.aboutValue}>
-                      {friendInfo?.createdAt
-                        ? new Date(friendInfo.createdAt).getFullYear()
-                        : "2024"}
-                    </Text>
-                  </View>
-                  <View style={styles.divider} />
-                  <View style={styles.aboutRow}>
-                    <Text style={styles.aboutLabel}>Localisation</Text>
-                    <Text style={styles.aboutValue}>
-                      {friendInfo?.location || "Non spécifiée"}
-                    </Text>
-                  </View>
-                  <View style={styles.divider} />
-                  <View
-                    style={[
-                      styles.aboutRow,
-                      {
-                        flexDirection: "column",
-                        alignItems: "flex-start",
-                        gap: 12,
-                      },
-                    ]}
-                  >
-                    <Text style={styles.aboutLabel}>Réseaux Sociaux</Text>
-                    <View style={styles.socialGrid}>
-                      {friendInfo?.socialLinks &&
-                      Array.isArray(friendInfo.socialLinks) &&
-                      friendInfo.socialLinks.length > 0 ? (
-                        friendInfo.socialLinks.map((link: any, idx: number) => {
-                          let iconName: any = "link";
-                          const platform = link.platform?.toLowerCase();
-                          if (platform?.includes("instagram"))
-                            iconName = "logo-instagram";
-                          if (platform?.includes("tiktok"))
-                            iconName = "logo-tiktok";
-                          if (
-                            platform?.includes("twitter") ||
-                            platform?.includes("x")
-                          )
-                            iconName = "logo-twitter";
-                          if (platform?.includes("facebook"))
-                            iconName = "logo-facebook";
-
-                          return (
-                            <TouchableOpacity
-                              key={idx}
-                              style={styles.socialItem}
-                              onPress={() => {
-                                /* Ouvrir URL */
-                              }}
-                            >
-                              <Ionicons
-                                name={iconName}
-                                size={20}
-                                color="#111827"
-                              />
-                              <Text style={styles.socialText}>
-                                {link.platform || "Lien"}
-                              </Text>
-                            </TouchableOpacity>
-                          );
-                        })
-                      ) : (
-                        <Text style={styles.emptyBio}>
-                          Aucun lien configuré.
-                        </Text>
-                      )}
-                    </View>
-                  </View>
+              <View style={styles.registryList}>
+                <View style={styles.infoLine}>
+                  <Text style={styles.infoLabel}>MEMBRE DEPUIS</Text>
+                  <Text style={styles.infoValue}>2024</Text>
                 </View>
+                <View style={styles.infoLine}>
+                  <Text style={styles.infoLabel}>ANNIVERSAIRE</Text>
+                  <Text style={styles.infoValue}>
+                    {friendInfo?.birthday
+                      ? new Date(friendInfo.birthday).toLocaleDateString(
+                          "fr-FR",
+                          { day: "numeric", month: "long" },
+                        )
+                      : "NON RENSEIGNÉ"}
+                  </Text>
+                </View>
+                {friendshipStatus.isFriend && (
+                  <TouchableOpacity
+                    style={styles.prefLink}
+                    onPress={navigateToPrivateInfo}
+                  >
+                    <Ionicons
+                      name="heart-outline"
+                      size={18}
+                      color={THEME.accent}
+                    />
+                    <View style={{ flex: 1, marginLeft: 15 }}>
+                      <Text style={styles.prefTitle}>
+                        PRÉFÉRENCES PERSONNELLES
+                      </Text>
+                      <Text style={styles.prefSub}>
+                        Tailles, goûts et modalités de livraison
+                      </Text>
+                    </View>
+                    <Ionicons
+                      name="chevron-forward"
+                      size={14}
+                      color={THEME.border}
+                    />
+                  </TouchableOpacity>
+                )}
               </View>
             </LayoutPagerView>
           </PagerView>
@@ -462,314 +354,175 @@ export default function FriendProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#FDFBF7", // Blanc cassé "Bone"
-  },
-
-  /* --- HEADER --- */
-  headerContainer: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 240,
-    zIndex: 0,
-    backgroundColor: "#111827",
-  },
-  headerImage: {
-    width: "100%",
-    height: "100%",
-    opacity: 0.8,
-  },
-  headerOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.25)",
-  },
-  headerGradient: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 100,
-    // Simulation gradient transparent -> couleur de fond
-    // Sur web/expo on pourrait utiliser LinearGradient, ici simple overlay
-    backgroundColor: "rgba(0,0,0,0.1)",
-  },
+  container: { flex: 1, backgroundColor: THEME.background },
   navBar: {
     position: "absolute",
     left: 0,
     right: 0,
     flexDirection: "row",
     justifyContent: "space-between",
-    paddingHorizontal: 24,
-    paddingTop: 12,
-    zIndex: 100,
+    paddingHorizontal: 20,
+    zIndex: 20,
   },
-  iconButtonBlur: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: "rgba(255,255,255,0.15)",
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.1)",
-    backdropFilter: "blur(12px)", // Web only, ignoré sur natif
-  },
-
-  /* --- PROFILE CARD --- */
-  profileCard: {
-    backgroundColor: "#FFFFFF",
-    marginHorizontal: 20,
-    borderRadius: 32,
-    padding: 24,
-    marginBottom: 24,
-    // Ombre diffuse colorée (Luxe)
-    shadowColor: "#111827",
-    shadowOffset: { width: 0, height: 16 },
-    shadowOpacity: 0.08,
-    shadowRadius: 32,
-    elevation: 8,
-  },
-  cardHeaderRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginBottom: 12,
-  },
-  avatarWrapper: {
-    marginTop: -60, // Sort de la carte
-    position: "relative",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 16,
-  },
-  avatar: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
-    borderWidth: 4,
-    borderColor: "#FFFFFF",
-    backgroundColor: "#F3F4F6",
-  },
-  onlineBadge: {
-    position: "absolute",
-    bottom: 4,
-    right: 0,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: "#10B981",
-    borderWidth: 3,
-    borderColor: "#FFFFFF",
-  },
-  statsRow: {
-    flexDirection: "row",
-    gap: 20,
-    paddingTop: 8,
-  },
-  statItem: {
-    alignItems: "center",
-  },
-  statNumber: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#111827",
-  },
-  statLabel: {
-    fontSize: 11,
-    color: "#9CA3AF",
-    fontWeight: "600",
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-  },
-
-  /* INFO TEXTS */
-  infoSection: {
-    marginBottom: 24,
-    marginTop: 8,
-  },
-  name: {
-    fontSize: 28,
-    fontWeight: "500",
-    color: "#111827",
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-    marginBottom: 4,
-  },
-  username: {
-    fontSize: 14,
-    color: "#9CA3AF",
-    fontWeight: "500",
-    marginBottom: 12,
-    letterSpacing: 0.5,
-  },
-  bio: {
-    fontSize: 15,
-    color: "#4B5563",
-    lineHeight: 24,
-    fontWeight: "400",
-  },
-
-  /* ACTIONS */
-  actionRow: {
-    flexDirection: "row",
-    gap: 12,
-  },
-  primaryBtn: {
-    flex: 2,
-    backgroundColor: "#111827", // Noir profond
-    height: 52,
-    borderRadius: 26, // Pill shape total
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-  },
-  primaryBtnText: {
-    color: "#FFFFFF",
-    fontWeight: "600",
-    fontSize: 15,
-  },
-  secondaryBtn: {
-    flex: 1.5,
-    backgroundColor: "#FFFFFF",
-    height: 52,
-    borderRadius: 26,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-  },
-  secondaryBtnText: {
-    color: "#111827",
-    fontWeight: "600",
-    fontSize: 15,
-  },
-  iconActionBtn: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#FFF",
-  },
-
-  /* --- TABS --- */
-  tabsWrapper: {
-    backgroundColor: "#FDFBF7",
-    zIndex: 10,
-    paddingVertical: 10,
-  },
-  tabsContainer: {
-    flexDirection: "row",
-    paddingHorizontal: 24,
-    gap: 32,
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(0,0,0,0.03)",
-    paddingBottom: 16,
-  },
-
-  /* --- CONTENT --- */
-  pagerView: {
-    flex: 1,
-  },
-  contentPadding: {
-    paddingTop: 24,
-  },
-  contentGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
-    gap: 5,
-  },
-  emptyState: {
-    alignItems: "center",
-    paddingTop: 40,
-  },
-  emptyText: {
-    color: "#9CA3AF",
-    fontStyle: "italic",
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-    fontSize: 16,
-  },
-
-  /* Secret Note */
-  secretNote: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    backgroundColor: "#F3F4F6",
-    alignSelf: "flex-start",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+  iconBtn: {
+    width: 40,
+    height: 40,
     borderRadius: 20,
-    marginBottom: 20,
-  },
-  secretText: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#111827",
+    backgroundColor: THEME.surface,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: THEME.border,
   },
 
-  /* About Section */
-  aboutCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 24,
-    padding: 24,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.03,
-    shadowRadius: 12,
+  profileSection: { paddingHorizontal: 32, paddingTop: 40, marginBottom: 40 },
+  avatarRow: { flexDirection: "row", alignItems: "flex-end", marginBottom: 25 },
+  avatar: {
+    width: 90,
+    height: 90,
+    borderRadius: 0,
+    backgroundColor: "#F2F2F7",
+    borderWidth: 1,
+    borderColor: THEME.border,
   },
-  aboutRow: {
+  statsContainer: {
+    flex: 1,
     flexDirection: "row",
-    justifyContent: "space-between",
-    paddingVertical: 14,
+    marginLeft: 25,
+    paddingBottom: 10,
   },
-  aboutLabel: {
-    fontSize: 15,
-    color: "#6B7280",
-    fontWeight: "500",
+  statItem: { flex: 1, alignItems: "center" },
+  statNum: {
+    fontSize: 18,
+    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
+    color: THEME.textMain,
   },
-  aboutValue: {
-    fontSize: 15,
-    color: "#111827",
-    fontWeight: "600",
-  },
-  divider: {
-    height: 1,
-    backgroundColor: "#F3F4F6",
-  },
-  /* Social Links */
-  socialGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 12,
+  statLab: {
+    fontSize: 8,
+    fontWeight: "800",
+    color: THEME.textSecondary,
+    letterSpacing: 1,
     marginTop: 4,
   },
-  socialItem: {
+  statDivider: { width: 1, height: 20, backgroundColor: THEME.border },
+
+  identity: { marginBottom: 30 },
+  name: {
+    fontSize: 32,
+    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
+    color: THEME.textMain,
+    letterSpacing: -1,
+  },
+  handle: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: THEME.accent,
+    letterSpacing: 0.5,
+    marginTop: 4,
+  },
+  bio: {
+    fontSize: 14,
+    color: THEME.textSecondary,
+    marginTop: 12,
+    lineHeight: 20,
+    fontStyle: "italic",
+    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
+  },
+
+  actionRow: { flexDirection: "row", gap: 12 },
+  primaryBtn: {
+    flex: 1,
+    height: 50,
+    backgroundColor: THEME.textMain,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  primaryBtnText: {
+    color: "#FFF",
+    fontSize: 10,
+    fontWeight: "800",
+    letterSpacing: 1,
+  },
+  secondaryBtn: {
+    flex: 1,
+    height: 50,
+    borderWidth: 1,
+    borderColor: THEME.textMain,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  secondaryBtnText: {
+    color: THEME.textMain,
+    fontSize: 10,
+    fontWeight: "800",
+    letterSpacing: 1,
+  },
+  iconActionBtn: {
+    width: 50,
+    height: 50,
+    borderWidth: 1,
+    borderColor: THEME.border,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  tabsWrapper: { paddingHorizontal: 32, marginBottom: 25 },
+  tabsHeader: {
+    flexDirection: "row",
+    borderBottomWidth: 1,
+    borderBottomColor: THEME.border,
+  },
+  contentGrid: {
+    paddingHorizontal: 25,
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+  },
+  registryList: { paddingHorizontal: 32 },
+
+  secretBanner: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#F3F4F6",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 16,
     gap: 8,
+    marginBottom: 20,
+    opacity: 0.6,
   },
-  socialText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#111827",
+  secretText: {
+    fontSize: 8,
+    fontWeight: "800",
+    color: THEME.textMain,
+    letterSpacing: 1,
   },
-  emptyBio: {
-    fontSize: 14,
-    color: "#9CA3AF",
-    fontStyle: "italic",
+
+  infoLine: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingVertical: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: THEME.border,
   },
+  infoLabel: {
+    fontSize: 9,
+    fontWeight: "800",
+    color: THEME.textSecondary,
+    letterSpacing: 1.5,
+  },
+  infoValue: { fontSize: 13, fontWeight: "600", color: THEME.textMain },
+
+  prefLink: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 25,
+    padding: 20,
+    backgroundColor: "#FFF",
+    borderWidth: 1,
+    borderColor: THEME.border,
+  },
+  prefTitle: {
+    fontSize: 11,
+    fontWeight: "800",
+    color: THEME.textMain,
+    letterSpacing: 1,
+  },
+  prefSub: { fontSize: 10, color: THEME.textSecondary, marginTop: 2 },
 });

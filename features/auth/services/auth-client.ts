@@ -5,7 +5,7 @@ import { serverErrorStore } from "@/hooks/useServerError";
 import { emailOTPClient } from "better-auth/client/plugins";
 
 export const authClient = createAuthClient({
-  baseURL: process.env.EXPO_PUBLIC_API_URL || "http://localhost:3000",
+  baseURL: process.env.EXPO_PUBLIC_API_URL,
   fetchOptions: {
     onError: (context) => {
       // Intercepter les erreurs 500 (Serveur / BDD)
@@ -16,7 +16,7 @@ export const authClient = createAuthClient({
   },
   plugins: [
     expoClient({
-      scheme: "exp",
+      scheme: "wishly",
       storagePrefix: "withbetterauth",
       storage: SecureStore,
     }),

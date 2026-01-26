@@ -1,53 +1,48 @@
 import { Ionicons } from "@expo/vector-icons";
 import BottomSheet, { BottomSheetView } from "@gorhom/bottom-sheet";
 import React, {
-  useCallback,
   useEffect,
   useMemo,
   useRef,
   useState,
 } from "react";
 import {
-  Keyboard,
   Platform,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  TouchableWithoutFeedback,
   View,
   ScrollView,
-  Alert,
 } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
-
+import * as Haptics from "expo-haptics";
 import { GiftWishlist, WishlistVisibility } from "@/types/gift";
 
-// --- THEME ---
+// --- THEME ÉDITORIAL COHÉRENT ---
 const THEME = {
-  background: "#FDFBF7",
+  background: "#FDFBF7", // Bone Silk
   surface: "#FFFFFF",
-  textMain: "#111827",
-  textSecondary: "#6B7280",
-  primary: "#111827",
+  textMain: "#1A1A1A",
+  textSecondary: "#8E8E93",
+  primary: "#1A1A1A",
+  accent: "#AF9062", // Or brossé
   border: "rgba(0,0,0,0.08)",
-  danger: "#EF4444",
-  accent: "#F3F4F6",
+  danger: "#C34A4A",
 };
 
-// --- OPTIONS VISIBILITÉ ---
 const VISIBILITY_OPTIONS = [
   {
     id: WishlistVisibility.PUBLIC,
     label: "Public",
-    description: "Visible par tous via recherche.",
+    description: "Visible par tout votre cercle.",
     icon: "globe-outline",
   },
   {
     id: WishlistVisibility.FRIENDS,
-    label: "Cercle Proche",
-    description: "Visible par vos amis uniquement.",
+    label: "Cercle",
+    description: "Limité à vos amis acceptés.",
     icon: "people-outline",
   },
   {
@@ -56,13 +51,6 @@ const VISIBILITY_OPTIONS = [
     description: "Visible uniquement par vous.",
     icon: "lock-closed-outline",
   },
-  {
-    id: WishlistVisibility.SELECT,
-    label: "Spécifique",
-    description: "Partage sélectif (Bientôt).",
-    icon: "person-add-outline",
-    disabled: true,
-  },
 ];
 
 interface WishlistEditModalProps {
@@ -70,7 +58,6 @@ interface WishlistEditModalProps {
   visible: boolean;
   onClose: () => void;
   onSave: (updatedData: Partial<GiftWishlist>) => void;
-  onDelete?: (id: string) => void; // Ajout UX: Suppression
 }
 
 export default function WishlistEditModal({
@@ -82,7 +69,6 @@ export default function WishlistEditModal({
   const bottomSheetRef = useRef<BottomSheet>(null);
   const snapPoints = useMemo(() => ["92%"], []);
 
-  // --- STATE ---
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [visibility, setVisibility] = useState<WishlistVisibility>(
@@ -91,7 +77,6 @@ export default function WishlistEditModal({
   const [date, setDate] = useState<Date | null>(null);
   const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
 
-  // Init Data
   useEffect(() => {
     if (visible && wishlist) {
       setTitle(wishlist.title);
@@ -101,19 +86,12 @@ export default function WishlistEditModal({
       bottomSheetRef.current?.expand();
     } else {
       bottomSheetRef.current?.close();
-      Keyboard.dismiss();
     }
   }, [visible, wishlist]);
 
-  const handleSheetChange = useCallback(
-    (index: number) => {
-      if (index === -1) onClose();
-    },
-    [onClose],
-  );
-
   const handleSave = () => {
     if (!title.trim()) return;
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     onSave({
       title,
       description,
@@ -123,191 +101,158 @@ export default function WishlistEditModal({
     onClose();
   };
 
-
   return (
     <GestureHandlerRootView
       style={[StyleSheet.absoluteFill, { zIndex: visible ? 100 : -1 }]}
       pointerEvents={visible ? "auto" : "none"}
     >
-      {visible && (
-        <TouchableWithoutFeedback onPress={onClose}>
-          <View style={styles.backdrop} />
-        </TouchableWithoutFeedback>
-      )}
+      {visible && <View style={styles.backdrop} />}
 
       <BottomSheet
         ref={bottomSheetRef}
         snapPoints={snapPoints}
         enablePanDownToClose
-        onChange={handleSheetChange}
+        onChange={(index) => index === -1 && onClose()}
         backgroundStyle={styles.sheetBackground}
         handleIndicatorStyle={styles.handle}
-        keyboardBlurBehavior="restore"
       >
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-          <BottomSheetView style={styles.container}>
-            {/* HEADER MINIMALISTE */}
-            <View style={styles.header}>
-              <Text style={styles.headerTitle}>Édition</Text>
-              <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-                <Ionicons name="close" size={22} color={THEME.textMain} />
-              </TouchableOpacity>
+        <BottomSheetView style={styles.container}>
+          {/* HEADER ÉPURÉ */}
+          <View style={styles.header}>
+            <Text style={styles.navTitle}>ÉDITION DE COLLECTION</Text>
+            <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
+              <Ionicons name="close-outline" size={24} color={THEME.textMain} />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.scrollContent}
+          >
+            {/* SECTION TITRE ÉDITORIAL */}
+            <View style={styles.inputSection}>
+              <Text style={styles.miniLabel}>NOM DE L&apos;ÉVÉNEMENT</Text>
+              <TextInput
+                style={styles.heroInput}
+                value={title}
+                onChangeText={setTitle}
+                placeholder="Titre de la pièce..."
+                placeholderTextColor="#BCBCBC"
+                selectionColor={THEME.accent}
+              />
             </View>
 
-            <ScrollView
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={styles.scrollContent}
-            >
-              {/* SECTION 1 : CONTENU "ÉDITORIAL" */}
-              <View style={styles.heroInputSection}>
-                <Text style={styles.label}>TITRE DE LA COLLECTION</Text>
-                <TextInput
-                  style={styles.heroInput}
-                  value={title}
-                  onChangeText={setTitle}
-                  placeholder="Nom de l'événement"
-                  placeholderTextColor="#D1D5DB"
-                  multiline
-                />
-
-                {/* Date intégrée élégamment */}
-                <TouchableOpacity
-                  style={styles.dateRow}
-                  onPress={() => setDatePickerVisibility(true)}
-                >
-                  <View style={styles.dateIconBadge}>
-                    <Ionicons
-                      name="calendar"
-                      size={14}
-                      color={THEME.textMain}
-                    />
-                  </View>
-                  <Text
-                    style={[styles.dateText, !date && { color: "#9CA3AF" }]}
-                  >
-                    {date
-                      ? date.toLocaleDateString("fr-FR", {
-                          weekday: "long",
+            {/* DATE STYLE SIGNATURE */}
+            <View style={styles.inputSection}>
+              <Text style={styles.miniLabel}>DATE DE CÉLÉBRATION</Text>
+              <TouchableOpacity
+                style={styles.dateSelector}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  setDatePickerVisibility(true);
+                }}
+              >
+                <Text style={[styles.dateValue, !date && { color: "#BCBCBC" }]}>
+                  {date
+                    ? date
+                        .toLocaleDateString("fr-FR", {
                           day: "numeric",
                           month: "long",
                           year: "numeric",
                         })
-                      : "Ajouter une date (Optionnel)"}
-                  </Text>
-                  {date && (
-                    <TouchableOpacity
-                      onPress={() => setDate(null)}
-                      style={{ marginLeft: 8 }}
-                    >
-                      <Ionicons name="close-circle" size={16} color="#9CA3AF" />
-                    </TouchableOpacity>
-                  )}
-                </TouchableOpacity>
-
-                <View style={styles.divider} />
-
-                <Text style={styles.label}>NOTE / DESCRIPTION</Text>
-                <TextInput
-                  style={styles.descInput}
-                  value={description}
-                  onChangeText={setDescription}
-                  placeholder="Ajoutez quelques mots pour vos proches..."
-                  placeholderTextColor="#9CA3AF"
-                  multiline
-                  scrollEnabled={false}
+                        .toUpperCase()
+                    : "DÉFINIR UNE ÉCHÉANCE"}
+                </Text>
+                <Ionicons
+                  name="calendar-outline"
+                  size={18}
+                  color={THEME.accent}
                 />
-              </View>
-
-              {/* SECTION 2 : PARAMÈTRES */}
-              <View style={styles.settingsSection}>
-                <Text style={styles.sectionHeader}>Confidentialité</Text>
-
-                <View style={styles.visibilityList}>
-                  {VISIBILITY_OPTIONS.map((option) => {
-                    const isSelected = visibility === option.id;
-                    const isDisabled = option.disabled;
-
-                    return (
-                      <TouchableOpacity
-                        key={option.id}
-                        style={[
-                          styles.visibilityCard,
-                          isSelected && styles.visibilityCardSelected,
-                          isDisabled && styles.visibilityCardDisabled,
-                        ]}
-                        onPress={() => !isDisabled && setVisibility(option.id)}
-                        activeOpacity={isDisabled ? 1 : 0.7}
-                      >
-                        <View style={styles.cardLeft}>
-                          <View
-                            style={[
-                              styles.iconCircle,
-                              isSelected && styles.iconCircleSelected,
-                            ]}
-                          >
-                            <Ionicons
-                              name={option.icon as any}
-                              size={18}
-                              color={isSelected ? "#FFF" : THEME.textMain}
-                            />
-                          </View>
-                          <View>
-                            <Text
-                              style={[
-                                styles.cardTitle,
-                                isSelected && { fontWeight: "700" },
-                              ]}
-                            >
-                              {option.label}
-                            </Text>
-                            <Text style={styles.cardDesc}>
-                              {option.description}
-                            </Text>
-                          </View>
-                        </View>
-
-                        {/* Indicateur de sélection */}
-                        <View style={styles.cardRight}>
-                          {isDisabled ? (
-                            <View style={styles.badgeComingSoon}>
-                              <Text style={styles.badgeText}>Bientôt</Text>
-                            </View>
-                          ) : isSelected ? (
-                            <Ionicons
-                              name="checkmark-circle"
-                              size={22}
-                              color={THEME.textMain}
-                            />
-                          ) : (
-                            <View style={styles.radioEmpty} />
-                          )}
-                        </View>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-              </View>
-
-              <View style={{ height: 120 }} />
-            </ScrollView>
-
-            {/* FOOTER FLOTTANT */}
-            <View style={styles.footer}>
-              <TouchableOpacity
-                style={[
-                  styles.saveBtn,
-                  !title.trim() && styles.saveBtnDisabled,
-                ]}
-                onPress={handleSave}
-                disabled={!title.trim()}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.saveText}>Enregistrer</Text>
-                <Ionicons name="arrow-forward" size={18} color="#FFF" />
               </TouchableOpacity>
             </View>
-          </BottomSheetView>
-        </TouchableWithoutFeedback>
+
+            {/* DESCRIPTION STYLE MANUSCRIT */}
+            <View style={styles.inputSection}>
+              <Text style={styles.miniLabel}>NOTES DE RÉDACTION</Text>
+              <TextInput
+                style={styles.descInput}
+                value={description}
+                onChangeText={setDescription}
+                placeholder="Ajoutez vos précisions ici..."
+                placeholderTextColor="#BCBCBC"
+                multiline
+                selectionColor={THEME.accent}
+              />
+            </View>
+
+            {/* VISIBILITÉ STYLE REGISTRE */}
+            <View style={styles.settingsSection}>
+              <Text style={styles.miniLabel}>PARAMÈTRES D&apos;ACCÈS</Text>
+              <View style={styles.registryList}>
+                {VISIBILITY_OPTIONS.map((option) => {
+                  const isSelected = visibility === option.id;
+                  return (
+                    <TouchableOpacity
+                      key={option.id}
+                      style={styles.registryRow}
+                      onPress={() => {
+                        Haptics.selectionAsync();
+                        setVisibility(option.id);
+                      }}
+                    >
+                      <View style={styles.rowLeft}>
+                        <Ionicons
+                          name={option.icon as any}
+                          size={18}
+                          color={
+                            isSelected ? THEME.accent : THEME.textSecondary
+                          }
+                        />
+                        <View style={{ marginLeft: 15 }}>
+                          <Text
+                            style={[
+                              styles.rowTitle,
+                              isSelected && { color: THEME.textMain },
+                            ]}
+                          >
+                            {option.label}
+                          </Text>
+                          <Text style={styles.rowSub}>
+                            {option.description}
+                          </Text>
+                        </View>
+                      </View>
+                      <View
+                        style={[
+                          styles.radioCircle,
+                          isSelected && styles.radioActive,
+                        ]}
+                      >
+                        {isSelected && <View style={styles.radioInner} />}
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+
+            <View style={{ height: 100 }} />
+          </ScrollView>
+
+          {/* FOOTER AUTHORITY */}
+          <View style={styles.footer}>
+            <TouchableOpacity
+              style={[styles.saveBtn, !title.trim() && styles.saveBtnDisabled]}
+              onPress={handleSave}
+              disabled={!title.trim()}
+              activeOpacity={0.9}
+            >
+              <Text style={styles.saveBtnText}>
+                ENREGISTRER LES MODIFICATIONS
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </BottomSheetView>
       </BottomSheet>
 
       <DateTimePickerModal
@@ -317,10 +262,11 @@ export default function WishlistEditModal({
         onConfirm={(d) => {
           setDate(d);
           setDatePickerVisibility(false);
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         }}
         onCancel={() => setDatePickerVisibility(false)}
-        confirmTextIOS="Valider"
-        cancelTextIOS="Annuler"
+        confirmTextIOS="CONFIRMER"
+        cancelTextIOS="ANNULER"
       />
     </GestureHandlerRootView>
   );
@@ -329,224 +275,137 @@ export default function WishlistEditModal({
 const styles = StyleSheet.create({
   backdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.3)",
+    backgroundColor: "rgba(0,0,0,0.4)",
   },
-  sheetBackground: {
-    backgroundColor: THEME.background,
-    borderRadius: 32,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: -5 },
-    shadowOpacity: 0.1,
-    shadowRadius: 20,
-    elevation: 10,
-  },
-  handle: {
-    backgroundColor: "#E5E7EB",
-    width: 40,
-    marginTop: 10,
-  },
-  container: {
-    flex: 1,
-  },
-  contentContainer: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingHorizontal: 24,
-    paddingTop: 10,
-  },
+  sheetBackground: { backgroundColor: THEME.background, borderRadius: 0 },
+  handle: { backgroundColor: THEME.border, width: 40, marginTop: 10 },
+  container: { flex: 1 },
+  scrollContent: { paddingHorizontal: 32, paddingTop: 20 },
 
   /* HEADER */
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 20,
-    paddingHorizontal: 24,
-    paddingTop: 10,
+    paddingHorizontal: 32,
+    paddingVertical: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: THEME.border,
   },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: "600",
+  navTitle: {
+    fontSize: 10,
+    fontWeight: "800",
     color: THEME.textSecondary,
-    textTransform: "uppercase",
-    letterSpacing: 1,
+    letterSpacing: 2,
   },
   closeBtn: {
-    padding: 8,
-    backgroundColor: "#F3F4F6",
-    borderRadius: 20,
+    width: 32,
+    height: 32,
+    alignItems: "flex-end",
+    justifyContent: "center",
   },
 
-  /* HERO INPUT SECTION */
-  heroInputSection: {
-    marginBottom: 32,
-  },
-  label: {
-    fontSize: 10,
-    fontWeight: "700",
-    color: "#9CA3AF",
+  /* INPUT SECTIONS */
+  inputSection: { marginBottom: 35 },
+  miniLabel: {
+    fontSize: 9,
+    fontWeight: "800",
+    color: THEME.textSecondary,
     letterSpacing: 1.5,
-    marginBottom: 8,
-    textTransform: "uppercase",
+    marginBottom: 15,
   },
+
   heroInput: {
-    fontSize: 34,
-    fontWeight: "400",
+    fontSize: 28,
     fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
     color: THEME.textMain,
-    lineHeight: 40,
-    marginBottom: 16,
-  },
-  descInput: {
-    fontSize: 16,
-    color: THEME.textMain,
-    lineHeight: 24,
-    minHeight: 40,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: "#E5E7EB",
-    marginVertical: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: THEME.border,
+    paddingBottom: 10,
   },
 
-  /* DATE ROW */
-  dateRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    alignSelf: "flex-start",
-    backgroundColor: "#FFFFFF",
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: THEME.border,
-  },
-  dateIconBadge: {
-    marginRight: 8,
-  },
-  dateText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: THEME.textMain,
-    textTransform: "capitalize",
-  },
-
-  /* SETTINGS SECTION */
-  settingsSection: {
-    marginBottom: 32,
-  },
-  sectionHeader: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: THEME.textMain,
-    marginBottom: 16,
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-  },
-  visibilityList: {
-    gap: 12,
-  },
-  visibilityCard: {
+  dateSelector: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    backgroundColor: THEME.surface,
-    padding: 16,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: THEME.border,
-    // Ombre légère pour effet carte
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.03,
-    shadowRadius: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: THEME.border,
+    paddingBottom: 12,
   },
-  visibilityCardSelected: {
-    borderColor: THEME.textMain, // Bordure noire quand sélectionné
-    backgroundColor: "#F9FAFB",
+  dateValue: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: THEME.textMain,
+    letterSpacing: 0.5,
   },
-  visibilityCardDisabled: {
-    opacity: 0.6,
-    backgroundColor: "#F9FAFB",
+
+  descInput: {
+    fontSize: 16,
+    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
+    fontStyle: "italic",
+    color: THEME.textMain,
+    lineHeight: 24,
+    minHeight: 60,
+    borderBottomWidth: 1,
+    borderBottomColor: THEME.border,
+    paddingBottom: 10,
   },
-  cardLeft: {
+
+  /* REGISTRY LIST (Visibility) */
+  settingsSection: { marginTop: 10 },
+  registryList: { marginTop: 5 },
+  registryRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 14,
-    flex: 1,
+    justifyContent: "space-between",
+    paddingVertical: 18,
+    borderBottomWidth: 0.5,
+    borderBottomColor: THEME.border,
   },
-  iconCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "#F3F4F6",
+  rowLeft: { flexDirection: "row", alignItems: "center", flex: 1 },
+  rowTitle: { fontSize: 15, fontWeight: "600", color: THEME.textSecondary },
+  rowSub: {
+    fontSize: 12,
+    color: THEME.textSecondary,
+    marginTop: 3,
+    fontStyle: "italic",
+  },
+
+  radioCircle: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    borderWidth: 1,
+    borderColor: THEME.border,
     alignItems: "center",
     justifyContent: "center",
   },
-  iconCircleSelected: {
-    backgroundColor: THEME.textMain,
+  radioActive: { borderColor: THEME.accent },
+  radioInner: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: THEME.accent,
   },
-  cardTitle: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: THEME.textMain,
-    marginBottom: 2,
-  },
-  cardDesc: {
-    fontSize: 12,
-    color: THEME.textSecondary,
-    
-  },
-  cardRight: {
-    marginLeft: 10,
-  },
-  radioEmpty: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    borderWidth: 2,
-    borderColor: "#E5E7EB",
-  },
-  badgeComingSoon: {
-    backgroundColor: "#F3F4F6",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  badgeText: {
-    fontSize: 10,
-    fontWeight: "700",
-    color: "#9CA3AF",
-  },
-
 
   /* FOOTER */
   footer: {
     position: "absolute",
-    bottom: 30,
-    left: 24,
-    right: 24,
+    bottom: Platform.OS === "ios" ? 40 : 20,
+    left: 32,
+    right: 32,
   },
   saveBtn: {
-    flexDirection: "row",
+    height: 60,
+    backgroundColor: THEME.primary,
     alignItems: "center",
     justifyContent: "center",
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: THEME.primary, // Noir
-    gap: 10,
-    shadowColor: THEME.primary,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.25,
-    shadowRadius: 16,
-    elevation: 6,
   },
-  saveBtnDisabled: {
-    opacity: 0.5,
-  },
-  saveText: {
+  saveBtnDisabled: { opacity: 0.5 },
+  saveBtnText: {
     color: "#FFFFFF",
-    fontWeight: "700",
-    fontSize: 16,
+    fontSize: 11,
+    fontWeight: "800",
+    letterSpacing: 1.5,
   },
 });

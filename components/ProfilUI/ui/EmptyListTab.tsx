@@ -1,17 +1,31 @@
-import { Platform, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import React from "react";
-import { Ionicons } from "@expo/vector-icons";
+import ThemedIcon from "@/components/themed-icon";
+import { ThemedText } from "@/components/themed-text";
+import { useAppTheme } from "@/hooks/custom/use-app-theme";
 
 interface EmptyListTabProps {
   title: string;
-  icon: keyof typeof Ionicons.glyphMap;
+  icon: any;
 }
 
 const EmptyListTab = ({ title, icon }: EmptyListTabProps) => {
+
+  const theme = useAppTheme();
+
   return (
     <View style={styles.emptyState}>
-      <Ionicons name={icon} size={40} color="#D1D5DB" />
-      <Text style={styles.emptyText}>{title}</Text>
+      <View style={[styles.iconCircle, { borderColor: `${theme.accent}33` }]}>
+        <ThemedIcon name={icon} size={28} color={theme.accent} />
+      </View>
+      <ThemedText
+        type="subtitle"
+        style={[{ color: theme.textSecondary }]}
+      >
+        {title}
+      </ThemedText>
+
+      <View style={[styles.decorativeLine, { backgroundColor: theme.accent }]} />
     </View>
   );
 };
@@ -22,14 +36,21 @@ const styles = StyleSheet.create({
   emptyState: {
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 60,
-    gap: 16,
-    opacity: 0.7,
+    paddingVertical: 100,
   },
-  emptyText: {
-    color: "#9CA3AF",
-    fontSize: 15,
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-    fontStyle: "italic",
+  iconCircle: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 24,
+  },
+  decorativeLine: {
+    width: 30,
+    height: 1,
+    marginTop: 24,
+    opacity: 0.4,
   },
 });

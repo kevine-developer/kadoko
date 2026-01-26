@@ -1,5 +1,4 @@
 import { Ionicons } from "@expo/vector-icons";
-
 import { useFocusEffect } from "expo-router";
 import React, { useEffect, useMemo, useState, useCallback } from "react";
 import {
@@ -14,27 +13,26 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import * as Haptics from "expo-haptics";
+import { MotiView } from "moti";
 
 import { userService } from "@/lib/services/user-service";
 import { friendshipService } from "@/lib/services/friendship-service";
 import RequestCard from "@/components/UserList/RequestCard";
-import UserRowCard from "@/components/UserList/UserRowCard";
 import EmptyFriend from "@/components/UserList/EmptyFriend";
-import Header from "@/components/UserList/ui/Header";
 import { UserListItemSkeleton } from "@/components/ui/SkeletonGroup";
+import UserRowCard from "@/components/UserList/UserRowCard";
 
-// --- THEME LUXE ---
+// --- THEME ÉDITORIAL ---
 const THEME = {
-  background: "#FDFBF7",
+  background: "#FDFBF7", // Bone Silk
   surface: "#FFFFFF",
-  textMain: "#111827",
-  textSecondary: "#6B7280",
-  accent: "#111827",
-  border: "rgba(0,0,0,0.06)",
-  success: "#10B981",
+  textMain: "#1A1A1A",
+  textSecondary: "#8E8E93",
+  accent: "#AF9062", // Or brossé
+  border: "rgba(0,0,0,0.08)",
+  success: "#4A6741",
 };
-
-// Suppression des MOCKS simulés
 
 export default function UsersListScreen() {
   const insets = useSafeAreaInsets();
@@ -45,6 +43,7 @@ export default function UsersListScreen() {
   const [requests, setRequests] = useState<any[]>([]);
   const [sentRequests, setSentRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
 
   // Debounced Search
   useEffect(() => {
@@ -82,51 +81,133 @@ export default function UsersListScreen() {
   );
 
   const handleAddFriend = async (userId: string) => {
-    const res = await friendshipService.sendRequest(userId);
-    if (res.success) {
+    if (processingIds.has(userId)) return;
+
+    // --- OPTIMISTIC UI ---
+    const previousSent = [...sentRequests];
+    // Ajouter à sentRequests pour que isPendingAdd devienne vrai immédiatement
+    setSentRequests((prev) => [
+      ...prev,
+      { id: userId, receiverId: userId, status: "PENDING" },
+    ]);
+
+    setProcessingIds((prev) => new Set(prev).add(userId));
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+    try {
+      const res = await friendshipService.sendRequest(userId);
+      if (!res.success) {
+        setSentRequests(previousSent);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      }
+      // Re-fetch pour synchroniser parfaitement (id réels, etc.)
       loadFriendships();
-    } else {
-      alert(res.message || "Erreur lors de l'envoi");
+    } catch {
+      setSentRequests(previousSent);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    } finally {
+      setProcessingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(userId);
+        return next;
+      });
     }
   };
 
   const handleCancelRequest = async (userId: string) => {
-    const res = await friendshipService.cancelRequest(userId);
-    if (res.success) {
+    if (processingIds.has(userId)) return;
+
+    // --- OPTIMISTIC UI ---
+    const previousSent = [...sentRequests];
+    setSentRequests((prev) =>
+      prev.filter((r) => r.receiverId !== userId && r.id !== userId),
+    );
+
+    setProcessingIds((prev) => new Set(prev).add(userId));
+    try {
+      const res = await friendshipService.cancelRequest(userId);
+      if (!res.success) {
+        setSentRequests(previousSent);
+      }
       loadFriendships();
-    } else {
-      alert(res.message || "Erreur lors de l'annulation");
+    } catch {
+      setSentRequests(previousSent);
+    } finally {
+      setProcessingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(userId);
+        return next;
+      });
     }
   };
 
   const handleAcceptFriend = async (friendshipId: string) => {
-    const res = await friendshipService.acceptRequest(friendshipId);
-    if (res.success) {
+    if (processingIds.has(friendshipId)) return;
+
+    // --- OPTIMISTIC UI ---
+    const previousReqs = [...requests];
+    const previousFriends = [...friends];
+    const acceptedUser = requests.find((r) => r.friendshipId === friendshipId);
+
+    if (acceptedUser) {
+      setRequests((prev) =>
+        prev.filter((r) => r.friendshipId !== friendshipId),
+      );
+      setFriends((prev) => [...prev, acceptedUser]);
+    }
+
+    setProcessingIds((prev) => new Set(prev).add(friendshipId));
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+    try {
+      const res = await friendshipService.acceptRequest(friendshipId);
+      if (!res.success) {
+        setRequests(previousReqs);
+        setFriends(previousFriends);
+      }
       loadFriendships();
+    } catch {
+      setRequests(previousReqs);
+      setFriends(previousFriends);
+    } finally {
+      setProcessingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(friendshipId);
+        return next;
+      });
     }
   };
 
   const handleRemoveFriend = async (friendshipId: string) => {
-    const res = await friendshipService.removeFriendship(friendshipId);
-    if (res.success) {
+    if (processingIds.has(friendshipId)) return;
+
+    // --- OPTIMISTIC UI ---
+    const previousFriends = [...friends];
+    setFriends((prev) => prev.filter((f) => f.friendshipId !== friendshipId));
+
+    setProcessingIds((prev) => new Set(prev).add(friendshipId));
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+    try {
+      const res = await friendshipService.removeFriendship(friendshipId);
+      if (!res.success) {
+        setFriends(previousFriends);
+      }
       loadFriendships();
+    } catch {
+      setFriends(previousFriends);
+    } finally {
+      setProcessingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(friendshipId);
+        return next;
+      });
     }
   };
 
-  // 2. Filtrer les données
   const data = useMemo(() => {
-    if (searchQuery.length > 0) {
-      return {
-        mode: "SEARCH",
-        items: searchResults,
-      };
-    }
-
-    return {
-      mode: "FRIENDS",
-      friends: friends,
-      requests: requests,
-    };
+    if (searchQuery.length > 0) return { mode: "SEARCH", items: searchResults };
+    return { mode: "FRIENDS", friends, requests };
   }, [searchQuery, searchResults, friends, requests]);
 
   const myFriendIds = useMemo(() => friends.map((f) => f.id), [friends]);
@@ -135,16 +216,11 @@ export default function UsersListScreen() {
     [sentRequests],
   );
 
-  // --- COMPOSANTS INTERNES ---
-
-  // Carte "Ami / Utilisateur" (Liste verticale)
-
   if (loading && friends.length === 0 && requests.length === 0) {
     return (
       <View style={styles.container}>
-        <StatusBar barStyle="dark-content" />
-        <View style={{ paddingTop: 60, paddingHorizontal: 20 }}>
-          {Array.from({ length: 8 }).map((_, i) => (
+        <View style={{ paddingTop: insets.top + 60, paddingHorizontal: 30 }}>
+          {Array.from({ length: 6 }).map((_, i) => (
             <UserListItemSkeleton key={i} />
           ))}
         </View>
@@ -154,33 +230,34 @@ export default function UsersListScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={THEME.background} />
+      <StatusBar barStyle="dark-content" />
 
-      {/* HEADER */}
-      <View style={[styles.headerContainer, { paddingTop: insets.top }]}>
-        <Header />
+      {/* HEADER ÉDITORIAL */}
+      <View style={[styles.headerContainer, { paddingTop: insets.top + 10 }]}>
+        <MotiView
+          from={{ opacity: 0, translateY: -10 }}
+          animate={{ opacity: 1, translateY: 0 }}
+        >
+          <Text style={styles.miniLabel}>VOTRE RÉPERTOIRE</Text>
+          <Text style={styles.heroTitle}>Mes Cercles.</Text>
+        </MotiView>
 
-        {/* SEARCH BAR */}
-        <View style={styles.searchWrapper}>
-          <Ionicons
-            name="search"
-            size={20}
-            color="#9CA3AF"
-            style={styles.searchIcon}
-          />
+        {/* SEARCH BAR STYLE "REGISTRE" */}
+        <View style={styles.searchSection}>
+          <Ionicons name="search-outline" size={18} color={THEME.accent} />
           <TextInput
-            placeholder="Rechercher un ami ou un membre..."
-            placeholderTextColor="#9CA3AF"
+            placeholder="Rechercher un membre..."
+            placeholderTextColor="#BCBCBC"
             style={styles.searchInput}
             value={searchQuery}
             onChangeText={setSearchQuery}
-            selectionColor={THEME.textMain}
+            selectionColor={THEME.accent}
           />
           {isLoadingSearch ? (
-            <ActivityIndicator size="small" color={THEME.textMain} />
+            <ActivityIndicator size="small" color={THEME.accent} />
           ) : searchQuery.length > 0 ? (
             <TouchableOpacity onPress={() => setSearchQuery("")}>
-              <Ionicons name="close-circle" size={20} color="#9CA3AF" />
+              <Ionicons name="close-circle" size={18} color={THEME.border} />
             </TouchableOpacity>
           ) : null}
         </View>
@@ -190,85 +267,82 @@ export default function UsersListScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* CAS 1 : MODE RECHERCHE GLOBALE */}
         {data.mode === "SEARCH" ? (
-          <>
-            <Text style={styles.sectionTitle}>
-              Résultats ({data.items?.length})
-            </Text>
-            {data.items?.map((user) => {
-              const isFriend = myFriendIds?.includes(user.id);
-              const isPendingAdd = pendingRequestIds?.includes(user.id);
-              return (
-                <UserRowCard
-                  key={user.id}
-                  user={user}
-                  isFriend={isFriend}
-                  isPendingAdd={isPendingAdd}
-                  handleAddFriend={() => handleAddFriend(user.id)}
-                  handleCancelRequest={() => handleCancelRequest(user.id)}
-                />
-              );
-            })}
-            {!isLoadingSearch &&
-              data.items?.length === 0 &&
-              searchQuery.length >= 2 && (
-                <View style={styles.emptyState}>
-                  <Text style={styles.emptyText}>
-                    Aucun utilisateur trouvé.
-                  </Text>
-                </View>
-              )}
-          </>
+          <MotiView from={{ opacity: 0 }} animate={{ opacity: 1 }}>
+            <Text style={styles.sectionLabel}>RÉSULTATS DE RECHERCHE</Text>
+            {data.items?.map((user) => (
+              <UserRowCard
+                key={user.id}
+                user={user}
+                isFriend={myFriendIds?.includes(user.id)}
+                isPendingAdd={pendingRequestIds?.includes(user.id)}
+                loading={processingIds.has(user.id)}
+                handleAddFriend={() => handleAddFriend(user.id)}
+                handleCancelRequest={() => handleCancelRequest(user.id)}
+              />
+            ))}
+          </MotiView>
         ) : (
-          // CAS 2 : MODE PAR DÉFAUT (AMIS + REQUETES)
           <>
-            {/* SECTION DEMANDES (Si existantes) */}
+            {/* DEMANDES EN ATTENTE - STYLE CARTES D'INVITATION */}
             {data.requests && data.requests.length > 0 && (
-              <View style={styles.sectionContainer}>
+              <View style={styles.section}>
                 <View style={styles.sectionHeader}>
-                  <Text style={styles.sectionTitle}>Demandes</Text>
-                  <View style={styles.badge}>
-                    <Text style={styles.badgeText}>{data.requests.length}</Text>
+                  <Text style={styles.sectionLabel}>INVITATIONS REÇUES</Text>
+                  <View style={styles.countBadge}>
+                    <Text style={styles.countText}>{data.requests.length}</Text>
                   </View>
                 </View>
                 <ScrollView
                   horizontal
                   showsHorizontalScrollIndicator={false}
-                  style={styles.requestsScroll}
+                  contentContainerStyle={styles.requestsContainer}
                 >
-                  {data.requests.map((req) => (
-                    <RequestCard
+                  {data.requests.map((req, index) => (
+                    <MotiView
                       key={req.id}
-                      user={req}
-                      handleAcceptFriend={() =>
-                        handleAcceptFriend(req.friendshipId)
-                      }
-                      handleRemoveFriend={() =>
-                        handleRemoveFriend(req.friendshipId)
-                      }
-                    />
+                      from={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: index * 100 }}
+                    >
+                      <RequestCard
+                        user={req}
+                        loading={processingIds.has(req.friendshipId)}
+                        handleAcceptFriend={() =>
+                          handleAcceptFriend(req.friendshipId)
+                        }
+                        handleRemoveFriend={() =>
+                          handleRemoveFriend(req.friendshipId)
+                        }
+                      />
+                    </MotiView>
                   ))}
                 </ScrollView>
               </View>
             )}
 
-            {/* SECTION LISTE D'AMIS */}
-            <View style={styles.sectionContainer}>
-              <Text style={styles.sectionTitle}>
-                Mes Amis ({data.friends?.length})
-              </Text>
+            {/* LISTE D'AMIS - STYLE REGISTRE */}
+            <View style={styles.section}>
+              <Text style={styles.sectionLabel}>MON CERCLE PROCHE</Text>
               {data.friends && data.friends.length > 0 ? (
-                data.friends.map((friend) => (
-                  <UserRowCard
+                data.friends.map((friend, index) => (
+                  <MotiView
                     key={friend.id}
-                    user={friend}
-                    isFriend={true}
-                    handleAddFriend={() => handleAddFriend(friend.id)}
-                    handleRemoveFriend={() =>
-                      handleRemoveFriend(friend.friendshipId)
-                    }
-                  />
+                    from={{ opacity: 0, translateX: -10 }}
+                    animate={{ opacity: 1, translateX: 0 }}
+                    transition={{ delay: index * 50 }}
+                  >
+                    <UserRowCard
+                      user={friend}
+                      isFriend={true}
+                      loading={processingIds.has(friend.friendshipId)}
+                      handleRemoveFriend={() =>
+                        handleRemoveFriend(friend.friendshipId)
+                      }
+                      handleAddFriend={() => handleAddFriend(friend.id)}
+                      handleCancelRequest={() => handleCancelRequest(friend.id)}
+                    />
+                  </MotiView>
                 ))
               ) : (
                 <EmptyFriend />
@@ -277,7 +351,7 @@ export default function UsersListScreen() {
           </>
         )}
 
-        <View style={{ height: 40 }} />
+        <View style={{ height: 100 }} />
       </ScrollView>
     </View>
   );
@@ -288,189 +362,77 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: THEME.background,
   },
-
-  /* HEADER */
   headerContainer: {
-    paddingHorizontal: 24,
-    paddingBottom: 20,
+    paddingHorizontal: 30,
     backgroundColor: THEME.background,
-    zIndex: 10,
+    paddingBottom: 20,
   },
-  headerTop: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 24,
-    marginTop: 10,
+  miniLabel: {
+    fontSize: 9,
+    fontWeight: "800",
+    color: THEME.textSecondary,
+    letterSpacing: 2,
+    marginBottom: 8,
   },
-  headerSubtitle: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: "#9CA3AF",
-    letterSpacing: 1.5,
-    marginBottom: 4,
-    textTransform: "uppercase",
-  },
-  headerTitle: {
-    fontSize: 34,
-    fontWeight: "400",
-    color: THEME.textMain,
+  heroTitle: {
+    fontSize: 38,
     fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-    letterSpacing: -0.5,
+    color: THEME.textMain,
+    letterSpacing: -1,
+    marginBottom: 25,
   },
-  inviteBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: THEME.surface,
+  searchSection: {
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
+    backgroundColor: THEME.surface,
+    paddingHorizontal: 16,
+    height: 54,
     borderWidth: 1,
     borderColor: THEME.border,
+    borderRadius: 0, // Carré pour le look luxe
   },
-
-  /* SEARCH BAR */
-  searchWrapper: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: THEME.surface,
-    borderRadius: 16,
-    paddingHorizontal: 16,
-    height: 56,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.04,
-    shadowRadius: 12,
-    elevation: 2,
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.02)",
-  },
-  searchIcon: { marginRight: 12 },
   searchInput: {
     flex: 1,
-    fontSize: 16,
-    fontWeight: "500",
+    marginLeft: 12,
+    fontSize: 15,
+    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
     color: THEME.textMain,
   },
-
-  /* SCROLL CONTENT */
   scrollContent: {
-    paddingHorizontal: 24,
-    paddingTop: 10,
+    paddingHorizontal: 30,
   },
-  sectionContainer: {
-    marginBottom: 32,
+  section: {
+    marginBottom: 40,
   },
   sectionHeader: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-    marginBottom: 16,
+    marginBottom: 20,
   },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: THEME.textMain,
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-    marginBottom: 12, // Default margin if no header container
-  },
-  badge: {
-    backgroundColor: THEME.accent,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 10,
-  },
-  badgeText: {
-    color: "#FFF",
-    fontSize: 11,
-    fontWeight: "700",
-  },
-
-  /* REQUEST CARDS (Horizontal) */
-  requestsScroll: {
-    overflow: "visible", // Permet aux ombres de ne pas être coupées
-    marginHorizontal: -24, // Pour scroller bord à bord
-    paddingHorizontal: 24,
-  },
-  requestCard: {
-    backgroundColor: THEME.surface,
-    padding: 16,
-    borderRadius: 20,
-    marginRight: 16,
-    width: 260,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    elevation: 3,
-    borderWidth: 1,
-    borderColor: THEME.border,
-  },
-  requestHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    marginBottom: 16,
-  },
-  requestAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: "#F3F4F6",
-  },
-  requestInfo: { flex: 1 },
-  requestName: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: THEME.textMain,
-    marginBottom: 2,
-  },
-  requestMeta: {
-    fontSize: 12,
+  sectionLabel: {
+    fontSize: 10,
+    fontWeight: "800",
     color: THEME.textSecondary,
+    letterSpacing: 1.5,
+    marginBottom: 15,
   },
-  requestActions: {
-    flexDirection: "row",
-    gap: 8,
-  },
-  acceptBtn: {
-    flex: 1,
-    backgroundColor: THEME.textMain,
-    height: 36,
-    borderRadius: 18,
-    alignItems: "center",
+  countBadge: {
+    backgroundColor: THEME.accent,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
     justifyContent: "center",
+    alignItems: "center",
+    marginLeft: 8,
+    marginBottom: 12,
   },
-  acceptText: {
+  countText: {
     color: "#FFF",
-    fontSize: 12,
-    fontWeight: "600",
+    fontSize: 10,
+    fontWeight: "bold",
   },
-  ignoreBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: THEME.border,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  /* EMPTY STATES */
-  emptyState: {
-    alignItems: "center",
-    marginTop: 40,
-    gap: 12,
-  },
-  emptyText: {
-    color: "#9CA3AF",
-    fontSize: 15,
-    fontStyle: "italic",
-  },
-  linkText: {
-    color: THEME.textMain,
-    fontSize: 14,
-    fontWeight: "700",
-    textDecorationLine: "underline",
+  requestsContainer: {
+    paddingRight: 30,
+    gap: 15,
   },
 });

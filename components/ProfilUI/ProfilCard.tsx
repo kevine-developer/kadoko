@@ -1,133 +1,102 @@
-import {
-  Platform,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { StyleSheet, TouchableOpacity, View } from "react-native";
 import React from "react";
-import { router } from "expo-router";
 import { Image } from "expo-image";
-import { Ionicons } from "@expo/vector-icons";
+import Icon from "../themed-icon";
+import { ThemedText } from "@/components/themed-text";
+import { useAppTheme } from "@/hooks/custom/use-app-theme";
 
-const ProfilCard = ({
-  user,
-  onEditAvatar,
-}: {
-  user: any;
-  onEditAvatar?: () => void;
-}) => {
+const ProfilCard = ({ user, onEditAvatar }: any) => {
+
+  const theme = useAppTheme();
   return (
-    <View style={styles.cardHeader}>
-      <TouchableOpacity
-        style={styles.avatarWrapper}
-        onPress={onEditAvatar}
-        activeOpacity={0.8}
-      >
-        <Image
-          source={{
-            uri:
-              user?.image ||
-              "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=400",
-          }}
-          style={styles.avatar}
-        />
-        <View style={styles.editAvatarBadge}>
-          <Ionicons name="pencil" size={10} color="#FFF" />
-        </View>
-      </TouchableOpacity>
+    <View style={styles.container}>
+      <View style={styles.avatarAndInfoContainer}>
+        <TouchableOpacity
+          style={styles.avatarContainer}
+          onPress={onEditAvatar}
+          activeOpacity={0.9}
+        >
+          <Image
+            source={{
+              uri:
+                user?.image ||
+                "https://images.unsplash.com/photo-1511367461989-f85a21fda167?w=400&h=400&fit=crop&q=60",
+            }}
+            style={[styles.avatar, { borderColor: theme.border }]}
+          />
+          <View
+            style={[
+              styles.editBadge,
+              { backgroundColor: theme.primary, borderColor: theme.background },
+            ]}
+          >
+            <Icon name="camera" size={12} color="#FFF" />
+          </View>
+        </TouchableOpacity>
+        <View style={styles.info}>
+          <ThemedText type="defaultBold" style={styles.name}>
+            {user?.name}
+          </ThemedText>
 
-      <View style={styles.identityContainer}>
-        <Text style={styles.userName}>{user?.name}</Text>
-        {user?.username ? (
-          <Text style={styles.userHandle}>@{user.username}</Text>
-        ) : (
-          <Text style={styles.noHandle}>Sans pseudo</Text>
-        )}
+          <ThemedText type="label" style={{ color: theme.accent, marginTop: 2 }}>
+            {user?.username ? `@${user.username}` : "Alias non défini"}
+          </ThemedText>
+        </View>
       </View>
 
-      <TouchableOpacity
-        style={styles.editProfileBtn}
-        onPress={() => router.push("/(screens)/editProfileScreen")}
-      >
-        <Text style={styles.editProfileText}>Éditer</Text>
-      </TouchableOpacity>
-      <Text style={styles.description}>{user?.description}</Text>
+      {user?.description && (
+        <ThemedText
+          type="subtitle"
+          style={[styles.bio, { color: theme.textSecondary }]}
+        >
+          {user.description}
+        </ThemedText>
+      )}
     </View>
   );
 };
 
-export default ProfilCard;
-
 const styles = StyleSheet.create({
-  cardHeader: {
-    flexDirection: "row",
-    alignItems: "center", // Alignement centré verticalement
-    marginBottom: 24,
+  container: {
+    marginBottom: 5,
   },
-  avatarWrapper: {
+  avatarAndInfoContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  avatarContainer: {
     position: "relative",
-    marginRight: 16,
   },
   avatar: {
     width: 80,
     height: 80,
-    borderRadius: 40,
-    borderWidth: 3,
-    borderColor: "#FFFFFF",
-    backgroundColor: "#F3F4F6",
+    borderRadius: 0,
+    backgroundColor: "#F2F2F7",
+    borderWidth: 1,
   },
-  editAvatarBadge: {
+  editBadge: {
     position: "absolute",
-    bottom: 0,
-    right: 0,
-    backgroundColor: "#111827",
+    bottom: -5,
+    right: -5,
     width: 24,
     height: 24,
     borderRadius: 12,
-    alignItems: "center",
     justifyContent: "center",
+    alignItems: "center",
     borderWidth: 2,
-    borderColor: "#FFFFFF",
   },
-  identityContainer: {
+  info: {
     flex: 1,
+    marginLeft: 20,
   },
-  userName: {
-    fontSize: 24,
-    fontWeight: "500",
-    color: "#111827",
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-    marginBottom: 2,
+  name: {
+    letterSpacing: -1,
   },
-  userHandle: {
+  bio: {
     fontSize: 14,
-    color: "#9CA3AF",
-    letterSpacing: 0.5,
-  },
-  noHandle: {
-    fontSize: 12,
-    color: "#EF4444",
-    fontWeight: "600",
-    fontStyle: "italic",
-    opacity: 0.8,
-  },
-  editProfileBtn: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-  },
-  editProfileText: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#111827",
-  },
-  description: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#111827",
+    lineHeight: 20,
   },
 });
+
+export default ProfilCard;

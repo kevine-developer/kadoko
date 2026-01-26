@@ -8,15 +8,18 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import * as Haptics from "expo-haptics";
 
-// --- THEME ---
+// --- THEME ÉDITORIAL COHÉRENT ---
 const THEME = {
-  overlay: "rgba(0,0,0,0.4)",
-  background: "#FFFFFF",
-  textMain: "#111827",
-  textSecondary: "#6B7280",
-  danger: "#EF4444",
-  dangerSoft: "#FEF2F2",
+  overlay: "rgba(26, 26, 26, 0.7)", // Fond sombre soyeux
+  background: "#FDFBF7", // Bone Silk
+  surface: "#FFFFFF",
+  textMain: "#1A1A1A",
+  textSecondary: "#8E8E93",
+  accent: "#AF9062", // Or brossé
+  danger: "#C34A4A", // Rouge brique luxe
+  border: "rgba(0,0,0,0.08)",
 };
 
 interface ConfirmationModalProps {
@@ -36,10 +39,24 @@ export default function ConfirmationModal({
   onConfirm,
   title,
   description,
-  confirmText = "Confirmer",
-  cancelText = "Annuler",
+  confirmText = "CONFIRMER",
+  cancelText = "ANNULER",
   isDestructive = false,
 }: ConfirmationModalProps) {
+  const handleConfirm = () => {
+    Haptics.notificationAsync(
+      isDestructive
+        ? Haptics.NotificationFeedbackType.Warning
+        : Haptics.NotificationFeedbackType.Success,
+    );
+    onConfirm();
+  };
+
+  const handleClose = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    onClose();
+  };
+
   return (
     <Modal
       visible={visible}
@@ -48,24 +65,24 @@ export default function ConfirmationModal({
       statusBarTranslucent
     >
       <View style={styles.overlay}>
-        <View style={styles.modalContainer}>
-          {/* ICONE DANGER */}
-          {isDestructive && (
-            <View style={styles.iconWrapper}>
-              <Ionicons name="warning-outline" size={28} color={THEME.danger} />
-            </View>
-          )}
+        <View style={styles.container}>
+          {/* PETIT DIVISEUR DÉCORATIF OR */}
+          <View style={styles.topAccent} />
 
-          {/* TEXTES */}
-          <Text style={styles.title}>{title}</Text>
-          <Text style={styles.description}>{description}</Text>
+          <View style={styles.content}>
+            {/* TITRE ÉDITORIAL */}
+            <Text style={styles.title}>{title}</Text>
 
-          {/* ACTIONS */}
+            {/* DESCRIPTION MANUSCRITE */}
+            <Text style={styles.description}>{description}</Text>
+          </View>
+
+          {/* ACTIONS AUTHORITY (STYLE RECTANGULAIRE) */}
           <View style={styles.actionRow}>
             <TouchableOpacity
               style={styles.cancelBtn}
-              onPress={onClose}
-              activeOpacity={0.8}
+              onPress={handleClose}
+              activeOpacity={0.7}
             >
               <Text style={styles.cancelText}>{cancelText}</Text>
             </TouchableOpacity>
@@ -73,9 +90,9 @@ export default function ConfirmationModal({
             <TouchableOpacity
               style={[
                 styles.confirmBtn,
-                isDestructive ? styles.destructiveBtn : styles.defaultBtn,
+                isDestructive ? styles.destructiveBtn : styles.primaryBtn,
               ]}
-              onPress={onConfirm}
+              onPress={handleConfirm}
               activeOpacity={0.8}
             >
               <Text style={styles.confirmText}>{confirmText}</Text>
@@ -93,86 +110,82 @@ const styles = StyleSheet.create({
     backgroundColor: THEME.overlay,
     justifyContent: "center",
     alignItems: "center",
-    paddingHorizontal: 24,
+    paddingHorizontal: 32,
   },
-  modalContainer: {
+  container: {
     width: "100%",
     backgroundColor: THEME.background,
-    borderRadius: 32,
-    padding: 24,
-    alignItems: "center",
-    // Ombre Luxe
+    borderRadius: 0, // Rectangulaire luxe
+    borderWidth: 1,
+    borderColor: THEME.border,
+    paddingTop: 2, // Pour laisser voir l'accent top
+    // Ombre très diffuse
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.1,
-    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 20 },
+    shadowOpacity: 0.15,
+    shadowRadius: 30,
     elevation: 10,
   },
-  iconWrapper: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: THEME.dangerSoft,
+  topAccent: {
+    height: 3,
+    backgroundColor: THEME.accent,
+    width: "100%",
+  },
+  content: {
+    padding: 32,
     alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 20,
   },
   title: {
-    fontSize: 22,
-    fontWeight: "500",
+    fontSize: 24,
     fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
     color: THEME.textMain,
     textAlign: "center",
-    marginBottom: 8,
+    marginBottom: 15,
+    letterSpacing: -0.5,
   },
   description: {
     fontSize: 15,
     color: THEME.textSecondary,
     textAlign: "center",
     lineHeight: 22,
-    marginBottom: 32,
+    fontStyle: "italic",
+    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
   },
   actionRow: {
     flexDirection: "row",
-    gap: 12,
-    width: "100%",
+    borderTopWidth: 1,
+    borderTopColor: THEME.border,
   },
   cancelBtn: {
     flex: 1,
-    height: 52,
-    borderRadius: 26,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
+    height: 60,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#FFFFFF",
-  },
-  cancelText: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: THEME.textMain,
+    borderRightWidth: 1,
+    borderRightColor: THEME.border,
   },
   confirmBtn: {
     flex: 1,
-    height: 52,
-    borderRadius: 26,
+    height: 60,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 4,
   },
-  defaultBtn: {
+  cancelText: {
+    fontSize: 10,
+    fontWeight: "800",
+    color: THEME.textSecondary,
+    letterSpacing: 1.5,
+  },
+  confirmText: {
+    fontSize: 10,
+    fontWeight: "800",
+    color: "#FFFFFF",
+    letterSpacing: 1.5,
+  },
+  primaryBtn: {
     backgroundColor: THEME.textMain,
   },
   destructiveBtn: {
     backgroundColor: THEME.danger,
-  },
-  confirmText: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: "#FFFFFF",
   },
 });

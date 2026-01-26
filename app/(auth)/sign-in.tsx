@@ -1,4 +1,4 @@
-import { Ionicons } from "@expo/vector-icons";
+
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import * as Haptics from "expo-haptics";
 import {
   authService,
   InputCustom,
@@ -19,20 +20,19 @@ import {
   LayoutAuth,
 } from "@/features/auth";
 
-// --- THEME LUXE ---
+// --- THEME ÉDITORIAL COHÉRENT ---
 const THEME = {
-  background: "#FDFBF7", // Blanc cassé "Bone"
+  background: "#FDFBF7", // Bone Silk
   surface: "#FFFFFF",
-  textMain: "#111827", // Noir profond
-  textSecondary: "#6B7280",
-  border: "#E5E7EB",
-  primary: "#111827",
-  inputBg: "#FFFFFF",
+  textMain: "#1A1A1A",
+  textSecondary: "#8E8E93",
+  accent: "#AF9062", // Or brossé
+  border: "rgba(0,0,0,0.08)",
+  primary: "#1A1A1A",
 };
 
 export default function SignIn() {
   const router = useRouter();
-  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   const [email, setEmail] = useState("");
@@ -44,7 +44,7 @@ export default function SignIn() {
 
   const validate = () => {
     let newErrors: { email?: string; password?: string } = {};
-    setServerError(null); // Clear previous server error on new validation
+    setServerError(null);
     if (!email.trim()) newErrors.email = "L'adresse email est requise";
     if (!password) newErrors.password = "Le mot de passe est requis";
     setErrors(newErrors);
@@ -52,10 +52,10 @@ export default function SignIn() {
   };
 
   const handleLogin = async () => {
-    // Validation basique
     if (!validate()) return;
 
     setIsLoading(true);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
     try {
       const response = await authService.signIn({
@@ -64,46 +64,45 @@ export default function SignIn() {
       });
 
       if (response.success) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         router.replace("/");
       } else {
-        setServerError(response.message || "Erreur de connexion");
+        setServerError(response.message || "Identifiants incorrects");
       }
     } catch {
-      setServerError("Une erreur est survenue");
+      setServerError("Une erreur système est survenue");
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleSocialLogin = async (provider: string) => {
-    if (provider === "Google") {
-      setIsLoading(true);
-      try {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setIsLoading(true);
+    try {
+      if (provider === "Google") {
         await authService.signInWithSocial("google");
-      } catch {
-        setServerError("Erreur de connexion avec Google");
-      } finally {
-        setIsLoading(false);
       }
-    } else {
-      console.log(`Login avec ${provider} non implémenté`);
+    } catch {
+      setServerError(`Connexion ${provider} interrompue`);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
     <LayoutAuth>
-      {/* Titre */}
+      {/* 1. Header avec signature visuelle */}
       <HeaderAuth title="Connectez-vous." subtitle="BON RETOUR" />
 
+      {/* 2. Gestion des erreurs serveur style "Alerte Discrète" */}
       <FormError message={serverError} />
 
-      {/* Champs de saisie */}
+      {/* 3. Groupe de saisie style "Registre" */}
       <View style={styles.inputGroup}>
-        {/* Email */}
-
         <InputCustom
-          icon="mail-outline"
-          placeholder="Adresse email"
+          label="IDENTIFIANT"
+          placeholder="votre@email.com"
           value={email}
           onChangeText={(t) => {
             setEmail(t);
@@ -114,29 +113,29 @@ export default function SignIn() {
           error={errors.email}
         />
 
-        {/* Mot de passe */}
-        <InputCustom
-          icon="lock-closed-outline"
-          placeholder="Mot de passe"
-          value={password}
-          onChangeText={(t) => {
-            setPassword(t);
-            if (errors.password) setErrors({ ...errors, password: undefined });
-          }}
-          secureTextEntry={!showPassword}
-          showPassword={() => setShowPassword(!showPassword)}
-          error={errors.password}
-        />
-
-        <TouchableOpacity
-          style={styles.forgotBtn}
-          onPress={() => router.push("/forgot-password")}
-        >
-          <Text style={styles.forgotText}>Mot de passe oublié ?</Text>
-        </TouchableOpacity>
+        <View>
+          <InputCustom
+            label="MOT DE PASSE"
+            placeholder="••••••••"
+            value={password}
+            onChangeText={(t) => {
+              setPassword(t);
+              if (errors.password)
+                setErrors({ ...errors, password: undefined });
+            }}
+            secureTextEntry
+            error={errors.password}
+          />
+          <TouchableOpacity
+            style={styles.forgotBtn}
+            onPress={() => router.push("/forgot-password")}
+          >
+            <Text style={styles.forgotText}>MOT DE PASSE OUBLIÉ ?</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
-      {/* Bouton Connexion */}
+      {/* 4. Bouton d'Action Principal - Style "Authority" */}
       <TouchableOpacity
         style={[styles.primaryBtn, isLoading && styles.primaryBtnDisabled]}
         activeOpacity={0.9}
@@ -146,17 +145,13 @@ export default function SignIn() {
         {isLoading ? (
           <ActivityIndicator size="small" color="#FFF" />
         ) : (
-          <>
-            <Text style={styles.primaryBtnText}>Accéder à mon espace</Text>
-            <Ionicons name="arrow-forward" size={18} color="#FFF" />
-          </>
+          <Text style={styles.primaryBtnText}>ACCÉDER À MON ESPACE</Text>
         )}
       </TouchableOpacity>
 
-      {/* Séparateur */}
-      <DividerConnect text="OU CONTINUER AVEC" />
+      {/* 5. Séparateur & Socials */}
+      <DividerConnect text="OU" />
 
-      {/* Réseaux Sociaux (Google / Facebook) */}
       <View style={styles.socialRow}>
         <BtnSocial
           icon="logo-google"
@@ -167,14 +162,15 @@ export default function SignIn() {
         <BtnSocial
           icon="logo-facebook"
           label="Facebook"
-          handleSocialLogin={() => handleSocialLogin("Facebook")}
+          handleSocialLogin={() => {}}
+          disabled={true}
         />
       </View>
 
-      {/* Footer Inscription */}
+      {/* 6. Footer avec navigation inversée */}
       <FooterAuth
-        textIntro="Pas encore de compte ?"
-        textLink="S'inscrire"
+        textIntro="Nouveau parmi nous ?"
+        textLink="Créer un compte"
         link="/sign-up"
       />
     </LayoutAuth>
@@ -184,39 +180,39 @@ export default function SignIn() {
 const styles = StyleSheet.create({
   /* --- INPUTS --- */
   inputGroup: {
-    gap: 16,
-    marginBottom: 32,
+    gap: 10,
+    marginBottom: 35,
   },
-
   forgotBtn: {
     alignSelf: "flex-end",
+    marginTop: -10, // Rapprochement du champ password
+    paddingVertical: 10,
   },
   forgotText: {
-    fontSize: 13,
-    color: THEME.textSecondary,
-    fontWeight: "600",
+    fontSize: 9,
+    color: THEME.accent,
+    fontWeight: "800",
+    letterSpacing: 1,
   },
 
-  /* --- PRIMARY BUTTON --- */
+  /* --- PRIMARY BUTTON (RECTANGULAR LUXE) --- */
   primaryBtn: {
     backgroundColor: THEME.primary,
-    height: 56,
-    borderRadius: 28, // Pill shape
-    flexDirection: "row",
+    height: 60,
+    borderRadius: 0, // Rectangulaire pour l'aspect autoritaire/luxe
     alignItems: "center",
     justifyContent: "center",
-    gap: 10,
-    shadowColor: THEME.primary,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 8,
-    marginBottom: 32,
+    marginBottom: 20,
+    // Suppression des ombres portées pour un look flat plus moderne
   },
   primaryBtnText: {
     color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "700",
+    fontSize: 13,
+    fontWeight: "800",
+    letterSpacing: 1.5,
+  },
+  primaryBtnDisabled: {
+    opacity: 0.6,
   },
 
   /* --- SOCIALS --- */
@@ -224,11 +220,5 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 16,
     marginBottom: 40,
-  },
-
-  /* --- FOOTER --- */
-
-  primaryBtnDisabled: {
-    opacity: 0.6,
   },
 });

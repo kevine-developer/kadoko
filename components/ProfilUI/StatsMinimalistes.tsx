@@ -1,27 +1,33 @@
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import React from "react";
+import { useAppTheme } from "@/hooks/custom/use-app-theme";
+import { Gift, GiftWishlist } from "@/types/gift";
+import { StatEntry } from "./ui/StatEntry";
 
+interface StatsMinimalistesProps {
+  userWishlists: GiftWishlist[];
+  reservedGifts: Gift[];
+  purchasedGifts: Gift[];
+}
 
+const StatsMinimalistes = ({
+  userWishlists,
+  reservedGifts,
+  purchasedGifts,
+}: StatsMinimalistesProps) => {
 
-
-
-const StatsMinimalistes = ({userWishlists, reservedGifts, purchasedGifts}: any) => {
+  const theme = useAppTheme();
   return (
-    <View style={styles.statsContainer}>
-      <View style={styles.statItem}>
-        <Text style={styles.statNumber}>{userWishlists?.length || 0}</Text>
-        <Text style={styles.statLabel}>Collections</Text>
-      </View>
-      <View style={styles.verticalLine} />
-      <View style={styles.statItem}>
-        <Text style={styles.statNumber}>{reservedGifts?.length || 0}</Text>
-        <Text style={styles.statLabel}>Réservés</Text>
-      </View>
-      <View style={styles.verticalLine} />
-      <View style={styles.statItem}>
-        <Text style={styles.statNumber}>{purchasedGifts?.length || 0}</Text>
-        <Text style={styles.statLabel}>Offerts</Text>
-      </View>
+    <View style={[styles.statsContainer, { borderColor: theme.border }]}>
+      <StatEntry value={userWishlists?.length} label="Collections" />
+
+      <View style={[styles.divider, { backgroundColor: theme.accent }]} />
+
+      <StatEntry value={reservedGifts?.length} label="Réservés" />
+
+      <View style={[styles.divider, { backgroundColor: theme.accent }]} />
+
+      <StatEntry value={purchasedGifts?.length} label="Offerts" />
     </View>
   );
 };
@@ -29,33 +35,18 @@ const StatsMinimalistes = ({userWishlists, reservedGifts, purchasedGifts}: any) 
 export default StatsMinimalistes;
 
 const styles = StyleSheet.create({
-  /* STATS */
   statsContainer: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    justifyContent: "space-around",
     alignItems: "center",
-    paddingHorizontal: 8,
+    paddingVertical: 10,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    marginTop: 10,
   },
-  statItem: {
-    alignItems: "center",
-    flex: 1,
-  },
-  statNumber: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: "#111827",
-    marginBottom: 4,
-  },
-  statLabel: {
-    fontSize: 11,
-    color: "#9CA3AF",
-    fontWeight: "600",
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-  },
-  verticalLine: {
+  divider: {
     width: 1,
-    height: 30,
-    backgroundColor: "#F3F4F6",
+    height: 15,
+    opacity: 0.3,
   },
 });

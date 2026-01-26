@@ -1,14 +1,14 @@
 import { Platform, StyleSheet, Text, View } from "react-native";
 import React from "react";
-// --- THEME LUXE ---
+import { MotiView } from "moti";
+
+// --- THEME ÉDITORIAL COHÉRENT ---
 const THEME = {
-  background: "#FDFBF7", // Blanc cassé "Bone"
+  background: "#FDFBF7", // Bone Silk
   surface: "#FFFFFF",
-  textMain: "#111827", // Noir profond
-  textSecondary: "#6B7280",
-  border: "#E5E7EB",
-  primary: "#111827",
-  inputBg: "#FFFFFF",
+  textMain: "#1A1A1A",
+  textSecondary: "#8E8E93",
+  accent: "#AF9062", // Or brossé
 };
 
 interface HeaderAuthProps {
@@ -18,9 +18,32 @@ interface HeaderAuthProps {
 
 const HeaderAuth = ({ title, subtitle }: HeaderAuthProps) => {
   return (
-    <View style={styles.headerTextContainer}>
-      <Text style={styles.welcomeSubtitle}>{subtitle}</Text>
-      <Text style={styles.welcomeTitle}>{title}</Text>
+    <View style={styles.container}>
+      {/* Petit diviseur or brossé pour introduire l'écran */}
+      <MotiView
+        from={{ width: 0, opacity: 0 }}
+        animate={{ width: 35, opacity: 1 }}
+        transition={{ type: "timing", duration: 800, delay: 200 }}
+        style={styles.topDivider}
+      />
+
+      {/* Label style "Maison de couture" */}
+      <MotiView
+        from={{ opacity: 0, translateY: 10 }}
+        animate={{ opacity: 1, translateY: 0 }}
+        transition={{ type: "timing", duration: 600 }}
+      >
+        <Text style={styles.label}>{subtitle.toUpperCase()}</Text>
+      </MotiView>
+
+      {/* Titre Serif Imposant */}
+      <MotiView
+        from={{ opacity: 0, translateY: 15 }}
+        animate={{ opacity: 1, translateY: 0 }}
+        transition={{ type: "timing", duration: 700, delay: 100 }}
+      >
+        <Text style={styles.title}>{title}</Text>
+      </MotiView>
     </View>
   );
 };
@@ -28,22 +51,27 @@ const HeaderAuth = ({ title, subtitle }: HeaderAuthProps) => {
 export default HeaderAuth;
 
 const styles = StyleSheet.create({
-  /* --- TYPOGRAPHY --- */
-  headerTextContainer: {
-    marginBottom: 32,
+  container: {
+    marginBottom: 25, // Plus d'espace pour laisser respirer le formulaire
+    marginTop: 10,
   },
-  welcomeSubtitle: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: "#9CA3AF",
-    letterSpacing: 2,
-    marginBottom: 8,
-    textTransform: "uppercase",
+  topDivider: {
+    height: 2,
+    backgroundColor: THEME.accent,
+    marginBottom: 20,
   },
-  welcomeTitle: {
-    fontSize: 36,
+  label: {
+    fontSize: 10,
+    fontWeight: "800",
+    color: THEME.textSecondary,
+    letterSpacing: 2, // Espacement luxueux
+    marginBottom: 12,
+  },
+  title: {
+    fontSize: 40, // Très grand pour l'impact visuel
     color: THEME.textMain,
     fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-    letterSpacing: -0.5,
+    lineHeight: 46,
+    letterSpacing: -1, // Resserré pour le style éditorial
   },
 });

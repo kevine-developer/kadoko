@@ -5,76 +5,91 @@ import {
   TextInputProps,
   TouchableOpacity,
   Text,
+  Platform,
 } from "react-native";
-import React from "react";
+import React, { useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
 
-// --- THEME LUXE ---
+// --- THEME ÉDITORIAL COHÉRENT ---
 const THEME = {
-  background: "#FDFBF7", // Blanc cassé "Bone"
+  background: "#FDFBF7", // Bone Silk
   surface: "#FFFFFF",
-  textMain: "#111827", // Noir profond
-  textSecondary: "#6B7280",
-  border: "#E5E7EB",
-  primary: "#111827",
-  inputBg: "#FFFFFF",
+  textMain: "#1A1A1A",
+  textSecondary: "#8E8E93",
+  accent: "#AF9062", // Or brossé
+  border: "rgba(0,0,0,0.08)",
+  error: "#C34A4A",
 };
 
-interface InputCustomProps {
+interface InputCustomProps extends TextInputProps {
+  label?: string; // Ajout d'un label pour le style catalogue
   icon?: keyof typeof Ionicons.glyphMap;
-  placeholder?: string;
-  value?: string;
-  onChangeText?: (text: string) => void;
-  keyboardType?: TextInputProps["keyboardType"];
-  autoCapitalize?: TextInputProps["autoCapitalize"];
-  secureTextEntry?: boolean;
-  showPassword?: () => void;
+  showPasswordToggle?: boolean;
   error?: string;
 }
+
 const InputCustom = ({
+  label,
   icon,
   placeholder,
   value,
   onChangeText,
-  keyboardType,
-  autoCapitalize,
   secureTextEntry,
-  showPassword,
   error,
+  ...props
 }: InputCustomProps) => {
+  const [isFocused, setIsFocused] = useState(false);
+  const [isPasswordVisible, setIsPasswordVisible] = useState(!secureTextEntry);
+
+  const togglePassword = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setIsPasswordVisible(!isPasswordVisible);
+  };
+
   return (
     <View style={styles.container}>
+      {/* Label style "Étiquette de luxe" */}
+      {label && <Text style={styles.miniLabel}>{label.toUpperCase()}</Text>}
+
       <View
-        style={[styles.inputWrapper, error ? styles.inputWrapperError : null]}
+        style={[
+          styles.inputWrapper,
+          isFocused && styles.inputWrapperFocused,
+          error ? styles.inputWrapperError : null,
+        ]}
       >
-        <Ionicons
-          name={icon}
-          size={20}
-          color="#9CA3AF"
-          style={styles.inputIcon}
-        />
+        {icon && (
+          <Ionicons
+            name={icon}
+            size={18}
+            color={isFocused ? THEME.accent : "#BCBCBC"}
+            style={styles.inputIcon}
+          />
+        )}
+
         <TextInput
           placeholder={placeholder}
-          placeholderTextColor="#9CA3AF"
+          placeholderTextColor="#BCBCBC"
           style={styles.input}
-          keyboardType={keyboardType}
-          autoCapitalize={autoCapitalize}
-          secureTextEntry={secureTextEntry}
           value={value}
-          onChangeText={(text) => {
-            onChangeText && onChangeText(text);
-          }}
+          onChangeText={onChangeText}
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => setIsFocused(false)}
+          secureTextEntry={secureTextEntry && !isPasswordVisible}
+          selectionColor={THEME.accent}
+          {...props}
         />
-        {showPassword && (
-          <TouchableOpacity onPress={showPassword} style={styles.eyeBtn}>
-            <Ionicons
-              name={secureTextEntry ? "eye-off-outline" : "eye-outline"}
-              size={20}
-              color="#6B7280"
-            />
+
+        {secureTextEntry && (
+          <TouchableOpacity onPress={togglePassword} style={styles.eyeBtn}>
+            <Text style={styles.eyeText}>
+              {isPasswordVisible ? "MASQUER" : "VOIR"}
+            </Text>
           </TouchableOpacity>
         )}
       </View>
+
       {error && <Text style={styles.errorText}>{error}</Text>}
     </View>
   );
@@ -83,29 +98,35 @@ const InputCustom = ({
 export default InputCustom;
 
 const styles = StyleSheet.create({
+  container: {
+    marginBottom: 10,
+    width: "100%",
+  },
+  miniLabel: {
+    fontSize: 9,
+    fontWeight: "800",
+    color: THEME.textSecondary,
+    letterSpacing: 1.5,
+    marginBottom: 10,
+    marginLeft: 2,
+  },
   inputWrapper: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: THEME.surface,
-    height: 56,
-    borderRadius: 16,
-    paddingHorizontal: 16,
-    borderWidth: 1,
-    borderColor: THEME.border,
-    // Légère ombre interne simulée par border
+    height: 54,
+    borderRadius: 0, // Carré luxe
+    paddingHorizontal: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: THEME.border,
+    // Pas d'ombres massives, juste une structure nette
+  },
+  inputWrapperFocused: {
+    borderBottomColor: THEME.accent,
+    borderBottomWidth: 1.5,
   },
   inputWrapperError: {
-    borderColor: "#EF4444",
-    backgroundColor: "#FEF2F2",
-  },
-  container: {
-    marginBottom: 0,
-  },
-  errorText: {
-    color: "#EF4444",
-    fontSize: 12,
-    marginTop: 4,
-    marginLeft: 4,
+    borderBottomColor: THEME.error,
   },
   inputIcon: {
     marginRight: 12,
@@ -115,16 +136,25 @@ const styles = StyleSheet.create({
     height: "100%",
     fontSize: 16,
     color: THEME.textMain,
+    // Utilisation du Serif pour le contenu saisi (plus élégant)
+    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
   },
   eyeBtn: {
-    padding: 8,
+    paddingHorizontal: 8,
+    height: "100%",
+    justifyContent: "center",
   },
-  forgotBtn: {
-    alignSelf: "flex-end",
+  eyeText: {
+    fontSize: 9,
+    fontWeight: "800",
+    color: THEME.textMain,
+    letterSpacing: 1,
   },
-  forgotText: {
-    fontSize: 13,
-    color: THEME.textSecondary,
+  errorText: {
+    color: THEME.error,
+    fontSize: 11,
+    marginTop: 6,
     fontWeight: "600",
+    fontStyle: "italic",
   },
 });

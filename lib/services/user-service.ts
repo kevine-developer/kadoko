@@ -222,7 +222,7 @@ export const userService = {
     }
   },
 
-  // Récupérer les informations privées d'un utilisateur (si ami)
+  // Mettre à jour les informations privées d'un utilisateur (si ami)
   getPrivateInfo: async (userId: string) => {
     try {
       const response = await authClient.$fetch(
@@ -238,6 +238,52 @@ export const userService = {
     } catch (error) {
       console.error("Error getPrivateInfo:", error);
       return { success: false, privateInfo: null };
+    }
+  },
+
+  // Gestion des blocs
+  getBlockedUsers: async () => {
+    try {
+      const response = await authClient.$fetch(
+        getApiUrl("/auth/users/me/blocks"),
+      );
+      return (response.data || { success: false, users: [] }) as unknown as {
+        success: boolean;
+        users: any[];
+      };
+    } catch (error) {
+      console.error("Error getBlockedUsers:", error);
+      return { success: false, users: [] };
+    }
+  },
+
+  blockUser: async (targetId: string) => {
+    try {
+      const response = await authClient.$fetch(
+        getApiUrl(`/auth/users/block/${targetId}`),
+        {
+          method: "POST",
+        },
+      );
+      return (response.data || { success: false }) as any;
+    } catch (error) {
+      console.error("Error blockUser:", error);
+      return { success: false };
+    }
+  },
+
+  unblockUser: async (targetId: string) => {
+    try {
+      const response = await authClient.$fetch(
+        getApiUrl(`/auth/users/block/${targetId}`),
+        {
+          method: "DELETE",
+        },
+      );
+      return (response.data || { success: false }) as any;
+    } catch (error) {
+      console.error("Error unblockUser:", error);
+      return { success: false };
     }
   },
 };

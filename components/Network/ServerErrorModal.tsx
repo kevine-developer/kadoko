@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import {
   Modal,
   StyleSheet,
@@ -8,13 +8,38 @@ import {
   Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { MotiView, MotiText } from "moti";
+import { MotiView } from "moti";
 import { useServerError } from "@/hooks/useServerError";
+import * as Haptics from "expo-haptics";
+
+// --- THEME ÉDITORIAL COHÉRENT ---
+const THEME = {
+  overlay: "rgba(26, 26, 26, 0.9)", // Fond très sombre et profond
+  background: "#FDFBF7", // Bone Silk
+  surface: "#FFFFFF",
+  textMain: "#1A1A1A",
+  textSecondary: "#8E8E93",
+  danger: "#C34A4A", // Rouge Brique (Luxe)
+  border: "rgba(0,0,0,0.08)",
+};
 
 const ServerErrorModal = () => {
   const { hasServerError, setServerError } = useServerError();
 
+  useEffect(() => {
+    if (hasServerError) {
+      // Vibration d'erreur subtile mais perceptible
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    }
+  }, [hasServerError]);
+
   if (!hasServerError) return null;
+
+  const handleRetry = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setServerError(false);
+    // Ici, vous pourriez ajouter une logique de "reload" réel si nécessaire
+  };
 
   return (
     <Modal
@@ -25,60 +50,56 @@ const ServerErrorModal = () => {
     >
       <View style={styles.overlay}>
         <MotiView
-          from={{ opacity: 0, scale: 0.9, translateY: 20 }}
+          from={{ opacity: 0, scale: 0.98, translateY: 10 }}
           animate={{ opacity: 1, scale: 1, translateY: 0 }}
-          transition={{ type: "spring", damping: 15 }}
+          transition={{ type: "timing", duration: 600 }}
           style={styles.container}
         >
-          <View style={styles.iconContainer}>
-            <View style={styles.iconCircle}>
-              <Ionicons name="server-outline" size={48} color="#EF4444" />
+          {/* LIGNE D'ACCENTUATION ROUGE BRIQUE */}
+          <View style={styles.topAccent} />
+
+          <View style={styles.content}>
+            {/* ICONE AVEC PULSE LENT */}
+            <View style={styles.iconWrapper}>
               <MotiView
-                from={{ opacity: 0, scale: 0.5 }}
-                animate={{ opacity: 1, scale: 1 }}
+                from={{ opacity: 0.2, scale: 1 }}
+                animate={{ opacity: 0, scale: 1.3 }}
                 transition={{
                   type: "timing",
-                  duration: 500,
+                  duration: 2000,
                   loop: true,
-                  repeatReverse: true,
                 }}
-                style={styles.alertBadge}
-              >
-                <Ionicons name="alert-circle" size={24} color="#EF4444" />
-              </MotiView>
+                style={styles.pulseRing}
+              />
+              <Ionicons name="server-outline" size={32} color={THEME.danger} />
+              <View style={styles.alertBadge}>
+                <Ionicons name="alert" size={10} color="#FFF" />
+              </View>
             </View>
-          </View>
 
-          <MotiText
-            from={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 300 }}
-            style={styles.title}
-          >
-            Le serveur fait une sieste...
-          </MotiText>
-
-          <Text style={styles.description}>
-            Nous rencontrons une difficulté technique momentanée. Nos équipes
-            (ou plutôt nos serveurs) font tout pour revenir en ligne rapidement
-            !
-          </Text>
-
-          <TouchableOpacity
-            style={styles.button}
-            activeOpacity={0.8}
-            onPress={() => {
-              setServerError(false);
-              // Optionnel : Recharger l'app ou la session si besoin
-            }}
-          >
-            <Text style={styles.buttonText}>RÉESSAYER</Text>
-          </TouchableOpacity>
-
-          <View style={styles.footer}>
-            <Text style={styles.footerText}>
-              Erreur technique détectée (500)
+            {/* TITRE SÉRIEUX & ÉLÉGANT */}
+            <Text style={styles.title}>
+              Service{"\n"}momentanément interrompu.
             </Text>
+
+            {/* DESCRIPTION RASSURANTE */}
+            <Text style={styles.description}>
+              Une opération technique affecte nos serveurs. Nos équipes
+              rétablissent la liaison pour garantir la sécurité de vos données.
+            </Text>
+
+            {/* BOUTON AUTHORITY */}
+            <TouchableOpacity
+              style={styles.button}
+              activeOpacity={0.9}
+              onPress={handleRetry}
+            >
+              <Text style={styles.buttonText}>ACTUALISER LA CONNEXION</Text>
+            </TouchableOpacity>
+
+            <View style={styles.footer}>
+              <Text style={styles.footerText}>DIAGNOSTIC : ERREUR 500</Text>
+            </View>
           </View>
         </MotiView>
       </View>
@@ -91,86 +112,110 @@ export default ServerErrorModal;
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: "rgba(17, 24, 39, 0.9)", // Plus sombre pour l'erreur serveur
+    backgroundColor: THEME.overlay,
     justifyContent: "center",
     alignItems: "center",
-    padding: 24,
+    paddingHorizontal: 32,
   },
   container: {
     width: "100%",
-    backgroundColor: "#FFFFFF",
-    borderRadius: 32,
+    backgroundColor: THEME.background,
+    borderRadius: 0, // Rectangulaire luxe
+    borderWidth: 1,
+    borderColor: THEME.border,
+    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 25 },
+    shadowOpacity: 0.3,
+    shadowRadius: 40,
+    elevation: 25,
+  },
+  topAccent: {
+    height: 3,
+    backgroundColor: THEME.danger,
+    width: "100%",
+  },
+  content: {
     padding: 32,
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 20 },
-    shadowOpacity: 0.25,
-    shadowRadius: 30,
-    elevation: 20,
   },
-  iconContainer: {
-    marginBottom: 24,
-  },
-  iconCircle: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: "#FEF2F2",
+  iconWrapper: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    backgroundColor: THEME.surface,
     justifyContent: "center",
     alignItems: "center",
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: "rgba(195, 74, 74, 0.2)", // Rouge brique très pâle
     position: "relative",
-    borderWidth: 2,
-    borderColor: "#FEE2E2",
+  },
+  pulseRing: {
+    position: "absolute",
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    borderWidth: 1,
+    borderColor: THEME.danger,
   },
   alertBadge: {
     position: "absolute",
     top: 0,
     right: 0,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 12,
+    backgroundColor: THEME.danger,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: THEME.surface,
   },
   title: {
-    fontSize: 22,
-    fontWeight: "800",
-    color: "#111827",
-    marginBottom: 12,
+    fontSize: 26,
+    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
+    color: THEME.textMain,
     textAlign: "center",
-    fontFamily: Platform.OS === "ios" ? "System" : "sans-serif-black",
+    lineHeight: 32,
+    marginBottom: 16,
+    letterSpacing: -0.5,
   },
   description: {
-    fontSize: 15,
-    color: "#6B7280",
+    fontSize: 14,
+    color: THEME.textSecondary,
     textAlign: "center",
     lineHeight: 22,
-    marginBottom: 32,
+    fontStyle: "italic",
+    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
+    marginBottom: 35,
   },
   button: {
     width: "100%",
-    height: 56,
-    backgroundColor: "#EF4444", // Rouge pour l'erreur
-    borderRadius: 16,
+    height: 60,
+    backgroundColor: THEME.danger, // Rouge Brique pour l'action correctrice
+    borderRadius: 0, // Rectangulaire
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: "#EF4444",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 5,
+    marginBottom: 24,
   },
   buttonText: {
     color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "700",
-    letterSpacing: 1.2,
+    fontSize: 11,
+    fontWeight: "800",
+    letterSpacing: 1.5,
   },
   footer: {
-    marginTop: 20,
+    borderTopWidth: 1,
+    borderTopColor: THEME.border,
+    paddingTop: 16,
+    width: "100%",
+    alignItems: "center",
   },
   footerText: {
-    fontSize: 12,
-    color: "#9CA3AF",
-    fontWeight: "500",
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
+    fontSize: 9,
+    color: THEME.textSecondary,
+    fontWeight: "800",
+    letterSpacing: 1.5,
   },
 });

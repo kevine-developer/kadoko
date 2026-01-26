@@ -16,26 +16,30 @@ import {
   TouchableOpacity,
   View,
   ViewStyle,
+  ActivityIndicator,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import * as Haptics from "expo-haptics";
+import { MotiView } from "moti";
+import { shareGift } from "@/lib/share";
 
-// --- THEME LUXE ---
+// --- THEME ÉDITORIAL ---
 const THEME = {
-  background: "#FDFBF7",
+  background: "#FDFBF7", // Bone Silk
   surface: "#FFFFFF",
-  textMain: "#111827",
-  textSecondary: "#6B7280",
-  border: "rgba(0,0,0,0.06)",
-  accent: "#111827",
-  success: "#10B981", // Vert Émeraude
-  warning: "#D97706", // Ambre
-  disabled: "#E5E7EB",
+  textMain: "#1A1A1A",
+  textSecondary: "#8E8E93",
+  accent: "#AF9062", // Or brossé
+  border: "rgba(0,0,0,0.08)",
+  success: "#4A6741",
+  warning: "#C34A4A", // Rouge brique pour "réservé"
 };
 
 const SCREEN_HEIGHT = Dimensions.get("window").height;
 
 const openLink = async (url?: string) => {
   if (url) {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     const supported = await Linking.canOpenURL(url);
     if (supported) await Linking.openURL(url);
   }
@@ -47,40 +51,57 @@ export default function GiftDetailView() {
   const { data: session } = authClient.useSession();
 
   const [giftData, setGiftData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
   const loadGift = useCallback(async () => {
-    const res = await giftService.getGiftById(giftId as string);
-    if (res.success && "gift" in res) {
-      setGiftData(res.gift);
+    try {
+      const res = await giftService.getGiftById(giftId as string);
+      if (res.success && "gift" in res) {
+        setGiftData(res.gift);
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
     }
   }, [giftId]);
 
   useEffect(() => {
     loadGift();
-
-    // Connexion Socket
     const handleGiftUpdate = (updatedGift: Gift) => {
-      if (updatedGift.id === giftId) {
-        setGiftData(updatedGift);
-      }
+      if (updatedGift.id === giftId) setGiftData(updatedGift);
     };
-
     socketService.connect();
     socketService.on("gift:updated", handleGiftUpdate);
-
-    return () => {
-      socketService.off("gift:updated", handleGiftUpdate);
-    };
+    return () => socketService.off("gift:updated", handleGiftUpdate);
   }, [loadGift, giftId]);
 
   const gift = giftData;
   const group = giftData?.wishlist;
   const isOwner = group?.userId === session?.user?.id;
 
+  if (loading) {
+    return (
+      <View style={styles.centerContainer}>
+        <ActivityIndicator size="large" color={THEME.textMain} />
+      </View>
+    );
+  }
+
   if (!gift || !group) {
     return (
       <View style={styles.centerContainer}>
-        <Text style={styles.errorText}>Objet introuvable.</Text>
+        <Ionicons name="gift-outline" size={48} color={THEME.border} />
+        <Text style={styles.errorText}>OBJET INTROUVABLE</Text>
+        <Text style={styles.errorSubText}>
+          Ce cadeau a peut-être été supprimé ou n&apos;est plus disponible.
+        </Text>
+        <TouchableOpacity
+          style={styles.homeBtn}
+          onPress={() => router.replace("/(tabs)")}
+        >
+          <Text style={styles.homeBtnText}>RETOUR À L&apos;ACCUEIL</Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -94,25 +115,21 @@ export default function GiftDetailView() {
       (gift.reservation && !!gift.reservation.userId));
   const isDraft = !gift.isPublished;
 
-  // Configuration dynamique selon l'état
   let statusConfig: {
     label: string;
     color: string;
-    priceColor: string;
     buttonText: string;
-    buttonIcon: keyof typeof Ionicons.glyphMap;
     isButtonDisabled: boolean;
     buttonStyle: ViewStyle;
     action?: () => void;
   } = {
     label: "DISPONIBLE",
     color: THEME.textMain,
-    priceColor: THEME.textMain,
-    buttonText: "Réserver ce cadeau",
-    buttonIcon: "bag-handle-outline" as keyof typeof Ionicons.glyphMap,
+    buttonText: "RÉSERVER CETTE PIÈCE",
     isButtonDisabled: false,
     buttonStyle: styles.primaryBtn,
     action: async () => {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       const res = await giftService.reserveGift(giftId);
       if (res.success) loadGift();
     },
@@ -120,13 +137,11 @@ export default function GiftDetailView() {
 
   if (isDraft) {
     statusConfig = {
-      label: "HORS FIL D'ACCUEIL",
+      label: "NON PUBLIÉ",
       color: THEME.textSecondary,
-      priceColor: THEME.textSecondary,
-      buttonText: isOwner ? "Mettre en avant" : "Non publié",
-      buttonIcon: "paper-plane-outline",
+      buttonText: isOwner ? "PUBLIER MAINTENANT" : "INDISPONIBLE",
       isButtonDisabled: !isOwner,
-      buttonStyle: isOwner ? styles.primaryBtn : styles.secondaryBtn,
+      buttonStyle: isOwner ? styles.primaryBtn : styles.disabledBtn,
       action: isOwner
         ? async () => {
             const res = await giftService.publishGift(giftId);
@@ -136,24 +151,28 @@ export default function GiftDetailView() {
     };
   } else if (isPurchased) {
     statusConfig = {
-      label: "DÉJÀ OFFERT",
+      label: "ACQUIS",
       color: THEME.success,
-      priceColor: THEME.success,
-      buttonText: "Cadeau déjà offert",
-      buttonIcon: "gift-outline",
-      isButtonDisabled: true,
-      buttonStyle: styles.successBtn,
+      buttonText: isOwner ? "CONFIRMER RÉCEPTION" : "DÉJÀ OFFERT",
+      isButtonDisabled: !isOwner,
+      buttonStyle: isOwner ? styles.successBtn : styles.disabledBtn,
+      action: isOwner
+        ? async () => {
+            const res = await giftService.confirmReceipt(giftId as string);
+            if (res.success) loadGift();
+          }
+        : undefined,
     };
   } else if (isReserved) {
     const isReserver = gift.reservedById === session?.user?.id;
     statusConfig = {
       label: "RÉSERVÉ",
       color: THEME.warning,
-      priceColor: THEME.warning,
-      buttonText: isReserver ? "Je retire" : "Actuellement réservé",
-      buttonIcon: isReserver ? "close-circle-outline" : "time-outline",
+      buttonText: isReserver
+        ? "ANNULER MA RÉSERVATION"
+        : "ACTUELLEMENT RÉSERVÉ",
       isButtonDisabled: !isReserver,
-      buttonStyle: isReserver ? styles.removeBtn : styles.warningBtn,
+      buttonStyle: isReserver ? styles.secondaryBtn : styles.disabledBtn,
       action: isReserver
         ? async () => {
             const res = await giftService.releaseGift(giftId);
@@ -164,10 +183,9 @@ export default function GiftDetailView() {
   } else if (isOwner) {
     statusConfig = {
       ...statusConfig,
-      label: "DANS LE FIL D'ACCUEIL",
-      buttonText: "Retirer du fil",
-      buttonIcon: "eye-off-outline",
-      buttonStyle: styles.removeBtn,
+      label: "EN LIGNE",
+      buttonText: "RETIRER DU FIL",
+      buttonStyle: styles.secondaryBtn,
       action: async () => {
         const res = await giftService.unpublishGift(giftId);
         if (res.success) loadGift();
@@ -175,7 +193,6 @@ export default function GiftDetailView() {
     };
   }
 
-  // --- HEADER PARALLAX ---
   const renderHeader = () => (
     <View style={styles.imageContainer}>
       {gift.imageUrl ? (
@@ -186,27 +203,27 @@ export default function GiftDetailView() {
             (isReserved || isPurchased) && styles.imageDimmed,
           ]}
           contentFit="cover"
-          transition={500}
+          transition={800}
         />
       ) : (
         <View style={styles.placeholderImage}>
-          <Ionicons name="gift-outline" size={64} color="#D1D5DB" />
+          <Ionicons name="gift-outline" size={64} color={THEME.border} />
         </View>
       )}
 
-      <View style={styles.darkOverlay} />
+      {/* Overlay dégradé pour fusionner avec le contenu */}
+      <View style={styles.gradientOverlay} />
 
-      {/* Navbar */}
+      {/* Navbar Minimaliste */}
       <View style={[styles.navbar, { top: insets.top + 10 }]}>
-        <TouchableOpacity
-          style={styles.navButtonBlur}
-          onPress={() => router.back()}
-        >
-          <Ionicons name="arrow-back" size={20} color="#FFF" />
+        <TouchableOpacity style={styles.iconBtn} onPress={() => router.back()}>
+          <Ionicons name="arrow-back" size={24} color="#FFF" />
         </TouchableOpacity>
-
-        <TouchableOpacity style={styles.navButtonBlur}>
-          <Ionicons name="share-outline" size={20} color="#FFF" />
+        <TouchableOpacity
+          style={styles.iconBtn}
+          onPress={() => shareGift(giftId as string, gift.title)}
+        >
+          <Ionicons name="share-social-outline" size={24} color="#FFF" />
         </TouchableOpacity>
       </View>
     </View>
@@ -220,65 +237,58 @@ export default function GiftDetailView() {
           dark: THEME.background,
         }}
         headerImage={renderHeader()}
-        parallaxHeaderHeight={SCREEN_HEIGHT * 0.5}
+        parallaxHeaderHeight={SCREEN_HEIGHT * 0.55}
       >
         <View style={styles.contentContainer}>
-          {/* STICKER PRIX (Couleur dynamique) */}
+          {/* ÉTIQUETTE PRIX "REGISTRE" */}
           {gift.estimatedPrice && (
-            <View
-              style={[
-                styles.priceSticker,
-                { borderColor: statusConfig.priceColor },
-              ]}
+            <MotiView
+              from={{ opacity: 0, translateY: 20 }}
+              animate={{ opacity: 1, translateY: 0 }}
+              transition={{ delay: 300 }}
+              style={styles.priceTag}
             >
-              <Text
-                style={[styles.priceValue, { color: statusConfig.priceColor }]}
-              >
-                {gift.estimatedPrice}€
-              </Text>
-            </View>
+              <Text style={styles.priceValue}>{gift.estimatedPrice}€</Text>
+            </MotiView>
           )}
 
-          {/* SECTION TITRE */}
+          {/* HEADER INFO */}
           <View style={styles.headerSection}>
-            {/* BADGE STATUT */}
-            <View style={styles.categoryRow}>
+            <View style={styles.statusRow}>
               <View
                 style={[
-                  styles.categoryDot,
+                  styles.statusDot,
                   { backgroundColor: statusConfig.color },
                 ]}
               />
-              <Text
-                style={[styles.categoryText, { color: statusConfig.color }]}
-              >
+              <Text style={[styles.statusText, { color: statusConfig.color }]}>
                 {statusConfig.label}
               </Text>
             </View>
 
             <Text style={styles.title}>{gift.title}</Text>
 
-            {/* Affichage de qui a réservé/acheté */}
+            {/* INFO RÉSERVEUR */}
             {(isReserved || isPurchased) &&
               (gift.reservedBy || gift.purchasedBy) && (
-                <View style={styles.reserverRow}>
+                <View style={styles.attributionBox}>
                   <Image
                     source={{
                       uri: isPurchased
                         ? gift.purchasedBy?.image
                         : gift.reservedBy?.image,
                     }}
-                    style={styles.reserverAvatar}
+                    style={styles.attrAvatar}
                   />
-                  <Text style={styles.reserverTextInfo}>
+                  <Text style={styles.attrText}>
                     {isPurchased ? "Offert par " : "Réservé par "}
-                    <Text style={styles.reserverName}>
+                    <Text style={styles.attrName}>
                       {isPurchased
                         ? gift.purchasedBy?.id === session?.user?.id
-                          ? "vous"
+                          ? "VOUS"
                           : gift.purchasedBy?.name
                         : gift.reservedBy?.id === session?.user?.id
-                          ? "vous"
+                          ? "VOUS"
                           : gift.reservedBy?.name}
                     </Text>
                   </Text>
@@ -290,19 +300,21 @@ export default function GiftDetailView() {
                 onPress={() => openLink(gift.productUrl)}
                 style={styles.linkRow}
               >
-                <Text style={styles.linkText}>Visiter la boutique</Text>
+                <Text style={styles.linkText}>CONSULTER LA BOUTIQUE</Text>
                 <Ionicons
                   name="arrow-forward"
-                  size={14}
+                  size={12}
                   color={THEME.textMain}
                 />
               </TouchableOpacity>
             )}
           </View>
 
-          {/* CARTE ÉVÉNEMENT */}
+          <View style={styles.hairline} />
+
+          {/* CARTE COLLECTION */}
           <TouchableOpacity
-            style={styles.eventCard}
+            style={styles.collectionRow}
             onPress={() =>
               router.push({
                 pathname: "/gifts/wishlists/[wishlistId]",
@@ -310,47 +322,28 @@ export default function GiftDetailView() {
               })
             }
           >
-            <View style={styles.eventLeft}>
-              <Text style={styles.eventLabel}>COLLECTION</Text>
-              <Text style={styles.eventTitle} numberOfLines={1}>
-                {group.title}
-              </Text>
-              <View style={styles.eventDateRow}>
-                <Ionicons
-                  name="calendar-outline"
-                  size={14}
-                  color={THEME.textSecondary}
-                />
-                <Text style={styles.eventDate}>
-                  {group.eventDate
-                    ? new Date(group.eventDate).toLocaleDateString("fr-FR", {
-                        day: "numeric",
-                        month: "long",
-                        year: "numeric",
-                      })
-                    : "Date non définie"}
-                </Text>
-              </View>
+            <View>
+              <Text style={styles.collectionLabel}>COLLECTION</Text>
+              <Text style={styles.collectionTitle}>{group.title}</Text>
             </View>
-            <View style={styles.eventRight}>
-              <Ionicons
-                name="chevron-forward"
-                size={20}
-                color={THEME.textSecondary}
-              />
-            </View>
+            <Ionicons
+              name="chevron-forward"
+              size={20}
+              color={THEME.textSecondary}
+            />
           </TouchableOpacity>
 
+          <View style={styles.hairline} />
+
           {/* DESCRIPTION */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Détails</Text>
+          <View style={styles.descriptionSection}>
+            <Text style={styles.collectionLabel}>NOTES</Text>
             <Text style={styles.descriptionText}>
-              {gift.description ||
-                "Aucune note particulière pour cet objet. Laissez-vous guider par l'inspiration."}
+              {gift.description || "Aucune précision particulière."}
             </Text>
           </View>
 
-          <View style={{ height: 140 }} />
+          <View style={{ height: 120 }} />
         </View>
       </ParallaxScrollView>
 
@@ -358,19 +351,17 @@ export default function GiftDetailView() {
       <View
         style={[
           styles.bottomBar,
-          { paddingBottom: insets.bottom > 0 ? insets.bottom : 20 },
+          { paddingBottom: insets.bottom > 0 ? insets.bottom + 10 : 25 },
         ]}
       >
         <View style={styles.actionRow}>
-          {/* Bouton Secondaire : Retour/Ignorer ou Voir Liste */}
           <TouchableOpacity
             style={styles.secondaryBtn}
             onPress={() => router.back()}
           >
-            <Text style={styles.secondaryBtnText}>Retour</Text>
+            <Text style={styles.secondaryBtnText}>RETOUR</Text>
           </TouchableOpacity>
 
-          {/* Bouton Principal : État Dynamique */}
           <TouchableOpacity
             style={[statusConfig.buttonStyle, { flex: 2 }]}
             activeOpacity={statusConfig.isButtonDisabled ? 1 : 0.9}
@@ -380,24 +371,13 @@ export default function GiftDetailView() {
             <Text
               style={[
                 styles.primaryBtnText,
-                statusConfig.buttonStyle === styles.removeBtn &&
-                  styles.removeBtnText,
-                (isReserved || isPurchased) && {
-                  color: "#FFF",
+                statusConfig.buttonStyle === styles.secondaryBtn && {
+                  color: THEME.textMain,
                 },
               ]}
             >
               {statusConfig.buttonText}
             </Text>
-            <Ionicons
-              name={statusConfig.buttonIcon}
-              size={18}
-              color={
-                statusConfig.buttonStyle === styles.removeBtn
-                  ? THEME.textMain
-                  : "#FFF"
-              }
-            />
           </TouchableOpacity>
         </View>
       </View>
@@ -406,10 +386,7 @@ export default function GiftDetailView() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: THEME.background,
-  },
+  container: { flex: 1, backgroundColor: THEME.background },
   centerContainer: {
     flex: 1,
     justifyContent: "center",
@@ -417,219 +394,176 @@ const styles = StyleSheet.create({
     backgroundColor: THEME.background,
   },
   errorText: {
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-    fontSize: 18,
+    fontSize: 12,
+    fontWeight: "800",
     color: THEME.textSecondary,
+    marginTop: 15,
+  },
+  errorSubText: {
+    fontSize: 14,
+    color: THEME.textSecondary,
+    marginTop: 10,
+    marginBottom: 30,
+    textAlign: "center",
+    maxWidth: "70%",
+  },
+  homeBtn: {
+    backgroundColor: THEME.textMain,
+    paddingHorizontal: 25,
+    paddingVertical: 15,
+  },
+  homeBtnText: {
+    color: "#FFF",
+    fontSize: 11,
+    fontWeight: "800",
+    letterSpacing: 1.5,
   },
 
-  /* HEADER */
-  imageContainer: {
-    width: "100%",
-    height: "100%",
-    backgroundColor: "#E5E7EB",
-  },
-  image: {
-    width: "100%",
-    height: "100%",
-  },
-  imageDimmed: {
-    opacity: 0.8,
-  },
+  /* HEADER IMAGE */
+  imageContainer: { width: "100%", height: "100%", backgroundColor: "#1A1A1A" },
+  image: { width: "100%", height: "100%" },
+  imageDimmed: { opacity: 0.6 },
   placeholderImage: {
     width: "100%",
     height: "100%",
-    backgroundColor: "#F3F4F6",
     alignItems: "center",
     justifyContent: "center",
+    backgroundColor: "#F2F2F7",
   },
-  darkOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.15)",
+
+  gradientOverlay: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 150,
+    backgroundColor: "transparent",
+    borderBottomWidth: 150,
+    borderBottomColor: THEME.background,
+    opacity: 1,
   },
+
   navbar: {
     position: "absolute",
-    left: 24,
-    right: 24,
+    left: 20,
+    right: 20,
     flexDirection: "row",
     justifyContent: "space-between",
     zIndex: 10,
   },
-  navButtonBlur: {
+  iconBtn: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: "rgba(255,255,255,0.2)",
+    backgroundColor: "rgba(0,0,0,0.3)",
     alignItems: "center",
     justifyContent: "center",
   },
 
-  /* CONTENT SHEET */
+  /* CONTENT */
   contentContainer: {
     flex: 1,
     backgroundColor: THEME.background,
-    marginTop: -50,
-    borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
-    paddingHorizontal: 24,
-    paddingTop: 40,
-    minHeight: SCREEN_HEIGHT * 0.6,
+    marginTop: -40,
+    paddingHorizontal: 32,
   },
 
-  /* PRICE STICKER */
-  priceSticker: {
-    position: "absolute",
-    top: -30,
-    right: 30,
-    backgroundColor: "#FFFFFF",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 16,
+  priceTag: {
+    alignSelf: "flex-end",
+    backgroundColor: THEME.surface,
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: THEME.border,
+    marginTop: -25,
+    marginRight: -10,
+    transform: [{ rotate: "2deg" }],
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.1,
-    shadowRadius: 20,
-    elevation: 8,
-    borderWidth: 2,
-    transform: [{ rotate: "3deg" }],
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
   },
-  priceValue: {
-    fontSize: 24,
-    fontWeight: "700",
-  },
+  priceValue: { fontSize: 18, fontWeight: "700", color: THEME.textMain },
 
-  /* HEADER INFO */
-  headerSection: {
-    marginBottom: 32,
-  },
-  categoryRow: {
+  headerSection: { marginTop: 20, marginBottom: 30 },
+  statusRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 12,
     gap: 8,
+    marginBottom: 15,
   },
-  categoryDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  categoryText: {
-    fontSize: 11,
-    fontWeight: "700",
-    letterSpacing: 1.5,
-  },
+  statusDot: { width: 6, height: 6, borderRadius: 3 },
+  statusText: { fontSize: 10, fontWeight: "800", letterSpacing: 1.5 },
+
   title: {
-    fontSize: 34,
-    fontWeight: "400",
+    fontSize: 36,
     fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
     color: THEME.textMain,
-    lineHeight: 40,
-    marginBottom: 16,
-    marginRight: 20,
+    lineHeight: 42,
+    letterSpacing: -1,
+    marginBottom: 20,
   },
+
+  attributionBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    backgroundColor: "rgba(175, 144, 98, 0.05)",
+    padding: 12,
+    borderLeftWidth: 2,
+    borderLeftColor: THEME.accent,
+    marginBottom: 20,
+  },
+  attrAvatar: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: THEME.border,
+  },
+  attrText: { fontSize: 12, color: THEME.textMain },
+  attrName: { fontWeight: "800", color: THEME.accent },
+
   linkRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    alignSelf: "flex-start",
-    borderBottomWidth: 1,
-    borderBottomColor: THEME.textMain,
-    paddingBottom: 2,
+    marginTop: 10,
   },
   linkText: {
-    fontSize: 14,
+    fontSize: 10,
+    fontWeight: "800",
     color: THEME.textMain,
-    fontWeight: "600",
+    letterSpacing: 1,
     textDecorationLine: "underline",
   },
-  reserverRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    marginTop: 12,
-    backgroundColor: "#F9FAFB",
-    padding: 10,
-    borderRadius: 14,
-    alignSelf: "flex-start",
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.02)",
-  },
-  reserverAvatar: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: "#E5E7EB",
-  },
-  reserverTextInfo: {
-    fontSize: 13,
-    color: "#6B7280",
-    fontWeight: "500",
-  },
-  reserverName: {
-    fontWeight: "700",
-    color: "#111827",
-  },
-  /* EVENT CARD */
-  eventCard: {
-    flexDirection: "row",
-    backgroundColor: "#FFFFFF",
-    borderRadius: 20,
-    padding: 20,
-    marginBottom: 32,
-    alignItems: "center",
-    justifyContent: "space-between",
-    borderWidth: 1,
-    borderColor: THEME.border,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.03,
-    shadowRadius: 12,
-  },
-  eventLeft: {
-    flex: 1,
-  },
-  eventLabel: {
-    fontSize: 10,
-    fontWeight: "700",
-    color: "#9CA3AF",
-    textTransform: "uppercase",
-    letterSpacing: 1,
-    marginBottom: 6,
-  },
-  eventTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: THEME.textMain,
-    marginBottom: 6,
-  },
-  eventDateRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-  eventDate: {
-    fontSize: 14,
-    color: THEME.textSecondary,
-  },
-  eventRight: {
-    paddingLeft: 10,
-  },
 
-  /* DESCRIPTION */
-  section: {
-    marginBottom: 24,
+  hairline: { height: 1, backgroundColor: THEME.border, marginVertical: 25 },
+
+  collectionRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: "500",
+  collectionLabel: {
+    fontSize: 9,
+    fontWeight: "800",
+    color: THEME.textSecondary,
+    letterSpacing: 1.5,
+    marginBottom: 5,
+  },
+  collectionTitle: {
+    fontSize: 16,
     fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
     color: THEME.textMain,
-    marginBottom: 12,
   },
+
+  descriptionSection: { marginBottom: 30 },
   descriptionText: {
     fontSize: 16,
-    lineHeight: 28,
-    color: "#4B5563",
-    fontWeight: "400",
+    lineHeight: 26,
+    color: THEME.textMain,
+    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
+    marginTop: 10,
   },
 
   /* BOTTOM BAR */
@@ -638,79 +572,52 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: "rgba(253, 251, 247, 0.9)",
+    backgroundColor: "rgba(253, 251, 247, 0.95)",
     borderTopWidth: 1,
-    borderTopColor: "rgba(0,0,0,0.05)",
-    paddingTop: 16,
-    paddingHorizontal: 24,
+    borderTopColor: THEME.border,
+    paddingTop: 20,
+    paddingHorizontal: 32,
   },
-  actionRow: {
-    flexDirection: "row",
-    gap: 16,
-    height: 56,
-  },
+  actionRow: { flexDirection: "row", gap: 15 },
 
-  /* STYLES BOUTONS */
   secondaryBtn: {
     flex: 1,
-    backgroundColor: "#FFFFFF",
+    height: 60,
     borderWidth: 1,
-    borderColor: "#E5E7EB",
-    borderRadius: 28,
+    borderColor: THEME.border,
     alignItems: "center",
     justifyContent: "center",
   },
   secondaryBtnText: {
-    fontSize: 14,
-    fontWeight: "600",
+    fontSize: 11,
+    fontWeight: "800",
     color: THEME.textMain,
+    letterSpacing: 1,
   },
+
   primaryBtn: {
     backgroundColor: THEME.textMain,
-    borderRadius: 28,
-    flexDirection: "row",
+    height: 60,
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.2,
-    shadowRadius: 16,
-  },
-  removeBtn: {
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: THEME.textMain,
-    borderRadius: 28,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-  },
-  removeBtnText: {
-    color: THEME.textMain,
-  },
-  warningBtn: {
-    backgroundColor: THEME.warning,
-    borderRadius: 28,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    opacity: 0.9,
   },
   successBtn: {
     backgroundColor: THEME.success,
-    borderRadius: 28,
-    flexDirection: "row",
+    height: 60,
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
-    opacity: 0.9,
   },
+  disabledBtn: {
+    backgroundColor: THEME.border,
+    height: 60,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
   primaryBtnText: {
-    fontSize: 15,
-    fontWeight: "600",
+    fontSize: 11,
+    fontWeight: "800",
     color: "#FFF",
+    letterSpacing: 1.5,
   },
 });

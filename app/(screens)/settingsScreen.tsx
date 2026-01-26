@@ -1,136 +1,75 @@
-import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
-  ActivityIndicator,
   ScrollView,
   StyleSheet,
-  Text,
   TouchableOpacity,
   View,
-  Alert,
-  Switch,
   Image,
-  Platform,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { authClient } from "@/features/auth";
-import { userService } from "@/lib/services/user-service";
-import { showErrorToast, showSuccessToast } from "@/lib/toast";
-import DeleteAccountModal from "@/components/Settings/DeleteAccountModal";
-import VerifyOtpModal from "@/components/Settings/VerifyOtpModal";
-import SettingRow from "@/components/Settings/SettingRow";
+import * as Haptics from "expo-haptics";
 
-// --- THEME ---
-const THEME = {
-  background: "#FDFBF7",
-  surface: "#FFFFFF",
-  textMain: "#111827",
-  textSecondary: "#6B7280",
-  primary: "#111827",
-  border: "rgba(0,0,0,0.06)",
-  danger: "#EF4444",
-};
+// Hooks & Components
+import { authClient } from "@/features/auth";
+import SettingRow from "@/components/Settings/SettingRow";
+import { getApiUrl } from "@/lib/api-config";
+import { showErrorToast, showCustomAlert } from "@/lib/toast";
+import { ThemedText } from "@/components/themed-text";
+import Icon from "@/components/themed-icon";
+import { useAppTheme } from "@/hooks/custom/use-app-theme";
+import SettingsSection from "@/components/Settings/SettingsSection";
+
+interface LinkedAccount {
+  provider: string;
+  linkedAt: string;
+}
 
 export default function SettingsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { data: session, refetch } = authClient.useSession();
+  const theme = useAppTheme();
+
+  const { data: session } = authClient.useSession();
   const user = session?.user as any;
 
-  // States
-  const [isLoading, setIsLoading] = useState(false);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [showVerifyOtpModal, setShowVerifyOtpModal] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
-
-  // Settings States
   const [isPublic, setIsPublic] = useState(user?.isPublic ?? true);
-  const [biometricsEnabled, setBiometricsEnabled] = useState(false);
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const [linkedAccounts, setLinkedAccounts] = useState<LinkedAccount[]>([]);
 
-  // --- ACTIONS ---
+  useEffect(() => {
+    if (user?.isPublic !== undefined) setIsPublic(user.isPublic);
 
-  const handleUpdateProfile = async (field: string, value: any) => {
-    if (field === "isPublic") setIsPublic(value);
-
-    try {
-      const res = await userService.updateProfile({ [field]: value });
-      if (!res.success) {
-        if (field === "isPublic") setIsPublic(!value);
-        showErrorToast(res.message || "Erreur maj");
-      } else {
-        await refetch();
+    const fetchLinkedAccounts = async () => {
+      if (!user) return;
+      try {
+        const res = await authClient.$fetch<{
+          success: boolean;
+          accounts: LinkedAccount[];
+        }>(getApiUrl("/auth/accounts"));
+        if (res.data?.success) {
+          setLinkedAccounts(res.data.accounts);
+        }
+      } catch {
+        console.log("Error fetching accounts");
       }
+    };
+    fetchLinkedAccounts();
+  }, [user]);
+
+  const performGoogleLink = async () => {
+    try {
+      await authClient.signIn.social({
+        provider: "google",
+        callbackURL: "/(screens)/settingsScreen",
+      });
     } catch {
-      showErrorToast("Erreur serveur");
+      showErrorToast("Impossible de lancer la liaison Google");
     }
-  };
-
-  const handleChangeEmail = async () => {
-    if (!user?.emailVerified) {
-      Alert.alert(
-        "Email non vérifié",
-        "Souhaitez-vous vérifier votre email actuel ou le modifier ?",
-        [
-          {
-            text: "Modifier",
-            onPress: () => router.push("/(screens)/changeEmailScreen"),
-          },
-          {
-            text: "Vérifier maintenance",
-            onPress: async () => {
-              setIsLoading(true);
-              try {
-                const res = await authClient.sendVerificationEmail({
-                  email: user.email,
-                  callbackURL: "/(screens)/verifyEmailScreen",
-                });
-                if (res.error) {
-                  showErrorToast(res.error.message || "Erreur d'envoi");
-                } else {
-                  showSuccessToast("Code envoyé !");
-                  router.push({
-                    pathname: "/(screens)/verifyEmailScreen",
-                    params: { email: user.email, type: "verification" },
-                  });
-                }
-              } catch {
-                showErrorToast("Erreur serveur");
-              } finally {
-                setIsLoading(false);
-              }
-            },
-          },
-          { text: "Annuler", style: "cancel" },
-        ],
-      );
-    } else {
-      router.push("/(screens)/changeEmailScreen");
-    }
-  };
-
-  const handleChangePhone = () => {
-    // Logique similaire
-    console.log("Naviguer vers ChangePhoneScreen");
-  };
-
-  const handleClearCache = () => {
-    Alert.alert(
-      "Vider le cache ?",
-      "Cela libérera de l'espace mais les images devront être rechargées.",
-      [
-        { text: "Annuler", style: "cancel" },
-        {
-          text: "Vider",
-          onPress: () => showSuccessToast("Cache vidé avec succès"),
-        },
-      ],
-    );
   };
 
   const handleLogout = async () => {
-    Alert.alert("Déconnexion", "Voulez-vous vraiment quitter ?", [
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    showCustomAlert("Déconnexion", "Souhaitez-vous quitter votre session ?", [
       { text: "Annuler", style: "cancel" },
       {
         text: "Se déconnecter",
@@ -143,477 +82,235 @@ export default function SettingsScreen() {
     ]);
   };
 
-  const handleDeleteAccount = async (data: {
-    password: string;
-    otp?: string;
-  }) => {
-    setIsDeleting(true);
-    try {
-      const res = await userService.deleteAccount(data);
-      if (res.success) {
-        showSuccessToast("Compte supprimé.");
-        await authClient.signOut();
-        router.replace("/(auth)/sign-in");
-      } else {
-        showErrorToast(res.message);
-      }
-    } catch (error: any) {
-      showErrorToast(error?.message || "Erreur suppression");
-    } finally {
-      setIsDeleting(false);
-      setShowDeleteModal(false);
-    }
-  };
-
-  const openLink = (url: string, title: string) => {
-    router.push({
-      pathname: "/(screens)/webviewScreen",
-      params: { url, title },
-    });
-  };
-
   return (
-    <View style={styles.container}>
-      {/* HEADER FIXE */}
-      <View style={[styles.header, { paddingTop: insets.top }]}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      {/* HEADER ÉDITORIAL */}
+      <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.navBtn}>
-          <Ionicons name="arrow-back" size={24} color={THEME.textMain} />
+          <Icon name="chevron-back" size={26} color={theme.textMain} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Paramètres</Text>
-        <View style={{ width: 40 }} />
+        <ThemedText type="label">Paramètres</ThemedText>
+        <View style={{ width: 44 }} />
       </View>
 
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* CARTE PROFIL */}
         <TouchableOpacity
-          style={styles.profileCard}
-          activeOpacity={0.9}
-          onPress={() => router.push("/(screens)/nameSetupScreen")}
+          style={[
+            styles.profileCard,
+            { backgroundColor: theme.surface, borderColor: theme.border },
+          ]}
+          activeOpacity={0.8}
+          onPress={() => router.push("/(screens)/setupScreens/nameSetupScreen")}
         >
           <Image
             source={{ uri: user?.image || "https://i.pravatar.cc/150" }}
             style={styles.avatar}
           />
           <View style={styles.profileInfo}>
-            <Text style={styles.userName}>{user?.name || "Utilisateur"}</Text>
-            <Text style={styles.userEmail}>{user?.email}</Text>
-            <View style={styles.editBadge}>
-              <Text style={styles.editBadgeText}>MODIFIER LE PROFIL</Text>
+            <ThemedText type="title" style={{ fontSize: 18 }}>
+              {user?.name || "Membre"}
+            </ThemedText>
+            <ThemedText colorName="textSecondary" style={{ fontSize: 13 }}>
+              {user?.email}
+            </ThemedText>
+            <View style={styles.editLink}>
+              <ThemedText
+                type="label"
+                colorName="accent"
+                style={{ fontSize: 9 }}
+              >
+                Gérer le profil
+              </ThemedText>
+              <Icon name="arrow-forward" size={10} colorName="accent" />
             </View>
           </View>
-          <Ionicons name="chevron-forward" size={20} color="#D1D5DB" />
         </TouchableOpacity>
 
-        {/* --- SECTION INFOS PERSONNELLES --- */}
-        <View style={styles.sectionContainer}>
-          <Text style={styles.sectionTitle}>Informations personnelles</Text>
-          <View style={styles.sectionCard}>
-            <SettingRow
-              label="Nom d'utilisateur"
-              subLabel={user?.username || "Non défini"}
-              icon="at-outline"
-              onPress={() => router.push("/(screens)/usernameSetupScreen")}
-            />
-            <SettingRow
-              label="Biographie"
-              subLabel={user?.description || "Non défini"}
-              icon="person-outline"
-              onPress={() => router.push("/(screens)/bioSetupScreen")}
-            />
-            <SettingRow
-              label="Liens sociaux"
-              subLabel={
-                user?.socialLinks?.length
-                  ? `${user.socialLinks.length} lien(s)`
-                  : "Aucun lien"
-              }
-              icon="link-outline"
-              onPress={() => router.push("/(screens)/socialLinksScreen")}
-            />
-            <SettingRow
-              label="Me connaître"
-              subLabel="Tailles et préférences"
-              icon="heart-outline"
-              onPress={() => router.push("/(screens)/privateInfoScreen")}
-            />
-            <SettingRow
-              label="Adresse Email"
-              subLabel={user?.email}
-              icon="mail-outline"
-              onPress={() => handleChangeEmail()}
-              badge={!user?.emailVerified ? "À VÉRIFIER" : undefined}
-              badgeColor={!user?.emailVerified ? "#F59E0B" : undefined}
-            />
-            <SettingRow
-              label="Numéro de mobile"
-              subLabel={user?.phoneNumber || "Non défini"}
-              icon="call-outline"
-              onPress={handleChangePhone}
-              isLast
-              isComingSoon
-            />
-          </View>
-        </View>
+        {/* SECTIONS EN MODE REGISTRE */}
+        <SettingsSection title="Compte">
+          <SettingRow
+            label="Nom d'utilisateur"
+            subLabel={user?.username ? `@${user.username}` : "Non défini"}
+            icon="at-outline"
+            onPress={() =>
+              router.push("/(screens)/setupScreens/usernameSetupScreen")
+            }
+          />
+          <SettingRow
+            label="Biographie"
+            subLabel={user?.description || "Votre essence en quelques mots"}
+            icon="document-text-outline"
+            onPress={() =>
+              router.push("/(screens)/setupScreens/bioSetupScreen")
+            }
+          />
+          <SettingRow
+            label="Anniversaire"
+            subLabel={
+              user?.birthday
+                ? new Date(user.birthday).toLocaleDateString("fr-FR", {
+                    day: "numeric",
+                    month: "long",
+                  })
+                : "Non défini"
+            }
+            icon="calendar-outline"
+            onPress={() =>
+              router.push("/(screens)/setupScreens/birthdaySetupScreen")
+            }
+          />
+          <SettingRow
+            label="Me connaître"
+            subLabel="Tailles et préférences intimes"
+            icon="heart-outline"
+            onPress={() =>
+              router.push("/(screens)/setupScreens/privateInfoScreen")
+            }
+            isLast
+          />
+        </SettingsSection>
 
-        {/* --- SECTION SÉCURITÉ --- */}
-        <View style={styles.sectionContainer}>
-          <Text style={styles.sectionTitle}>Sécurité & Accès</Text>
-          <View style={styles.sectionCard}>
-            <SettingRow
-              label="Mot de passe"
-              icon="key-outline"
-              onPress={() => router.push("/(screens)/changePasswordScreen")}
-            />
-            <SettingRow
-              label="Face ID / Touch ID"
-              icon="finger-print-outline"
-              isSwitch
-              switchValue={biometricsEnabled}
-              onSwitchChange={setBiometricsEnabled}
-              isComingSoon
-            />
-            <SettingRow
-              label="Appareils connectés"
-              icon="phone-portrait-outline"
-              value="2 actifs"
-              onPress={() => {}}
-              isLast
-              isComingSoon
-            />
-          </View>
-        </View>
+        <SettingsSection title="Sécurité">
+          <SettingRow
+            label="Email"
+            subLabel={user?.email}
+            icon="mail-outline"
+            onPress={() =>
+              router.push("/(screens)/setupScreens/changeEmailScreen")
+            }
+            badge={!user?.emailVerified ? "À VÉRIFIER" : undefined}
+            badgeColor={!user?.emailVerified ? theme.accent : undefined}
+          />
+          <SettingRow
+            label="Blocage"
+            subLabel="Registre des personnes bloquées"
+            icon="person-remove-outline"
+            onPress={() =>
+              router.push("/(screens)/setupScreens/blockedUsersScreen")
+            }
+          />
+          <SettingRow
+            label="Mot de passe"
+            icon="key-outline"
+            onPress={() =>
+              router.push("/(screens)/setupScreens/changePasswordScreen")
+            }
+          />
+          <SettingRow
+            label="Profil Public"
+            subLabel="Autoriser la découverte de votre profil"
+            icon="eye-outline"
+            isSwitch
+            switchValue={isPublic}
+            onSwitchChange={(val: boolean) => setIsPublic(val)}
+            isLast
+          />
+        </SettingsSection>
 
-        {/* --- SECTION PRÉFÉRENCES (NOUVEAU) --- */}
-        <View style={styles.sectionContainer}>
-          <Text style={styles.sectionTitle}>Préférences</Text>
-          <View style={styles.sectionCard}>
-            <SettingRow
-              label="Notifications"
-              icon="notifications-outline"
-              isSwitch
-              switchValue={notificationsEnabled}
-              onSwitchChange={setNotificationsEnabled}
-              isComingSoon
-            />
-            <SettingRow
-              label="Devise"
-              icon="wallet-outline"
-              value="EUR (€)"
-              onPress={() => {}}
-              isComingSoon
-            />
-            <SettingRow
-              label="Langue"
-              icon="language-outline"
-              value="Français"
-              onPress={() => {}}
-              isComingSoon
-            />
-            <SettingRow
-              label="Profil Public"
-              icon="eye-outline"
-              isSwitch
-              switchValue={isPublic}
-              onSwitchChange={(val: boolean) =>
-                handleUpdateProfile("isPublic", val)
-              }
-              isLast
-              isComingSoon
-            />
-          </View>
-        </View>
+        <SettingsSection title="Comptes liés">
+          <SettingRow
+            label="Google"
+            subLabel={
+              linkedAccounts.some((a) => a.provider === "google")
+                ? "Compte synchronisé"
+                : "Synchroniser mon compte"
+            }
+            icon="logo-google"
+            onPress={
+              linkedAccounts.some((a) => a.provider === "google")
+                ? undefined
+                : performGoogleLink
+            }
+            badge={
+              linkedAccounts.some((a) => a.provider === "google")
+                ? "LIÉ"
+                : undefined
+            }
+            badgeColor={theme.accent}
+          />
+        </SettingsSection>
 
-        {/* --- SECTION DONNÉES & CONFIDENTIALITÉ --- */}
-        <View style={styles.sectionContainer}>
-          <Text style={styles.sectionTitle}>Données</Text>
-          <View style={styles.sectionCard}>
-            <SettingRow
-              label="Utilisateurs bloqués"
-              icon="ban-outline"
-              onPress={() => {}}
-              isComingSoon
-            />
-            <SettingRow
-              label="Vider le cache"
-              icon="refresh-outline"
-              value="124 MB"
-              onPress={handleClearCache}
-              isLast
-              isComingSoon
-            />
-          </View>
-        </View>
-
-        {/* --- SECTION INFOS & ASSISTANCE --- */}
-        <View style={styles.sectionContainer}>
-          <Text style={styles.sectionTitle}>Légal & Aide</Text>
-          <View style={styles.sectionCard}>
-            <SettingRow
-              label="Centre d'aide"
-              icon="help-buoy-outline"
-              onPress={() =>
-                openLink("https://giftflow.app/help", "Centre d'aide")
-              }
-            />
-            <SettingRow
-              label="Conditions d'utilisation"
-              icon="document-text-outline"
-              onPress={() =>
-                openLink("https://giftflow.app/terms", "Conditions")
-              }
-            />
-            <SettingRow
-              label="Politique de confidentialité"
-              icon="shield-outline"
-              onPress={() =>
-                openLink("https://giftflow.app/privacy", "Confidentialité")
-              }
-              isLast
-            />
-          </View>
-        </View>
-
-        {/* --- ZONE DANGER --- */}
-        <View style={styles.sectionContainer}>
-          <View style={[styles.sectionCard, { backgroundColor: "#FFF" }]}>
-            <SettingRow
-              label="Se déconnecter"
-              icon="log-out-outline"
-              onPress={handleLogout}
-            />
-            <SettingRow
-              label="Supprimer le compte"
-              icon="trash-outline"
-              isDanger
-              onPress={() => setShowDeleteModal(true)}
-              isLast
-            />
-          </View>
+        {/* LOGOUT / DANGER AREA */}
+        <View style={styles.dangerZone}>
+          <TouchableOpacity
+            style={[styles.logoutBtn, { backgroundColor: theme.textMain }]}
+            onPress={handleLogout}
+          >
+            <ThemedText type="label" lightColor="#FFF" darkColor="#000">
+              Se déconnecter
+            </ThemedText>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.deleteLink}
+            onPress={() =>
+              router.push("/(screens)/setupScreens/deleteAccountScreen")
+            }
+          >
+            <ThemedText
+              type="caption"
+              colorName="textSecondary"
+              style={{ textDecorationLine: "underline" }}
+            >
+              Clôturer le compte
+            </ThemedText>
+          </TouchableOpacity>
         </View>
 
         <View style={styles.footer}>
-          <Text style={styles.versionText}>GiftFlow v1.0.0 (Build 204)</Text>
+          <ThemedText
+            type="label"
+            colorName="textSecondary"
+            style={{ fontSize: 9 }}
+          >
+            GIFTFLOW — VERSION 1.0
+          </ThemedText>
         </View>
       </ScrollView>
-
-      {/* MODALS */}
-      <DeleteAccountModal
-        visible={showDeleteModal}
-        onClose={() => setShowDeleteModal(false)}
-        onConfirm={handleDeleteAccount}
-        isLoading={isDeleting}
-        email={user?.email || ""}
-        requireOtp={!user?.emailVerified}
-        hasPassword={user?.hasPassword ?? true}
-      />
-
-      <VerifyOtpModal
-        visible={showVerifyOtpModal}
-        email={user?.email || ""}
-        onClose={() => setShowVerifyOtpModal(false)}
-        onVerified={async () => {
-          await refetch();
-          setShowVerifyOtpModal(false);
-        }}
-      />
-
-      {isLoading && (
-        <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" color={THEME.textMain} />
-        </View>
-      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: THEME.background,
-  },
-
-  /* HEADER */
+  container: { flex: 1 },
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(0,0,0,0.05)",
-    backgroundColor: THEME.background,
+    paddingHorizontal: 15,
   },
-  navBtn: {
-    width: 40,
-    height: 40,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  headerTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-    color: THEME.textMain,
-  },
-
-  /* SCROLL CONTENT */
-  scrollContent: {
-    paddingHorizontal: 20,
-    paddingTop: 24,
-    paddingBottom: 60,
-  },
-
-  /* PROFILE CARD */
+  navBtn: { width: 44, height: 44, justifyContent: "center" },
+  scrollContent: { paddingHorizontal: 30, paddingBottom: 60 },
   profileCard: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: THEME.surface,
-    padding: 16,
-    borderRadius: 24,
-    marginBottom: 32,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.05,
-    shadowRadius: 16,
-    elevation: 4,
+    padding: 10,
+    marginBottom: 20,
+    borderWidth: 1,
   },
   avatar: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: "#F3F4F6",
-  },
-  profileInfo: {
-    flex: 1,
-    marginLeft: 16,
-  },
-  userName: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: THEME.textMain,
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-    marginBottom: 4,
-  },
-  userEmail: {
-    fontSize: 13,
-    color: THEME.textSecondary,
-    marginBottom: 8,
-  },
-  editBadge: {
-    backgroundColor: "#F3F4F6",
-    alignSelf: "flex-start",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  editBadgeText: {
-    fontSize: 10,
-    fontWeight: "700",
-    color: THEME.textMain,
-    letterSpacing: 0.5,
-  },
-
-  /* SECTIONS */
-  sectionContainer: {
-    marginBottom: 24,
-  },
-  sectionTitle: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: "#9CA3AF",
-    textTransform: "uppercase",
-    letterSpacing: 1.5,
-    marginBottom: 12,
-    paddingLeft: 8,
-  },
-  sectionCard: {
-    backgroundColor: THEME.surface,
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 4,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.03,
-    shadowRadius: 10,
-    elevation: 2,
-  },
-
-  /* ROW ITEM */
-  rowContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: "#F3F4F6",
-  },
-  rowLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    flex: 1,
-  },
-  labelContainer: {
-    flex: 1,
-  },
-  iconBox: {
-    width: 32,
-    height: 32,
-    borderRadius: 10,
+    width: 60,
+    height: 60,
+    borderRadius: 0,
     backgroundColor: "#F9FAFB",
-    alignItems: "center",
-    justifyContent: "center",
   },
-  rowLabel: {
-    fontSize: 15,
-    fontWeight: "500",
-    color: THEME.textMain,
-  },
-  rowSubLabel: {
-    fontSize: 12,
-    color: THEME.textSecondary,
-    marginTop: 2,
-  },
-  rowRight: {
+  profileInfo: { flex: 1, marginLeft: 20 },
+  editLink: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-  },
-  rowValue: {
-    fontSize: 14,
-    color: THEME.textSecondary,
+    gap: 5,
+    marginTop: 8,
   },
 
-  /* FOOTER */
-  footer: {
-    alignItems: "center",
-    marginTop: 20,
-  },
-  versionText: {
-    fontSize: 12,
-    color: "#D1D5DB",
-    fontWeight: "500",
-  },
-
-  loadingOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(255,255,255,0.7)",
-    alignItems: "center",
+  dangerZone: { marginTop: 20, gap: 20, alignItems: "center" },
+  logoutBtn: {
+    width: "100%",
+    height: 56,
     justifyContent: "center",
-    zIndex: 100,
+    alignItems: "center",
   },
-  badge: {
-    backgroundColor: "#E5E7EB",
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 6,
-  },
-  badgeText: {
-    fontSize: 9,
-    fontWeight: "800",
-    color: "#FFF",
-  },
+  deleteLink: { paddingVertical: 10 },
+  footer: { alignItems: "center", marginTop: 40 },
 });

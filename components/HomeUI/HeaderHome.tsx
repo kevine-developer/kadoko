@@ -1,18 +1,16 @@
-import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+
 import React from "react";
 import {
   Platform,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+
 const HeaderHome = ({ user }: any) => {
-  const insets = useSafeAreaInsets();
-  const router = useRouter();
+  const insets = useSafeAreaInsets();;
 
   return (
     <View style={[styles.headerContainer, { paddingTop: insets.top + 10 }]}>
@@ -26,15 +24,7 @@ const HeaderHome = ({ user }: any) => {
           Gift<Text style={styles.headerTitleItalic}>Flow</Text>
         </Text>
       </View>
-      <TouchableOpacity
-        style={styles.headerAvatarBtn}
-        onPress={() => router.push("/(screens)/notificationsScreen")}
-      >
-        <View style={styles.notificationCircle}>
-          <Ionicons name="notifications-outline" size={24} color="#111827" />
-          <View style={styles.notificationBadge} />
-        </View>
-      </TouchableOpacity>
+ 
     </View>
   );
 };
