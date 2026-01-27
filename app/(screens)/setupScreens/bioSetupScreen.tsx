@@ -65,7 +65,7 @@ export default function BioSetupScreen() {
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
       <View style={[styles.container, { backgroundColor: theme.background }]}>
         {/* NAV BAR MINIMALISTE */}
-        <SettingsNavBar title="Biographie" />
+        <SettingsNavBar title="Biographie"  />
 
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : "height"}

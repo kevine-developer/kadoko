@@ -1,4 +1,4 @@
-import { Platform, StyleSheet, View } from "react-native";
+import {  StyleSheet, View } from "react-native";
 import React from "react";
 import { MotiView } from "moti";
 import { ThemedText } from "@/components/themed-text";

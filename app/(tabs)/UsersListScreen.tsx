@@ -15,7 +15,7 @@ import { MotiView } from "moti";
 import { userService } from "@/lib/services/user-service";
 import { friendshipService } from "@/lib/services/friendship-service";
 import RequestCard from "@/components/UserList/RequestCard";
-import { UserListItemSkeleton } from "@/components/ui/SkeletonGroup";
+import { Loader } from "@/components/ui/Loader";
 import UserRowCard from "@/components/UserList/UserRowCard";
 import { ThemedText } from "@/components/themed-text";
 import { useAppTheme } from "@/hooks/custom/use-app-theme";
@@ -202,11 +202,7 @@ export default function UsersListScreen() {
   if (loading && friends.length === 0 && requests.length === 0) {
     return (
       <View style={[styles.container, { backgroundColor: theme.background }]}>
-        <View style={{ paddingTop: insets.top + 60, paddingHorizontal: 30 }}>
-          {Array.from({ length: 6 }).map((_, i) => (
-            <UserListItemSkeleton key={i} />
-          ))}
-        </View>
+        <Loader size="medium" />
       </View>
     );
   }

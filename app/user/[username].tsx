@@ -8,8 +8,8 @@ import {
   Text,
   TouchableOpacity,
   View,
-  ActivityIndicator,
 } from "react-native";
+import { Loader } from "@/components/ui/Loader";
 import { useLocalSearchParams, useRouter, Stack } from "expo-router";
 import PagerView from "react-native-pager-view";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -120,7 +120,7 @@ export default function PublicUserProfileScreen() {
   if (loading && !user) {
     return (
       <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#111827" />
+        <Loader size="large" />
       </View>
     );
   }

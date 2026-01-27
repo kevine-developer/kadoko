@@ -18,6 +18,8 @@ import { ThemedText } from "@/components/themed-text";
 import Icon from "@/components/themed-icon";
 import { useAppTheme } from "@/hooks/custom/use-app-theme";
 import SettingsNavBar from "@/components/Settings/SettingsNavBar";
+import SettingHero from "@/components/Settings/SettingHero";
+import EmptyContent from "@/components/EmptyContent";
 
 export default function ConnectedDevicesScreen() {
   const theme = useAppTheme();
@@ -105,45 +107,18 @@ export default function ConnectedDevicesScreen() {
   };
 
   const renderHeader = () => (
-    <MotiView
-      from={{ opacity: 0, translateY: 10 }}
-      animate={{ opacity: 1, translateY: 0 }}
-      style={styles.listHeader}
-    >
-      <ThemedText type="hero">Appareils{"\n"}actifs.</ThemedText>
-      <View style={[styles.titleDivider, { backgroundColor: theme.accent }]} />
-      <ThemedText type="subtitle" colorName="textSecondary">
-        Liste des navigateurs et applications actuellement connectés à votre
-        compte.
-      </ThemedText>
-    </MotiView>
+    <SettingHero
+      title={`Appareils\nactifs`}
+      subtitle="Liste des navigateurs et applications actuellement connectés à votre compte."
+    />
   );
 
   const renderEmptyState = () => (
-    <MotiView
-      from={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      style={styles.emptyContainer}
-    >
-      <View
-        style={[
-          styles.placeholderCircle,
-          { borderColor: theme.border, backgroundColor: theme.surface },
-        ]}
-      >
-        <Icon name="laptop-outline" size={30} colorName="textSecondary" />
-      </View>
-      <ThemedText type="title" style={styles.emptyTitle}>
-        Aucun appareil
-      </ThemedText>
-      <ThemedText
-        type="subtitle"
-        colorName="textSecondary"
-        style={styles.emptyText}
-      >
-        Nous n&apos;avons pas pu récupérer la liste de vos sessions actives.
-      </ThemedText>
-    </MotiView>
+    <EmptyContent
+      title="Aucun appareil"
+      subtitle="Nous n'avons pas pu récupérer la liste de vos sessions actives."
+      icon="laptop-outline"
+    />
   );
 
   return (
@@ -243,8 +218,6 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
   listContent: { paddingHorizontal: 30, paddingBottom: 40 },
-  listHeader: { marginTop: 20, marginBottom: 40 },
-  titleDivider: { width: 35, height: 2, marginVertical: 20 },
   sessionRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -274,20 +247,4 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  emptyContainer: {
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 80,
-  },
-  placeholderCircle: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 20,
-    borderWidth: 1,
-  },
-  emptyTitle: { marginBottom: 8 },
-  emptyText: { textAlign: "center", paddingHorizontal: 20 },
 });

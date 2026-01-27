@@ -16,39 +16,13 @@ import {
 import { MotiView } from "moti";
 import * as Haptics from "expo-haptics";
 
-import { Skeleton } from "@/components/ui/Skeleton";
-import { GiftCardSkeleton } from "@/components/ui/SkeletonGroup";
+import { Loader } from "@/components/ui/Loader";
 import { socketService } from "@/lib/services/socket";
 import GiftFriendBuy from "@/components/HomeUI/GiftFriendBuy";
 import { ThemedText } from "@/components/themed-text";
 import { useAppTheme } from "@/hooks/custom/use-app-theme";
 import MailVerified from "@/components/HomeUI/MailVerified";
-import EmptyFeed from "@/components/HomeUI/EmptyFeed";
 import EmptyContent from "@/components/EmptyContent";
-
-// --- SKELETON GÉOMÉTRIQUE ---
-const HomeSkeleton = () => (
-  <View style={{ paddingHorizontal: 20, paddingTop: 20 }}>
-    <View style={{ flexDirection: "row", gap: 10, marginBottom: 40 }}>
-      {[1, 2, 3, 4].map((i) => (
-        <Skeleton key={i} width={70} height={70} borderRadius={0} />
-      ))}
-    </View>
-    <Skeleton
-      width="100%"
-      height={180}
-      borderRadius={0}
-      style={{ marginBottom: 40 }}
-    />
-    <Skeleton
-      width={150}
-      height={30}
-      borderRadius={0}
-      style={{ marginBottom: 20 }}
-    />
-    <GiftCardSkeleton />
-  </View>
-);
 
 export default function LuxuryFeedScreen() {
   const [inspirations, setInspirations] = useState<any[]>([]);
@@ -191,7 +165,7 @@ export default function LuxuryFeedScreen() {
         {/* 2. TICKER D'ACTUALITÉ / ALERTE */}
         {session?.user?.emailVerified === false && <MailVerified />}
         {loading && !refreshing ? (
-          <HomeSkeleton />
+          <Loader size="large" />
         ) : (
           <MotiView
             from={{ opacity: 0 }}

@@ -255,20 +255,6 @@ export default function SocialLinksScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  navBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 15,
-    paddingBottom: 15,
-  },
-  navBtn: { width: 44, height: 44, justifyContent: "center" },
-  saveAction: {
-    width: 44,
-    height: 44,
-    justifyContent: "center",
-    alignItems: "flex-end",
-  },
   listContent: { paddingHorizontal: 30, paddingBottom: 60 },
   linkRow: {
     flexDirection: "row",

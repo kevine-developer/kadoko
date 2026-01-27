@@ -9,8 +9,7 @@ import * as Haptics from "expo-haptics";
 
 import OwnerWishlist from "@/components/wishlist/OwnerWishlist";
 import GuestWishlist from "@/components/wishlist/GuestWishlist";
-import { Skeleton } from "@/components/ui/Skeleton";
-import { GiftGridSkeleton } from "@/components/ui/SkeletonGroup";
+import { Loader } from "@/components/ui/Loader";
 
 import { useAppTheme } from "@/hooks/custom/use-app-theme";
 
@@ -65,24 +64,7 @@ export default function WishlistGroupView() {
     return (
       <View style={[styles.container, { backgroundColor: theme.background }]}>
         <StatusBar barStyle="dark-content" />
-        <View style={{ paddingTop: insets.top + 80, paddingHorizontal: 30 }}>
-          <Skeleton
-            width={120}
-            height={20}
-            borderRadius={0}
-            style={{ marginBottom: 20 }}
-          />
-          <Skeleton
-            width="90%"
-            height={50}
-            borderRadius={0}
-            style={{ marginBottom: 15 }}
-          />
-          <Skeleton width="100%" height={80} borderRadius={0} />
-          <View style={{ marginTop: 40 }}>
-            <GiftGridSkeleton count={1} />
-          </View>
-        </View>
+        <Loader size="medium" />
       </View>
     );
   }

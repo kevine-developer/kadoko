@@ -126,23 +126,11 @@ export default function FriendProfileScreen() {
         >
           <ThemedIcon name="chevron-back" size={24} colorName="textMain" />
         </TouchableOpacity>
-        <TouchableOpacity
-          style={[
-            styles.iconBtn,
-            { backgroundColor: theme.surface, borderColor: theme.border },
-          ]}
-        >
-          <ThemedIcon
-            name="ellipsis-horizontal"
-            size={20}
-            colorName="textMain"
-          />
-        </TouchableOpacity>
       </View>
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingTop: 100 }}
+        contentContainerStyle={{ paddingTop: 20 }}
         onScroll={Animated.event(
           [{ nativeEvent: { contentOffset: { y: scrollY } } }],
           { useNativeDriver: false },
@@ -157,7 +145,7 @@ export default function FriendProfileScreen() {
             />
             <View style={styles.statsContainer}>
               <View style={styles.statItem}>
-                <ThemedText type="defaultBold" style={styles.statNum}>
+                <ThemedText type="default" bold style={styles.statNum}>
                   {friendWishlists.length}
                 </ThemedText>
                 <ThemedText
@@ -172,7 +160,7 @@ export default function FriendProfileScreen() {
                 style={[styles.statDivider, { backgroundColor: theme.border }]}
               />
               <View style={styles.statItem}>
-                <ThemedText type="defaultBold" style={styles.statNum}>
+                <ThemedText type="default" bold style={styles.statNum}>
                   {friendInfo?.friendsCount ?? 0}
                 </ThemedText>
                 <ThemedText
@@ -263,6 +251,7 @@ export default function FriendProfileScreen() {
                 name="chatbubble-outline"
                 size={20}
                 colorName="textMain"
+                
               />
             </TouchableOpacity>
           </View>
@@ -350,7 +339,7 @@ export default function FriendProfileScreen() {
                   >
                     MEMBRE DEPUIS
                   </ThemedText>
-                  <ThemedText type="defaultBold" style={styles.infoValue}>
+                  <ThemedText type="default" bold style={styles.infoValue}>
                     2024
                   </ThemedText>
                 </View>
@@ -364,7 +353,7 @@ export default function FriendProfileScreen() {
                   >
                     ANNIVERSAIRE
                   </ThemedText>
-                  <ThemedText type="defaultBold" style={styles.infoValue}>
+                  <ThemedText type="default" bold style={styles.infoValue}>
                     {friendInfo?.birthday
                       ? new Date(friendInfo.birthday).toLocaleDateString(
                           "fr-FR",

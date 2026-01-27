@@ -173,7 +173,8 @@ export default function OnboardingScreen() {
           onPress={handleNext}
         >
           <ThemedText
-            type="defaultBold"
+            type="default"
+            bold
             style={[styles.actionBtnText, { color: theme.background }]}
           >
             {currentIndex === SLIDES.length - 1 ? "Commencer" : "Suivant"}

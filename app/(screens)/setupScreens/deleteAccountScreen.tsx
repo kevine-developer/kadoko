@@ -21,7 +21,7 @@ import { authClient } from "@/features/auth";
 import SettingHero from "@/components/Settings/SettingHero";
 import { ThemedText } from "@/components/themed-text";
 import { useAppTheme } from "@/hooks/custom/use-app-theme";
-import ThemedIcon from "@/components/themed-icon";
+import SettingsNavBar from "@/components/Settings/SettingsNavBar";
 
 export default function DeleteAccountScreen() {
   const router = useRouter();
@@ -62,17 +62,10 @@ export default function DeleteAccountScreen() {
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
       <View style={[styles.container, { backgroundColor: theme.background }]}>
-        <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
-          <TouchableOpacity
-            onPress={() => router.back()}
-            style={[
-              styles.closeCircle,
-              { backgroundColor: theme.surface, borderColor: theme.border },
-            ]}
-          >
-            <ThemedIcon name="chevron-down" size={24} colorName="textMain" />
-          </TouchableOpacity>
-        </View>
+        <SettingsNavBar
+          title="Supprimer mon compte"
+          onPress={() => router.back()}
+        />
 
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -228,15 +221,6 @@ export default function DeleteAccountScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { paddingHorizontal: 25 },
-  closeCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 1,
-  },
   scrollContent: { paddingHorizontal: 32, flexGrow: 1 },
   infoSection: { gap: 24, marginBottom: 40 },
   infoItem: { flexDirection: "row", alignItems: "flex-start", gap: 16 },

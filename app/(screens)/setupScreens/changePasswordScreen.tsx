@@ -12,13 +12,13 @@ import {
   View,
 } from "react-native";
 import * as Haptics from "expo-haptics";
-import { MotiView } from "moti";
 import { authClient } from "@/features/auth";
 import { showErrorToast, showSuccessToast } from "@/lib/toast";
 import { ThemedText } from "@/components/themed-text";
 import { useAppTheme } from "@/hooks/custom/use-app-theme";
 import SettingsNavBar from "@/components/Settings/SettingsNavBar";
 import BtnValidate from "@/components/Settings/BtnValidate";
+import SettingHero from "@/components/Settings/SettingHero";
 
 const EditorialPasswordInput = ({
   label,
@@ -141,21 +141,10 @@ export default function ChangePasswordScreen() {
             contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
           >
-            <MotiView
-              from={{ opacity: 0, translateY: 15 }}
-              animate={{ opacity: 1, translateY: 0 }}
-              transition={{ type: "timing", duration: 700 }}
-              style={styles.heroSection}
-            >
-              <ThemedText type="hero">Nouveau{"\n"}mot de passe.</ThemedText>
-              <View
-                style={[styles.titleDivider, { backgroundColor: theme.accent }]}
-              />
-              <ThemedText type="subtitle" colorName="textSecondary">
-                Protégez l&apos;accès à vos listes et vos données personnelles
-                avec une signature secrète forte.
-              </ThemedText>
-            </MotiView>
+            <SettingHero
+              title={`Nouveau\nmot de passe`}
+              subtitle="Protégez l'acces à vos listes et vos données personnelles avec une signature secrète forte."
+            />
 
             <View style={styles.formContainer}>
               <EditorialPasswordInput
@@ -189,7 +178,6 @@ export default function ChangePasswordScreen() {
                 <ThemedText
                   type="caption"
                   colorName={isLengthValid ? "accent" : "textSecondary"}
-                  style={styles.validationText}
                 >
                   Exigence de sécurité : 8 caractères minimum
                 </ThemedText>
@@ -249,8 +237,7 @@ export default function ChangePasswordScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   scrollContent: { paddingHorizontal: 32, flexGrow: 1 },
-  heroSection: { marginTop: 30, marginBottom: 40 },
-  titleDivider: { width: 35, height: 2, marginVertical: 25 },
+
   formContainer: { marginBottom: 20 },
   inputGroup: { marginBottom: 10 },
   miniLabel: { letterSpacing: 1.5, marginBottom: 12 },
@@ -270,7 +257,6 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   dot: { width: 4, height: 4, borderRadius: 2 },
-  validationText: {},
   footerContainer: { paddingTop: 10 },
   helperFooter: {
     marginTop: 10,

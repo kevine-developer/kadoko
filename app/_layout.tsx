@@ -11,7 +11,8 @@ import {
 } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useEffect } from "react";
-import { ActivityIndicator, View } from "react-native";
+import { View } from "react-native";
+import { Loader } from "@/components/ui/Loader";
 import "react-native-reanimated";
 
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -31,7 +32,7 @@ export default function RootLayout() {
   const router = useRouter();
   const colorScheme = useColorScheme();
 
-  const { toast, alertModal, hideToast, hideAlert } = useUIStore();
+  const { toast, alertModal, hideAlert } = useUIStore();
 
   const { session, isLoading: isSessionLoading } = useSession();
   const { isFirstLaunch, isLoading: isFirstLaunchLoading } = useIsFirstLaunch();
@@ -58,8 +59,8 @@ export default function RootLayout() {
 
   if (isLoading) {
     return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <ActivityIndicator size="large" />
+      <View style={{ flex: 1, backgroundColor: "#FFF" }}>
+        <Loader size="large" />
       </View>
     );
   }
@@ -76,7 +77,7 @@ export default function RootLayout() {
         screenOptions={{ headerShown: false }}
         initialRouteName={initialRouteName as any}
       >
-        <Stack.Screen name="(onboarding)" />
+        <Stack.Screen name="(onboarding)/index" />
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="(screens)" />
         <Stack.Screen name="(auth)" />

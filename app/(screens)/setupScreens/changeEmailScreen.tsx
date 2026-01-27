@@ -13,8 +13,6 @@ import {
   View,
 } from "react-native";
 import * as Haptics from "expo-haptics";
-import { MotiView } from "moti";
-
 // Hooks & Components
 import { authClient } from "@/features/auth";
 import { showErrorToast, showSuccessToast } from "@/lib/toast";
@@ -22,6 +20,8 @@ import { ThemedText } from "@/components/themed-text";
 import Icon from "@/components/themed-icon";
 import { useAppTheme } from "@/hooks/custom/use-app-theme";
 import SettingsNavBar from "@/components/Settings/SettingsNavBar";
+import ChangeMailConfirme from "@/components/Settings/ChangeMailConfirme";
+import SettingHero from "@/components/Settings/SettingHero";
 
 export default function ChangeEmailScreen() {
   const router = useRouter();
@@ -116,21 +116,10 @@ export default function ChangeEmailScreen() {
             showsVerticalScrollIndicator={false}
           >
             {/* HERO SECTION */}
-            <MotiView
-              from={{ opacity: 0, translateY: 15 }}
-              animate={{ opacity: 1, translateY: 0 }}
-              transition={{ type: "timing", duration: 700 }}
-              style={styles.heroSection}
-            >
-              <ThemedText type="hero">Nouvelle{"\n"}adresse email.</ThemedText>
-              <View
-                style={[styles.titleDivider, { backgroundColor: theme.accent }]}
-              />
-              <ThemedText type="subtitle" colorName="textSecondary">
-                Pour garantir la sécurité de votre compte, une vérification sera
-                nécessaire sur votre nouvelle boîte de réception.
-              </ThemedText>
-            </MotiView>
+            <SettingHero
+              title={`Nouvelle\nadresse email`}
+              subtitle="Pour garantir la sécurité de votre compte, une vérification sera nécessaire sur votre nouvelle boîte de réception."
+            />
 
             {/* REGISTRE DES ADRESSES */}
             {!isSent ? (
@@ -214,56 +203,7 @@ export default function ChangeEmailScreen() {
                 </View>
               </View>
             ) : (
-              <MotiView
-                from={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                style={styles.successCard}
-              >
-                <View
-                  style={[
-                    styles.iconCircle,
-                    {
-                      backgroundColor: theme.surface,
-                      borderColor: theme.accent,
-                    },
-                  ]}
-                >
-                  <Icon
-                    name="mail-unread-outline"
-                    size={40}
-                    colorName="accent"
-                  />
-                </View>
-
-                <ThemedText type="title" style={styles.successTitle}>
-                  Lien envoyé !
-                </ThemedText>
-
-                <ThemedText
-                  type="subtitle"
-                  colorName="textSecondary"
-                  style={styles.successText}
-                >
-                  Un email de confirmation a été expédié à{"\n"}
-                  <ThemedText
-                    type="defaultBold"
-                    style={{ color: theme.textMain }}
-                  >
-                    {newEmail}
-                  </ThemedText>
-                  .
-                </ThemedText>
-
-                <ThemedText
-                  type="caption"
-                  colorName="textSecondary"
-                  style={styles.successHint}
-                >
-                  Veuillez cliquer sur le lien dans l&apos;email pour valider le
-                  changement. Votre adresse actuelle restera active tant que la
-                  vérification n&apos;est pas terminée.
-                </ThemedText>
-              </MotiView>
+              <ChangeMailConfirme newEmail={newEmail} />
             )}
 
             {/* ACTION FOOTER */}
@@ -328,21 +268,7 @@ export default function ChangeEmailScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  navBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 15,
-  },
-  backBtn: {
-    width: 44,
-    height: 44,
-    justifyContent: "center",
-    alignItems: "center",
-  },
   scrollContent: { paddingHorizontal: 32, flexGrow: 1 },
-  heroSection: { marginTop: 30, marginBottom: 40 },
-  titleDivider: { width: 35, height: 2, marginVertical: 25 },
   registrySection: { marginBottom: 40 },
   registryRow: {
     flexDirection: "row",
@@ -374,34 +300,5 @@ const styles = StyleSheet.create({
     padding: 15,
     marginTop: 10,
     borderLeftWidth: 2,
-  },
-  successCard: {
-    alignItems: "center",
-    paddingVertical: 20,
-  },
-  iconCircle: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 1,
-    marginBottom: 25,
-  },
-  successTitle: {
-    fontSize: 24,
-    marginBottom: 15,
-  },
-  successText: {
-    textAlign: "center",
-    fontSize: 16,
-    lineHeight: 24,
-    marginBottom: 20,
-  },
-  successHint: {
-    textAlign: "center",
-    fontSize: 13,
-    lineHeight: 20,
-    paddingHorizontal: 10,
   },
 });

@@ -25,6 +25,7 @@ class AuthService {
         email: data.email,
         password: data.password,
         name: data.name,
+        image: data.image,
       });
 
       if (response.error) {
@@ -47,6 +48,37 @@ class AuthService {
         message: "Une erreur est survenue lors de l'inscription",
         error: "SIGNUP_FAILED",
       } as AuthResponse;
+    }
+  }
+
+  /**
+   * Vérifie le statut de l'utilisateur avant inscription
+   */
+  async checkUserStatus(
+    email: string,
+    username?: string,
+  ): Promise<{ success: boolean; message?: string }> {
+    try {
+      const response = (await authClient.$fetch("/check-status", {
+        method: "POST",
+        body: { email, username },
+      })) as any;
+
+      if (!response.success) {
+        return {
+          success: false,
+          message: response.message || "Impossible de créer le compte",
+        };
+      }
+      return { success: true };
+    } catch (error: any) {
+      console.error("Erreur checkStatus:", error);
+      // Gérer le cas où $fetch lance une erreur pour les statuts 400/500
+      const message = error.data?.message || "Erreur de vérification";
+      return {
+        success: false,
+        message,
+      };
     }
   }
 

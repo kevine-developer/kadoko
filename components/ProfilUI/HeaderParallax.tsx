@@ -14,9 +14,7 @@ const HeaderParallax = ({ user, headerOpacity, imageScale }: any) => {
     >
       <Animated.Image
         source={{
-          uri:
-            user?.image ||
-            "https://images.unsplash.com/photo-1511367461989-f85a21fda167?w=400&h=400&fit=crop&q=60",
+          uri: user?.image,
         }}
         style={[styles.headerImage, { transform: [{ scale: imageScale }] }]}
         blurRadius={Platform.OS === "ios" ? 10 : 5}
@@ -37,7 +35,7 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    height: 270,
+    height: 260,
     overflow: "hidden",
   },
   headerImage: {

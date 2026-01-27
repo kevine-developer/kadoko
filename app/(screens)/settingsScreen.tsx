@@ -19,6 +19,7 @@ import { ThemedText } from "@/components/themed-text";
 import Icon from "@/components/themed-icon";
 import { useAppTheme } from "@/hooks/custom/use-app-theme";
 import SettingsSection from "@/components/Settings/SettingsSection";
+import { useUIStore } from "@/lib/ui-store";
 
 interface LinkedAccount {
   provider: string;
@@ -32,6 +33,7 @@ export default function SettingsScreen() {
 
   const { data: session } = authClient.useSession();
   const user = session?.user as any;
+  const { themePreference, setThemePreference } = useUIStore();
 
   const [isPublic, setIsPublic] = useState(user?.isPublic ?? true);
   const [linkedAccounts, setLinkedAccounts] = useState<LinkedAccount[]>([]);
@@ -178,6 +180,56 @@ export default function SettingsScreen() {
             }
             isLast
           />
+        </SettingsSection>
+
+        <SettingsSection title="Apparence">
+          <View style={styles.appearanceContainer}>
+            {[
+              { id: "light", label: "CLAIR", icon: "sunny-outline" },
+              { id: "dark", label: "SOMBRE", icon: "moon-outline" },
+              { id: "system", label: "SYSTÈME", icon: "contrast-outline" },
+            ].map((mode) => {
+              const isActive = themePreference === mode.id;
+              return (
+                <TouchableOpacity
+                  key={mode.id}
+                  style={[
+                    styles.themeOption,
+                    {
+                      backgroundColor: isActive
+                        ? theme.textMain
+                        : theme.surface,
+                      borderColor: theme.border,
+                    },
+                  ]}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    setThemePreference(mode.id as any);
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <Icon
+                    name={mode.icon as any}
+                    size={16}
+                    color={isActive ? theme.background : theme.textSecondary}
+                  />
+                  <ThemedText
+                    type="label"
+                    style={[
+                      styles.themeLabel,
+                      {
+                        color: isActive
+                          ? theme.background
+                          : theme.textSecondary,
+                      },
+                    ]}
+                  >
+                    {mode.label}
+                  </ThemedText>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
         </SettingsSection>
 
         <SettingsSection title="Sécurité">
@@ -328,4 +380,22 @@ const styles = StyleSheet.create({
   },
   deleteLink: { paddingVertical: 10 },
   footer: { alignItems: "center", marginTop: 40 },
+  appearanceContainer: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 5,
+  },
+  themeOption: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    height: 44,
+    borderWidth: 1,
+  },
+  themeLabel: {
+    fontSize: 10,
+    letterSpacing: 1,
+  },
 });

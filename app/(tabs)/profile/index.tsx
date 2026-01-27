@@ -24,12 +24,13 @@ import { uploadService } from "@/lib/services/upload-service";
 import { userService } from "@/lib/services/user-service";
 import TopBarSettingQr from "@/components/ProfilUI/TopBarSettingQr";
 import { showErrorToast } from "@/lib/toast";
-import { ProfileHeaderSkeleton } from "@/components/ui/SkeletonGroup";
+import { Loader } from "@/components/ui/Loader";
 import { ThemedText } from "@/components/themed-text";
 import Icon from "@/components/themed-icon";
 import { useAppTheme } from "@/hooks/custom/use-app-theme";
 import AddUserNameNotif from "@/components/AddUserNameNotif";
 import EmptyContent from "@/components/EmptyContent";
+import { MotiView } from "moti";
 
 export default function ModernUserProfileScreen() {
   const router = useRouter();
@@ -176,30 +177,29 @@ export default function ModernUserProfileScreen() {
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingTop: 80 }}
+        contentContainerStyle={{ paddingTop: 70 }}
         onScroll={Animated.event(
           [{ nativeEvent: { contentOffset: { y: scrollY } } }],
           { useNativeDriver: false },
         )}
         scrollEventThrottle={16}
       >
-        <View style={styles.profileContent}>
-          {loading ? (
-            <ProfileHeaderSkeleton />
-          ) : (
-            <>
-              <ProfilCard user={user} onEditAvatar={handleEditAvatar} />
+        <MotiView
+          from={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ type: "timing", duration: 500 }}
+          style={styles.profileContent}
+        >
+          <ProfilCard user={user} onEditAvatar={handleEditAvatar} />
 
-              <StatsMinimalistes
-                userWishlists={userWishlists}
-                reservedGifts={reservedGifts}
-                purchasedGifts={purchasedGifts}
-              />
+          <StatsMinimalistes
+            userWishlists={userWishlists}
+            reservedGifts={reservedGifts}
+            purchasedGifts={purchasedGifts}
+          />
 
-              {!user?.username && <AddUserNameNotif />}
-            </>
-          )}
-        </View>
+          {!user?.username && <AddUserNameNotif />}
+        </MotiView>
 
         {/* TABS ÉDITORIAUX */}
         <View style={styles.tabsWrapper}>

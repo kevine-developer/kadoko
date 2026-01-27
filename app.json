@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "wishly",
-    "slug": "wishly",
+    "name": "kadokou",
+    "slug": "kadokou",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "wishly",
+    "scheme": "kadokou",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
