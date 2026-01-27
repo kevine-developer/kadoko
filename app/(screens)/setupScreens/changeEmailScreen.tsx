@@ -12,7 +12,6 @@ import {
   TouchableWithoutFeedback,
   View,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import { MotiView } from "moti";
 
@@ -26,11 +25,11 @@ import SettingsNavBar from "@/components/Settings/SettingsNavBar";
 
 export default function ChangeEmailScreen() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const theme = useAppTheme();
 
   const [loading, setLoading] = useState(false);
   const [newEmail, setNewEmail] = useState("");
+  const [isSent, setIsSent] = useState(false);
 
   const { data: session } = authClient.useSession();
   const currentEmail = session?.user?.email;
@@ -66,11 +65,8 @@ export default function ChangeEmailScreen() {
         showErrorToast(error.message || "Erreur lors de la demande");
       } else {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        showSuccessToast("Code de vérification envoyé");
-        router.push({
-          pathname: "/(screens)/verifyEmailScreen",
-          params: { email: newEmail, type: "change-email" },
-        });
+        setIsSent(true);
+        showSuccessToast("Email de vérification envoyé");
       }
     } catch {
       showErrorToast("Une erreur est survenue");
@@ -137,114 +133,191 @@ export default function ChangeEmailScreen() {
             </MotiView>
 
             {/* REGISTRE DES ADRESSES */}
-            <View style={styles.registrySection}>
-              <View
-                style={[
-                  styles.registryRow,
-                  { borderBottomColor: theme.border },
-                ]}
-              >
-                <View style={{ flex: 1 }}>
-                  <ThemedText type="label" colorName="textSecondary">
-                    ADRESSE ACTUELLE
-                  </ThemedText>
-                  <ThemedText
-                    type="title"
-                    style={{ fontSize: 18, marginTop: 4 }}
-                  >
-                    {currentEmail || "—"}
-                  </ThemedText>
-                </View>
-                {session?.user?.emailVerified && (
-                  <Icon
-                    name="checkmark-circle-outline"
-                    size={22}
-                    colorName="success"
-                  />
-                )}
-              </View>
-
-              {!session?.user?.emailVerified && (
-                <TouchableOpacity
-                  onPress={handleVerifyCurrentEmail}
+            {!isSent ? (
+              <View style={styles.registrySection}>
+                <View
                   style={[
-                    styles.verifyActionRow,
-                    { borderLeftColor: theme.accent },
+                    styles.registryRow,
+                    { borderBottomColor: theme.border },
                   ]}
-                  activeOpacity={0.7}
                 >
-                  <View style={styles.row}>
-                    <Icon
-                      name="shield-checkmark-outline"
-                      size={18}
-                      colorName="accent"
-                    />
+                  <View style={{ flex: 1 }}>
+                    <ThemedText type="label" colorName="textSecondary">
+                      ADRESSE ACTUELLE
+                    </ThemedText>
                     <ThemedText
-                      type="label"
-                      colorName="accent"
-                      style={{ marginLeft: 12 }}
+                      type="title"
+                      style={{ fontSize: 18, marginTop: 4 }}
                     >
-                      VÉRIFIER MON IDENTITÉ
+                      {currentEmail || "—"}
                     </ThemedText>
                   </View>
-                  <Icon name="chevron-forward" size={14} colorName="accent" />
-                </TouchableOpacity>
-              )}
+                  {session?.user?.emailVerified && (
+                    <Icon
+                      name="checkmark-circle-outline"
+                      size={22}
+                      colorName="success"
+                    />
+                  )}
+                </View>
 
-              {/* Ligne : Nouvelle (Input) */}
-              <View style={styles.inputSection}>
-                <ThemedText type="label" colorName="textSecondary">
-                  NOUVELLE DESTINATION
-                </ThemedText>
-                <TextInput
+                {!session?.user?.emailVerified && (
+                  <TouchableOpacity
+                    onPress={handleVerifyCurrentEmail}
+                    style={[
+                      styles.verifyActionRow,
+                      { borderLeftColor: theme.accent },
+                    ]}
+                    activeOpacity={0.7}
+                  >
+                    <View style={styles.row}>
+                      <Icon
+                        name="shield-checkmark-outline"
+                        size={18}
+                        colorName="accent"
+                      />
+                      <ThemedText
+                        type="label"
+                        colorName="accent"
+                        style={{ marginLeft: 12 }}
+                      >
+                        VÉRIFIER MON IDENTITÉ
+                      </ThemedText>
+                    </View>
+                    <Icon name="chevron-forward" size={14} colorName="accent" />
+                  </TouchableOpacity>
+                )}
+
+                {/* Ligne : Nouvelle (Input) */}
+                <View style={styles.inputSection}>
+                  <ThemedText type="label" colorName="textSecondary">
+                    NOUVELLE DESTINATION
+                  </ThemedText>
+                  <TextInput
+                    style={[
+                      styles.input,
+                      {
+                        color: theme.textMain,
+                        borderBottomColor: theme.accent,
+                        fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
+                      },
+                    ]}
+                    placeholder="nom@domaine.com"
+                    placeholderTextColor={theme.textSecondary}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    value={newEmail}
+                    onChangeText={setNewEmail}
+                    autoCorrect={false}
+                    selectionColor={theme.accent}
+                  />
+                </View>
+              </View>
+            ) : (
+              <MotiView
+                from={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                style={styles.successCard}
+              >
+                <View
                   style={[
-                    styles.input,
+                    styles.iconCircle,
                     {
-                      color: theme.textMain,
-                      borderBottomColor: theme.accent,
-                      fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
+                      backgroundColor: theme.surface,
+                      borderColor: theme.accent,
                     },
                   ]}
-                  placeholder="nom@domaine.com"
-                  placeholderTextColor={theme.textSecondary}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  value={newEmail}
-                  onChangeText={setNewEmail}
-                  autoCorrect={false}
-                  selectionColor={theme.accent}
-                />
-              </View>
-            </View>
+                >
+                  <Icon
+                    name="mail-unread-outline"
+                    size={40}
+                    colorName="accent"
+                  />
+                </View>
+
+                <ThemedText type="title" style={styles.successTitle}>
+                  Lien envoyé !
+                </ThemedText>
+
+                <ThemedText
+                  type="subtitle"
+                  colorName="textSecondary"
+                  style={styles.successText}
+                >
+                  Un email de confirmation a été expédié à{"\n"}
+                  <ThemedText
+                    type="defaultBold"
+                    style={{ color: theme.textMain }}
+                  >
+                    {newEmail}
+                  </ThemedText>
+                  .
+                </ThemedText>
+
+                <ThemedText
+                  type="caption"
+                  colorName="textSecondary"
+                  style={styles.successHint}
+                >
+                  Veuillez cliquer sur le lien dans l&apos;email pour valider le
+                  changement. Votre adresse actuelle restera active tant que la
+                  vérification n&apos;est pas terminée.
+                </ThemedText>
+              </MotiView>
+            )}
 
             {/* ACTION FOOTER */}
             <View style={styles.footer}>
-              <TouchableOpacity
-                style={[
-                  styles.primaryBtn,
-                  { backgroundColor: theme.textMain },
-                  (!newEmail || loading) && { opacity: 0.5 },
-                ]}
-                onPress={handleRequestChange}
-                disabled={loading || !newEmail}
-                activeOpacity={0.9}
-              >
-                {loading ? (
-                  <ActivityIndicator color={theme.background} size="small" />
-                ) : (
-                  <ThemedText type="label" lightColor="#FFF" darkColor="#000">
-                    Mettre à jour mon profil
-                  </ThemedText>
-                )}
-              </TouchableOpacity>
+              {!isSent ? (
+                <>
+                  <TouchableOpacity
+                    style={[
+                      styles.primaryBtn,
+                      { backgroundColor: theme.textMain },
+                      (!newEmail || loading) && { opacity: 0.5 },
+                    ]}
+                    onPress={handleRequestChange}
+                    disabled={loading || !newEmail}
+                    activeOpacity={0.9}
+                  >
+                    {loading ? (
+                      <ActivityIndicator
+                        color={theme.background}
+                        size="small"
+                      />
+                    ) : (
+                      <ThemedText
+                        type="label"
+                        lightColor="#FFF"
+                        darkColor="#000"
+                      >
+                        Mettre à jour mon profil
+                      </ThemedText>
+                    )}
+                  </TouchableOpacity>
 
-              <ThemedText
-                type="caption"
-                colorName="textSecondary"
-                style={styles.helperText}
-              >
-                Un code de confirmation sera envoyé instantanément.
-              </ThemedText>
+                  <ThemedText
+                    type="caption"
+                    colorName="textSecondary"
+                    style={styles.helperText}
+                  >
+                    L&apos;adresse sera mise à jour après confirmation.
+                  </ThemedText>
+                </>
+              ) : (
+                <TouchableOpacity
+                  style={[
+                    styles.primaryBtn,
+                    { backgroundColor: theme.textMain },
+                  ]}
+                  onPress={() => router.back()}
+                  activeOpacity={0.9}
+                >
+                  <ThemedText type="label" lightColor="#FFF" darkColor="#000">
+                    Retour aux réglages
+                  </ThemedText>
+                </TouchableOpacity>
+              )}
             </View>
           </ScrollView>
         </KeyboardAvoidingView>
@@ -301,5 +374,34 @@ const styles = StyleSheet.create({
     padding: 15,
     marginTop: 10,
     borderLeftWidth: 2,
+  },
+  successCard: {
+    alignItems: "center",
+    paddingVertical: 20,
+  },
+  iconCircle: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    marginBottom: 25,
+  },
+  successTitle: {
+    fontSize: 24,
+    marginBottom: 15,
+  },
+  successText: {
+    textAlign: "center",
+    fontSize: 16,
+    lineHeight: 24,
+    marginBottom: 20,
+  },
+  successHint: {
+    textAlign: "center",
+    fontSize: 13,
+    lineHeight: 20,
+    paddingHorizontal: 10,
   },
 });

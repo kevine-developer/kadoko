@@ -5,7 +5,7 @@ import { Platform } from "react-native";
 const palette = {
   boneSilk: "#FDFBF7",
   white: "#FFFFFF",
-  deepBlack: "#1A1A1A",
+  deepBlack: "#222121ff",
   charcoal: "#2C2C2C",
   coolGrey: "#8E8E93",
   brushedGold: "#AF9062",

@@ -61,10 +61,16 @@ class AuthService {
       });
 
       if (response.error) {
+        // Extraire le code d'erreur depuis le message si disponible
+        const errorCode =
+          (response.error as any)?.code ||
+          response.error.status?.toString() ||
+          "SIGNIN_FAILED";
         return {
           success: false,
           message: response.error.message || "Email ou mot de passe incorrect",
           error: response.error.status?.toString() || "SIGNIN_FAILED",
+          errorCode: errorCode,
         } as AuthResponse;
       }
 

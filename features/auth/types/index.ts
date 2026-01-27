@@ -20,9 +20,11 @@ export interface SignInRequest {
 
 export interface AuthResponse {
   success: boolean;
-  message: string;
+  message?: string;
   user?: UserPublic;
   sessionId?: string;
+  error?: string;
+  errorCode?: string; // Code d'erreur spécifique (ex: ACCOUNT_DELETION_IN_PROGRESS)
 }
 
 export interface AuthErrorResponse {

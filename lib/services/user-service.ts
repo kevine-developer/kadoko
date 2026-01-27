@@ -286,4 +286,40 @@ export const userService = {
       return { success: false };
     }
   },
+
+  // Gestion des sessions
+  getSessions: async () => {
+    try {
+      const url = getApiUrl("/user-sessions");
+      console.log(`[UserService] Appel getSessions sur: ${url}`);
+      const response = await authClient.$fetch(url);
+      console.log(
+        "[UserService] Réponse getSessions:",
+        JSON.stringify(response.data),
+      );
+
+      return (response.data || { success: false, sessions: [] }) as unknown as {
+        success: boolean;
+        sessions: any[];
+      };
+    } catch (error) {
+      console.error("Error getSessions:", error);
+      return { success: false, sessions: [] };
+    }
+  },
+
+  revokeSession: async (id: string) => {
+    try {
+      const response = await authClient.$fetch(
+        getApiUrl(`/user-sessions/${id}`),
+        {
+          method: "DELETE",
+        },
+      );
+      return (response.data || { success: false }) as any;
+    } catch (error) {
+      console.error("Error revokeSession:", error);
+      return { success: false };
+    }
+  },
 };

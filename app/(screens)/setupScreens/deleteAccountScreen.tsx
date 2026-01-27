@@ -103,14 +103,14 @@ export default function DeleteAccountScreen() {
                 </ThemedText>
                 <View>
                   <ThemedText type="label" style={styles.infoLabel}>
-                    DÉLAI DE GRÂCE
+                    RÉINSCRIPTION
                   </ThemedText>
                   <ThemedText
                     type="subtitle"
                     colorName="textSecondary"
                     style={styles.infoValue}
                   >
-                    30 jours pour changer d&apos;avis
+                    Possible dans 30 jours uniquement
                   </ThemedText>
                 </View>
               </View>

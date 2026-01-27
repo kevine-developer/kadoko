@@ -12,16 +12,15 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import { MotiView } from "moti";
-
 import { userService } from "@/lib/services/user-service";
 import { friendshipService } from "@/lib/services/friendship-service";
 import RequestCard from "@/components/UserList/RequestCard";
-import EmptyFriend from "@/components/UserList/EmptyFriend";
 import { UserListItemSkeleton } from "@/components/ui/SkeletonGroup";
 import UserRowCard from "@/components/UserList/UserRowCard";
 import { ThemedText } from "@/components/themed-text";
 import { useAppTheme } from "@/hooks/custom/use-app-theme";
 import ThemedIcon from "@/components/themed-icon";
+import EmptyContent from "@/components/EmptyContent";
 
 export default function UsersListScreen() {
   const insets = useSafeAreaInsets();
@@ -368,7 +367,11 @@ export default function UsersListScreen() {
                   </MotiView>
                 ))
               ) : (
-                <EmptyFriend />
+                <EmptyContent
+                  title="Aucun ami"
+                  subtitle="Vous n'avez pas d'ami"
+                  icon="person-outline"
+                />
               )}
             </View>
           </>
