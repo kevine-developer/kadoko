@@ -1,11 +1,6 @@
-import { Ionicons } from "@expo/vector-icons";
-import BottomSheet, { BottomSheetView } from "@gorhom/bottom-sheet";
-import { Image } from "expo-image";
-import React, { useEffect, useMemo, useRef } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
-  Platform,
   StyleSheet,
-  Text,
   TouchableOpacity,
   View,
   ActivityIndicator,
@@ -16,22 +11,15 @@ import {
   ScrollView,
 } from "react-native-gesture-handler";
 import * as Haptics from "expo-haptics";
+import BottomSheet, { BottomSheetView } from "@gorhom/bottom-sheet";
+import { Image } from "expo-image";
 
 import { giftService } from "@/lib/services/gift-service";
 import { Gift } from "@/types/gift";
 import { socketService } from "@/lib/services/socket";
-
-// --- THEME ÉDITORIAL COHÉRENT ---
-const THEME = {
-  background: "#FDFBF7", // Bone Silk
-  surface: "#FFFFFF",
-  textMain: "#1A1A1A",
-  textSecondary: "#8E8E93",
-  accent: "#AF9062", // Or brossé
-  border: "rgba(0,0,0,0.08)",
-  danger: "#C34A4A",
-  success: "#4A6741", // Vert forêt luxe
-};
+import { ThemedText } from "@/components/themed-text";
+import ThemedIcon from "@/components/themed-icon";
+import { useAppTheme } from "@/hooks/custom/use-app-theme";
 
 interface OwnerGiftDetailsModalProps {
   gift: Gift | null;
@@ -46,11 +34,12 @@ export default function OwnerGiftDetailsModal({
   onClose,
   onActionSuccess,
 }: OwnerGiftDetailsModalProps) {
+  const theme = useAppTheme();
   const bottomSheetRef = useRef<BottomSheet>(null);
   const snapPoints = useMemo(() => ["65%", "92%"], []);
 
-  const [localGift, setLocalGift] = React.useState<Gift | null>(gift);
-  const [loadingAction, setLoadingAction] = React.useState(false);
+  const [localGift, setLocalGift] = useState<Gift | null>(gift);
+  const [loadingAction, setLoadingAction] = useState(false);
 
   useEffect(() => {
     setLocalGift(gift);
@@ -108,9 +97,6 @@ export default function OwnerGiftDetailsModal({
   const handleConfirmReceipt = async () => {
     if (!localGift || loadingAction) return;
 
-    // UI Optimiste : On pourrait imaginer un état "RECEIVED" ou simplement masquer le bouton
-    // Pour l'instant on se fie au retour service car l'état exact peut varier
-
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setLoadingAction(true);
 
@@ -161,8 +147,8 @@ export default function OwnerGiftDetailsModal({
         snapPoints={snapPoints}
         enablePanDownToClose
         onChange={(index) => index === -1 && onClose()}
-        backgroundStyle={styles.sheetBackground}
-        handleIndicatorStyle={styles.handle}
+        backgroundStyle={{ backgroundColor: theme.background }}
+        handleIndicatorStyle={{ backgroundColor: theme.border }}
       >
         <BottomSheetView style={styles.container}>
           <View style={styles.imageWrapper}>
@@ -174,26 +160,34 @@ export default function OwnerGiftDetailsModal({
               />
             ) : (
               <View style={styles.placeholder}>
-                <Ionicons name="image-outline" size={40} color={THEME.border} />
+                <ThemedIcon name="image-outline" size={40} colorName="border" />
               </View>
             )}
 
             {isTaken && (
               <View style={styles.takenOverlay}>
-                <View style={styles.takenLabel}>
-                  <Text style={styles.takenLabelText}>
+                <View
+                  style={[
+                    styles.takenLabel,
+                    {
+                      backgroundColor: theme.surface,
+                      borderColor: theme.accent,
+                    },
+                  ]}
+                >
+                  <ThemedText type="label" colorName="accent">
                     {isPurchased ? "PIÈCE ACQUISE" : "RÉSERVÉE"}
-                  </Text>
+                  </ThemedText>
                 </View>
               </View>
             )}
 
             <View style={styles.topActions}>
               <TouchableOpacity style={styles.iconBtn} onPress={onClose}>
-                <Ionicons
+                <ThemedIcon
                   name="close-outline"
                   size={22}
-                  color={THEME.textMain}
+                  colorName="textMain"
                 />
               </TouchableOpacity>
             </View>
@@ -210,101 +204,136 @@ export default function OwnerGiftDetailsModal({
                     styles.statusDot,
                     {
                       backgroundColor: isTaken
-                        ? THEME.accent
+                        ? theme.accent
                         : localGift.isPublished
-                          ? THEME.success
-                          : THEME.textSecondary,
+                          ? theme.success
+                          : theme.textSecondary,
                     },
                   ]}
                 />
-                <Text style={styles.miniLabel}>
+                <ThemedText type="label" colorName="textSecondary">
                   {isTaken
                     ? "INDISPONIBLE"
                     : localGift.isPublished
                       ? "PUBLIÉ DANS LE FIL"
                       : "BROUILLON (SOLO)"}
-                </Text>
+                </ThemedText>
               </View>
 
-              <Text style={styles.title}>{localGift.title}</Text>
+              <ThemedText type="hero" style={styles.title}>
+                {localGift.title}
+              </ThemedText>
 
               <View style={styles.registryData}>
                 {localGift.estimatedPrice && (
-                  <Text style={styles.price}>{localGift.estimatedPrice} €</Text>
+                  <ThemedText type="defaultBold" style={styles.price}>
+                    {localGift.estimatedPrice} €
+                  </ThemedText>
                 )}
                 {localGift.estimatedPrice && (
-                  <View style={styles.dataDivider} />
+                  <View
+                    style={[
+                      styles.dataDivider,
+                      { backgroundColor: theme.border },
+                    ]}
+                  />
                 )}
-                <Text style={styles.dataText}>
+                <ThemedText
+                  type="label"
+                  colorName="textSecondary"
+                  style={styles.dataText}
+                >
                   REF. {localGift.id.slice(-6).toUpperCase()}
-                </Text>
+                </ThemedText>
               </View>
 
               {isTaken && (localGift.reservedBy || localGift.purchasedBy) && (
-                <View style={styles.attributionBox}>
+                <View
+                  style={[
+                    styles.attributionBox,
+                    { borderLeftColor: theme.accent },
+                  ]}
+                >
                   <Image
                     source={{
                       uri: isPurchased
                         ? localGift.purchasedBy?.image
                         : localGift.reservedBy?.image,
                     }}
-                    style={styles.attrAvatar}
+                    style={[
+                      styles.attrAvatar,
+                      { backgroundColor: theme.border },
+                    ]}
                   />
-                  <Text style={styles.attrText}>
+                  <ThemedText type="caption" style={styles.attrText}>
                     {isPurchased ? "Offert par " : "Réservé par "}
-                    <Text style={styles.attrName}>
+                    <ThemedText
+                      type="caption"
+                      colorName="accent"
+                      style={styles.attrName}
+                    >
                       {(isPurchased
                         ? localGift.purchasedBy?.name
                         : localGift.reservedBy?.name
                       )?.toUpperCase()}
-                    </Text>
-                  </Text>
+                    </ThemedText>
+                  </ThemedText>
                 </View>
               )}
             </View>
 
-            <View style={styles.hairline} />
+            <View
+              style={[styles.hairline, { backgroundColor: theme.border }]}
+            />
 
             <View style={styles.descriptionSection}>
-              <Text style={styles.miniLabel}>NOTES DE RÉDACTION</Text>
-              <Text style={styles.descriptionText}>
+              <ThemedText type="label" colorName="textSecondary">
+                NOTES DE RÉDACTION
+              </ThemedText>
+              <ThemedText type="subtitle" style={styles.descriptionText}>
                 {localGift.description ||
                   "Aucune note additionnelle n'a été rédigée pour cette pièce."}
-              </Text>
+              </ThemedText>
             </View>
 
             <View style={styles.footer}>
-              {/* BOUTON MODIFIER - MASQUÉ SI RÉCEPTIONNÉ */}
               {!isReceived && (
                 <TouchableOpacity
-                  style={styles.secondaryBtn}
+                  style={[styles.secondaryBtn, { borderColor: theme.border }]}
                   activeOpacity={0.7}
                   onPress={handleEdit}
                 >
-                  <Text style={styles.secondaryBtnText}>MODIFIER</Text>
+                  <ThemedText type="label">MODIFIER</ThemedText>
                 </TouchableOpacity>
               )}
 
-              {/* ACTION PRINCIPALE SELON L'ÉTAT */}
               {isReceived ? (
-                <View style={[styles.primaryBtn, styles.receivedBox]}>
-                  <Ionicons
+                <View
+                  style={[
+                    styles.primaryBtn,
+                    styles.receivedBox,
+                    { borderColor: theme.success },
+                  ]}
+                >
+                  <ThemedIcon
                     name="checkmark-circle"
                     size={18}
-                    color={THEME.success}
+                    colorName="success"
                   />
-                  <Text
-                    style={[
-                      styles.primaryBtnText,
-                      { color: THEME.success, marginLeft: 8 },
-                    ]}
+                  <ThemedText
+                    type="label"
+                    colorName="success"
+                    style={{ marginLeft: 8 }}
                   >
                     CADEAU RÉCEPTIONNÉ
-                  </Text>
+                  </ThemedText>
                 </View>
               ) : isPurchased ? (
                 <TouchableOpacity
-                  style={[styles.primaryBtn, styles.successBtn]}
+                  style={[
+                    styles.primaryBtn,
+                    { backgroundColor: theme.success },
+                  ]}
                   activeOpacity={0.8}
                   onPress={handleConfirmReceipt}
                   disabled={loadingAction}
@@ -312,16 +341,21 @@ export default function OwnerGiftDetailsModal({
                   {loadingAction ? (
                     <ActivityIndicator size="small" color="#FFF" />
                   ) : (
-                    <Text style={styles.primaryBtnText}>
+                    <ThemedText type="label" style={{ color: "#FFF" }}>
                       CONFIRMER RÉCEPTION
-                    </Text>
+                    </ThemedText>
                   )}
                 </TouchableOpacity>
               ) : (
                 <TouchableOpacity
                   style={[
                     styles.primaryBtn,
-                    localGift.isPublished && styles.unpublishBtn,
+                    { backgroundColor: theme.textMain },
+                    localGift.isPublished && {
+                      borderColor: theme.accent,
+                      backgroundColor: "transparent",
+                      borderWidth: 1,
+                    },
                   ]}
                   activeOpacity={0.8}
                   onPress={handleTogglePublish}
@@ -330,16 +364,20 @@ export default function OwnerGiftDetailsModal({
                   {loadingAction ? (
                     <ActivityIndicator size="small" color="#FFF" />
                   ) : (
-                    <Text
+                    <ThemedText
+                      type="label"
                       style={[
-                        styles.primaryBtnText,
-                        localGift.isPublished && { color: THEME.textMain },
+                        {
+                          color: localGift.isPublished
+                            ? theme.textMain
+                            : theme.background,
+                        },
                       ]}
                     >
                       {localGift.isPublished
                         ? "RETIRER DU FIL"
                         : "PUBLIER DANS LE FIL"}
-                    </Text>
+                    </ThemedText>
                   )}
                 </TouchableOpacity>
               )}
@@ -354,14 +392,6 @@ export default function OwnerGiftDetailsModal({
 }
 
 const styles = StyleSheet.create({
-  sheetBackground: { backgroundColor: THEME.background, borderRadius: 0 },
-  handle: {
-    backgroundColor: THEME.border,
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-    marginTop: 10,
-  },
   container: { flex: 1 },
   imageWrapper: { height: 320, width: "100%", backgroundColor: "#F2F2F7" },
   image: { width: "100%", height: "100%" },
@@ -375,15 +405,7 @@ const styles = StyleSheet.create({
   takenLabel: {
     paddingHorizontal: 20,
     paddingVertical: 10,
-    backgroundColor: THEME.surface,
     borderWidth: 1,
-    borderColor: THEME.accent,
-  },
-  takenLabelText: {
-    color: THEME.accent,
-    fontWeight: "800",
-    letterSpacing: 2,
-    fontSize: 12,
   },
   topActions: {
     position: "absolute",
@@ -407,16 +429,7 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   statusDot: { width: 6, height: 6, borderRadius: 3 },
-  miniLabel: {
-    fontSize: 9,
-    fontWeight: "800",
-    color: THEME.textSecondary,
-    letterSpacing: 1.5,
-  },
   title: {
-    fontSize: 34,
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-    color: THEME.textMain,
     lineHeight: 40,
     letterSpacing: -1,
     marginBottom: 15,
@@ -428,20 +441,15 @@ const styles = StyleSheet.create({
   },
   price: {
     fontSize: 20,
-    fontWeight: "700",
-    color: THEME.textMain,
     marginRight: 12,
   },
   dataDivider: {
     width: 1,
     height: 14,
-    backgroundColor: THEME.border,
     marginRight: 12,
   },
   dataText: {
     fontSize: 12,
-    fontWeight: "600",
-    color: THEME.textSecondary,
     letterSpacing: 0.5,
   },
   attributionBox: {
@@ -451,23 +459,17 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(175, 144, 98, 0.05)",
     padding: 12,
     borderLeftWidth: 2,
-    borderLeftColor: THEME.accent,
   },
   attrAvatar: {
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: THEME.border,
   },
-  attrText: { fontSize: 12, color: THEME.textMain, fontWeight: "500" },
-  attrName: { fontWeight: "800", color: THEME.accent },
-  hairline: { height: 1, backgroundColor: THEME.border, marginBottom: 30 },
+  attrText: { fontSize: 12, fontWeight: "500" },
+  attrName: { fontWeight: "800" },
+  hairline: { height: 1, marginBottom: 30 },
   descriptionSection: { marginBottom: 40 },
   descriptionText: {
-    fontSize: 15,
-    color: THEME.textMain,
-    lineHeight: 24,
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
     marginTop: 10,
   },
   footer: { flexDirection: "row", gap: 15 },
@@ -475,41 +477,18 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 60,
     borderWidth: 1,
-    borderColor: THEME.border,
     justifyContent: "center",
     alignItems: "center",
-  },
-  secondaryBtnText: {
-    fontSize: 11,
-    fontWeight: "800",
-    color: THEME.textMain,
-    letterSpacing: 1,
   },
   primaryBtn: {
     flex: 2,
     height: 60,
-    backgroundColor: THEME.textMain,
     justifyContent: "center",
     alignItems: "center",
-  },
-  successBtn: {
-    backgroundColor: THEME.success,
-  },
-  primaryBtnText: {
-    fontSize: 11,
-    fontWeight: "800",
-    color: "#FFF",
-    letterSpacing: 1.5,
-  },
-  unpublishBtn: {
-    backgroundColor: "transparent",
-    borderWidth: 1,
-    borderColor: THEME.accent,
   },
   receivedBox: {
     backgroundColor: "rgba(74, 103, 65, 0.08)",
     flexDirection: "row",
     borderWidth: 1,
-    borderColor: THEME.success,
   },
 });

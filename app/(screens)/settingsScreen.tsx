@@ -163,6 +163,13 @@ export default function SettingsScreen() {
             }
           />
           <SettingRow
+            label="Connexions"
+            icon="link-outline"
+            onPress={() =>
+              router.push("/(screens)/setupScreens/socialLinksScreen")
+            }
+          />
+          <SettingRow
             label="Me connaître"
             subLabel="Tailles et préférences intimes"
             icon="heart-outline"

@@ -1,48 +1,60 @@
-import { StyleSheet,View,TouchableOpacity, ActivityIndicator } from 'react-native'
-import React from 'react'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { useAppTheme } from '@/hooks/custom/use-app-theme'
-import { ThemedText } from '@/components/themed-text'
-
+import {
+  StyleSheet,
+  View,
+  TouchableOpacity,
+  ActivityIndicator,
+} from "react-native";
+import React from "react";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useAppTheme } from "@/hooks/custom/use-app-theme";
+import { ThemedText } from "@/components/themed-text";
 
 interface BtnValidateProps {
-    hasChanges: boolean;
-    isSaving: boolean;
-    handleSave: () => void;
-    text?: string;
+  hasChanges: boolean;
+  isSaving: boolean;
+  handleSave: () => void;
+  text?: string;
+  isAvailable?: boolean | null;
 }
 
-const BtnValidate = ({ hasChanges, isSaving, handleSave, text="ENREGISTRER LE PROFIL" }: BtnValidateProps) => {
+const BtnValidate = ({
+  hasChanges,
+  isSaving,
+  handleSave,
+  text = "ENREGISTRER LE PROFIL",
+  isAvailable = true,
+}: BtnValidateProps) => {
   const insets = useSafeAreaInsets();
   const theme = useAppTheme();
 
   return (
-      <View style={[styles.footer, { paddingBottom: insets.bottom + 20 }]}>
-               <TouchableOpacity
-                 style={[
-                   styles.primaryBtn,
-                   { backgroundColor: theme.primary },
-                   (!hasChanges || isSaving) && { opacity: 0.5 },
-                 ]}
-                 onPress={handleSave}
-                 disabled={!hasChanges || isSaving}
-                 activeOpacity={0.9}
-               >
-                 {isSaving ? (
-                   <ActivityIndicator color={theme.background} size="small" />
-                 ) : (
-                   <ThemedText type="label" lightColor="#FFF" darkColor="#000">
-                    {text}
-                   </ThemedText>
-                 )}
-               </TouchableOpacity>
-             </View>
-  )
-}
+    <View style={[styles.footer, { paddingBottom: insets.bottom + 20 }]}>
+      <TouchableOpacity
+        style={[
+          styles.primaryBtn,
+          { backgroundColor: theme.primary },
+          (!hasChanges || !isAvailable || isSaving) && { opacity: 0.5 },
+        ]}
+        onPress={handleSave}
+        disabled={!hasChanges || !isAvailable || isSaving}
+        activeOpacity={0.9}
+      >
+        {isSaving ? (
+          <ActivityIndicator color={theme.background} size="small" />
+        ) : (
+          <ThemedText type="label" lightColor="#FFF" darkColor="#000">
+            {text}
+          </ThemedText>
+        )}
+      </TouchableOpacity>
+    </View>
+  );
+};
 
-export default BtnValidate
+export default BtnValidate;
 
-const styles = StyleSheet.create({  footer: {
+const styles = StyleSheet.create({
+  footer: {
     paddingHorizontal: 32,
     paddingTop: 20,
   },
@@ -52,4 +64,5 @@ const styles = StyleSheet.create({  footer: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-  },})
+  },
+});

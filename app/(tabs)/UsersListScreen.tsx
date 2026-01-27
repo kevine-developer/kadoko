@@ -1,12 +1,9 @@
-import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "expo-router";
 import React, { useEffect, useMemo, useState, useCallback } from "react";
 import {
-  Platform,
   ScrollView,
   StatusBar,
   StyleSheet,
-  Text,
   TextInput,
   TouchableOpacity,
   View,
@@ -22,20 +19,13 @@ import RequestCard from "@/components/UserList/RequestCard";
 import EmptyFriend from "@/components/UserList/EmptyFriend";
 import { UserListItemSkeleton } from "@/components/ui/SkeletonGroup";
 import UserRowCard from "@/components/UserList/UserRowCard";
-
-// --- THEME ÉDITORIAL ---
-const THEME = {
-  background: "#FDFBF7", // Bone Silk
-  surface: "#FFFFFF",
-  textMain: "#1A1A1A",
-  textSecondary: "#8E8E93",
-  accent: "#AF9062", // Or brossé
-  border: "rgba(0,0,0,0.08)",
-  success: "#4A6741",
-};
+import { ThemedText } from "@/components/themed-text";
+import { useAppTheme } from "@/hooks/custom/use-app-theme";
+import ThemedIcon from "@/components/themed-icon";
 
 export default function UsersListScreen() {
   const insets = useSafeAreaInsets();
+  const theme = useAppTheme();
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isLoadingSearch, setIsLoadingSearch] = useState(false);
@@ -83,9 +73,7 @@ export default function UsersListScreen() {
   const handleAddFriend = async (userId: string) => {
     if (processingIds.has(userId)) return;
 
-    // --- OPTIMISTIC UI ---
     const previousSent = [...sentRequests];
-    // Ajouter à sentRequests pour que isPendingAdd devienne vrai immédiatement
     setSentRequests((prev) => [
       ...prev,
       { id: userId, receiverId: userId, status: "PENDING" },
@@ -100,7 +88,6 @@ export default function UsersListScreen() {
         setSentRequests(previousSent);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       }
-      // Re-fetch pour synchroniser parfaitement (id réels, etc.)
       loadFriendships();
     } catch {
       setSentRequests(previousSent);
@@ -117,7 +104,6 @@ export default function UsersListScreen() {
   const handleCancelRequest = async (userId: string) => {
     if (processingIds.has(userId)) return;
 
-    // --- OPTIMISTIC UI ---
     const previousSent = [...sentRequests];
     setSentRequests((prev) =>
       prev.filter((r) => r.receiverId !== userId && r.id !== userId),
@@ -144,7 +130,6 @@ export default function UsersListScreen() {
   const handleAcceptFriend = async (friendshipId: string) => {
     if (processingIds.has(friendshipId)) return;
 
-    // --- OPTIMISTIC UI ---
     const previousReqs = [...requests];
     const previousFriends = [...friends];
     const acceptedUser = requests.find((r) => r.friendshipId === friendshipId);
@@ -181,7 +166,6 @@ export default function UsersListScreen() {
   const handleRemoveFriend = async (friendshipId: string) => {
     if (processingIds.has(friendshipId)) return;
 
-    // --- OPTIMISTIC UI ---
     const previousFriends = [...friends];
     setFriends((prev) => prev.filter((f) => f.friendshipId !== friendshipId));
 
@@ -205,7 +189,7 @@ export default function UsersListScreen() {
     }
   };
 
-  const data = useMemo(() => {
+  const dataFiltered = useMemo(() => {
     if (searchQuery.length > 0) return { mode: "SEARCH", items: searchResults };
     return { mode: "FRIENDS", friends, requests };
   }, [searchQuery, searchResults, friends, requests]);
@@ -218,7 +202,7 @@ export default function UsersListScreen() {
 
   if (loading && friends.length === 0 && requests.length === 0) {
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, { backgroundColor: theme.background }]}>
         <View style={{ paddingTop: insets.top + 60, paddingHorizontal: 30 }}>
           {Array.from({ length: 6 }).map((_, i) => (
             <UserListItemSkeleton key={i} />
@@ -229,35 +213,51 @@ export default function UsersListScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       <StatusBar barStyle="dark-content" />
 
-      {/* HEADER ÉDITORIAL */}
-      <View style={[styles.headerContainer, { paddingTop: insets.top + 10 }]}>
+      <View
+        style={[
+          styles.headerContainer,
+          { paddingTop: insets.top + 10, backgroundColor: theme.background },
+        ]}
+      >
         <MotiView
           from={{ opacity: 0, translateY: -10 }}
           animate={{ opacity: 1, translateY: 0 }}
         >
-          <Text style={styles.miniLabel}>VOTRE RÉPERTOIRE</Text>
-          <Text style={styles.heroTitle}>Mes Cercles.</Text>
+          <ThemedText
+            type="label"
+            colorName="textSecondary"
+            style={styles.miniLabel}
+          >
+            VOTRE RÉPERTOIRE
+          </ThemedText>
+          <ThemedText type="hero" style={styles.heroTitle}>
+            Mes Cercles.
+          </ThemedText>
         </MotiView>
 
-        {/* SEARCH BAR STYLE "REGISTRE" */}
-        <View style={styles.searchSection}>
-          <Ionicons name="search-outline" size={18} color={THEME.accent} />
+        <View
+          style={[
+            styles.searchSection,
+            { backgroundColor: theme.surface, borderColor: theme.border },
+          ]}
+        >
+          <ThemedIcon name="search-outline" size={18} colorName="accent" />
           <TextInput
             placeholder="Rechercher un membre..."
             placeholderTextColor="#BCBCBC"
-            style={styles.searchInput}
+            style={[styles.searchInput, { color: theme.textMain }]}
             value={searchQuery}
             onChangeText={setSearchQuery}
-            selectionColor={THEME.accent}
+            selectionColor={theme.accent}
           />
           {isLoadingSearch ? (
-            <ActivityIndicator size="small" color={THEME.accent} />
+            <ActivityIndicator size="small" color={theme.accent} />
           ) : searchQuery.length > 0 ? (
             <TouchableOpacity onPress={() => setSearchQuery("")}>
-              <Ionicons name="close-circle" size={18} color={THEME.border} />
+              <ThemedIcon name="close-circle" size={18} colorName="border" />
             </TouchableOpacity>
           ) : null}
         </View>
@@ -267,10 +267,16 @@ export default function UsersListScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {data.mode === "SEARCH" ? (
+        {dataFiltered.mode === "SEARCH" ? (
           <MotiView from={{ opacity: 0 }} animate={{ opacity: 1 }}>
-            <Text style={styles.sectionLabel}>RÉSULTATS DE RECHERCHE</Text>
-            {data.items?.map((user) => (
+            <ThemedText
+              type="label"
+              colorName="textSecondary"
+              style={styles.sectionLabel}
+            >
+              RÉSULTATS DE RECHERCHE
+            </ThemedText>
+            {dataFiltered.items?.map((user) => (
               <UserRowCard
                 key={user.id}
                 user={user}
@@ -284,13 +290,25 @@ export default function UsersListScreen() {
           </MotiView>
         ) : (
           <>
-            {/* DEMANDES EN ATTENTE - STYLE CARTES D'INVITATION */}
-            {data.requests && data.requests.length > 0 && (
+            {dataFiltered.requests && dataFiltered.requests.length > 0 && (
               <View style={styles.section}>
                 <View style={styles.sectionHeader}>
-                  <Text style={styles.sectionLabel}>INVITATIONS REÇUES</Text>
-                  <View style={styles.countBadge}>
-                    <Text style={styles.countText}>{data.requests.length}</Text>
+                  <ThemedText
+                    type="label"
+                    colorName="textSecondary"
+                    style={styles.sectionLabel}
+                  >
+                    INVITATIONS REÇUES
+                  </ThemedText>
+                  <View
+                    style={[
+                      styles.countBadge,
+                      { backgroundColor: theme.accent },
+                    ]}
+                  >
+                    <ThemedText type="label" style={styles.countText}>
+                      {dataFiltered.requests.length}
+                    </ThemedText>
                   </View>
                 </View>
                 <ScrollView
@@ -298,7 +316,7 @@ export default function UsersListScreen() {
                   showsHorizontalScrollIndicator={false}
                   contentContainerStyle={styles.requestsContainer}
                 >
-                  {data.requests.map((req, index) => (
+                  {dataFiltered.requests.map((req, index) => (
                     <MotiView
                       key={req.id}
                       from={{ opacity: 0, scale: 0.9 }}
@@ -321,11 +339,16 @@ export default function UsersListScreen() {
               </View>
             )}
 
-            {/* LISTE D'AMIS - STYLE REGISTRE */}
             <View style={styles.section}>
-              <Text style={styles.sectionLabel}>MON CERCLE PROCHE</Text>
-              {data.friends && data.friends.length > 0 ? (
-                data.friends.map((friend, index) => (
+              <ThemedText
+                type="label"
+                colorName="textSecondary"
+                style={styles.sectionLabel}
+              >
+                MON CERCLE PROCHE
+              </ThemedText>
+              {dataFiltered.friends && dataFiltered.friends.length > 0 ? (
+                dataFiltered.friends.map((friend, index) => (
                   <MotiView
                     key={friend.id}
                     from={{ opacity: 0, translateX: -10 }}
@@ -360,43 +383,31 @@ export default function UsersListScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: THEME.background,
   },
   headerContainer: {
     paddingHorizontal: 30,
-    backgroundColor: THEME.background,
     paddingBottom: 20,
   },
   miniLabel: {
-    fontSize: 9,
-    fontWeight: "800",
-    color: THEME.textSecondary,
     letterSpacing: 2,
     marginBottom: 8,
   },
   heroTitle: {
-    fontSize: 38,
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-    color: THEME.textMain,
     letterSpacing: -1,
     marginBottom: 25,
   },
   searchSection: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: THEME.surface,
     paddingHorizontal: 16,
     height: 54,
     borderWidth: 1,
-    borderColor: THEME.border,
-    borderRadius: 0, // Carré pour le look luxe
+    borderRadius: 0,
   },
   searchInput: {
     flex: 1,
     marginLeft: 12,
     fontSize: 15,
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-    color: THEME.textMain,
   },
   scrollContent: {
     paddingHorizontal: 30,
@@ -410,14 +421,10 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   sectionLabel: {
-    fontSize: 10,
-    fontWeight: "800",
-    color: THEME.textSecondary,
     letterSpacing: 1.5,
     marginBottom: 15,
   },
   countBadge: {
-    backgroundColor: THEME.accent,
     width: 18,
     height: 18,
     borderRadius: 9,
@@ -428,8 +435,6 @@ const styles = StyleSheet.create({
   },
   countText: {
     color: "#FFF",
-    fontSize: 10,
-    fontWeight: "bold",
   },
   requestsContainer: {
     paddingRight: 30,

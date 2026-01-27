@@ -1,33 +1,33 @@
-import {
-  Platform,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { StyleSheet, TouchableOpacity, View } from "react-native";
 import React from "react";
-import { Ionicons } from "@expo/vector-icons";
-
-// --- THEME LUXE ---
-const THEME = {
-  background: "#FDFBF7",
-  surface: "#FFFFFF",
-  textMain: "#111827",
-  textSecondary: "#6B7280",
-  accent: "#111827",
-  border: "rgba(0,0,0,0.06)",
-  success: "#10B981",
-};
+import ThemedIcon from "@/components/themed-icon";
+import { ThemedText } from "@/components/themed-text";
+import { useAppTheme } from "@/hooks/custom/use-app-theme";
 
 const Header = () => {
+  const theme = useAppTheme();
+
   return (
     <View style={styles.headerTop}>
       <View>
-        <Text style={styles.headerSubtitle}>COMMUNAUTÉ</Text>
-        <Text style={styles.headerTitle}>Mon Cercle</Text>
+        <ThemedText
+          type="label"
+          colorName="textSecondary"
+          style={styles.headerSubtitle}
+        >
+          COMMUNAUTÉ
+        </ThemedText>
+        <ThemedText type="title" style={styles.headerTitle}>
+          Mon Cercle
+        </ThemedText>
       </View>
-      <TouchableOpacity style={styles.inviteBtn}>
-        <Ionicons name="share-outline" size={22} color={THEME.textMain} />
+      <TouchableOpacity
+        style={[
+          styles.inviteBtn,
+          { backgroundColor: theme.surface, borderColor: theme.border },
+        ]}
+      >
+        <ThemedIcon name="share-outline" size={22} colorName="textMain" />
       </TouchableOpacity>
     </View>
   );
@@ -45,27 +45,18 @@ const styles = StyleSheet.create({
   },
   headerSubtitle: {
     fontSize: 11,
-    fontWeight: "700",
-    color: "#9CA3AF",
-    letterSpacing: 1.5,
     marginBottom: 4,
-    textTransform: "uppercase",
   },
   headerTitle: {
     fontSize: 34,
-    fontWeight: "400",
-    color: THEME.textMain,
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
     letterSpacing: -0.5,
   },
   inviteBtn: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: THEME.surface,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: THEME.border,
   },
 });

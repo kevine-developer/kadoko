@@ -1,4 +1,3 @@
-import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import { router, useLocalSearchParams } from "expo-router";
@@ -10,29 +9,19 @@ import {
   StatusBar,
   StyleSheet,
   Switch,
-  Text,
   TextInput,
   TouchableOpacity,
   View,
   ActivityIndicator,
+  useColorScheme,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import { giftService } from "../../../lib/services/gift-service";
 import { uploadService } from "../../../lib/services/upload-service";
-
-// --- THEME ÉDITORIAL ---
-const THEME = {
-  background: "#FDFBF7", // Bone Silk
-  surface: "#FFFFFF",
-  textMain: "#1A1A1A",
-  textSecondary: "#8E8E93",
-  accent: "#AF9062", // Or brossé
-  border: "rgba(0,0,0,0.06)",
-  eco: "#4A6741", // Vert forêt profond
-  danger: "#C34A4A",
-  primary: "#AF9062",
-};
+import { ThemedText } from "@/components/themed-text";
+import ThemedIcon from "@/components/themed-icon";
+import { useAppTheme } from "@/hooks/custom/use-app-theme";
 
 const PRIORITIES = [
   { id: "ESSENTIAL", label: "Indispensable", icon: "star" },
@@ -46,6 +35,8 @@ export default function AddGiftScreen() {
     giftId?: string;
   }>();
   const insets = useSafeAreaInsets();
+  const theme = useAppTheme();
+  const colorScheme = useColorScheme();
 
   const [title, setTitle] = useState("");
   const [url, setUrl] = useState("");
@@ -132,30 +123,37 @@ export default function AddGiftScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="dark-content" />
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <StatusBar
+        barStyle={colorScheme === "dark" ? "light-content" : "dark-content"}
+      />
 
       {/* HEADER ÉPURÉ */}
       <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.closeBtn}>
-          <Ionicons name="close-outline" size={28} color={THEME.textMain} />
+          <ThemedIcon name="close-outline" size={28} colorName="textMain" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>
+        <ThemedText type="defaultBold" style={styles.headerTitle}>
           {giftId ? "Édition" : "Nouvelle Envie"}
-        </Text>
+        </ThemedText>
         <TouchableOpacity
           onPress={handleSave}
           disabled={!title.trim() || loading}
           style={styles.saveAction}
         >
           {loading ? (
-            <ActivityIndicator size="small" color={THEME.accent} />
+            <ActivityIndicator size="small" color={theme.accent} />
           ) : (
-            <Text
-              style={[styles.saveActionText, !title.trim() && { opacity: 0.3 }]}
+            <ThemedText
+              type="defaultBold"
+              style={[
+                styles.saveActionText,
+                { color: theme.accent },
+                !title.trim() && { opacity: 0.3 },
+              ]}
             >
               Enregistrer
-            </Text>
+            </ThemedText>
           )}
         </TouchableOpacity>
       </View>
@@ -170,7 +168,7 @@ export default function AddGiftScreen() {
         >
           {fetching ? (
             <View style={{ height: 300, justifyContent: "center" }}>
-              <ActivityIndicator color={THEME.accent} />
+              <ActivityIndicator color={theme.accent} />
             </View>
           ) : (
             <>
@@ -189,21 +187,26 @@ export default function AddGiftScreen() {
                     />
                     <View style={styles.imageOverlay} />
                     <View style={styles.editBadge}>
-                      <Ionicons name="camera" size={16} color="#FFF" />
+                      <ThemedIcon name="camera" size={16} color="#FFF" />
                     </View>
                   </View>
                 ) : (
                   <View style={styles.imagePlaceholder}>
-                    <View style={styles.iconCircle}>
-                      <Ionicons
+                    <View
+                      style={[
+                        styles.iconCircle,
+                        { backgroundColor: theme.surface },
+                      ]}
+                    >
+                      <ThemedIcon
                         name="add-outline"
                         size={32}
-                        color={THEME.accent}
+                        colorName="accent"
                       />
                     </View>
-                    <Text style={styles.placeholderText}>
+                    <ThemedText type="label" colorName="textSecondary">
                       AJOUTER UNE IMAGE
-                    </Text>
+                    </ThemedText>
                   </View>
                 )}
               </TouchableOpacity>
@@ -211,37 +214,84 @@ export default function AddGiftScreen() {
               <View style={styles.formContainer}>
                 {/* NOM DU PRODUIT */}
                 <View style={styles.inputGroup}>
-                  <Text style={styles.miniLabel}>NOM DE L&apos;ARTICLE</Text>
+                  <ThemedText
+                    type="label"
+                    colorName="textSecondary"
+                    style={{ marginBottom: 12 }}
+                  >
+                    NOM DE L&apos;ARTICLE
+                  </ThemedText>
                   <TextInput
-                    style={styles.titleInput}
+                    style={[
+                      styles.titleInput,
+                      {
+                        color: theme.textMain,
+                        borderBottomColor: theme.border,
+                      },
+                    ]}
                     placeholder="Qu'est-ce qui vous ferait plaisir ?"
-                    placeholderTextColor="#BCBCBC"
+                    placeholderTextColor={
+                      colorScheme === "dark" ? "#666" : "#BCBCBC"
+                    }
                     value={title}
                     onChangeText={setTitle}
-                    selectionColor={THEME.accent}
+                    selectionColor={theme.accent}
                   />
                 </View>
 
                 <View style={styles.row}>
                   {/* PRIX */}
                   <View style={[styles.inputGroup, { flex: 0.45 }]}>
-                    <Text style={styles.miniLabel}>PRIX ESTIMÉ</Text>
-                    <View style={styles.priceRow}>
+                    <ThemedText
+                      type="label"
+                      colorName="textSecondary"
+                      style={{ marginBottom: 12 }}
+                    >
+                      PRIX ESTIMÉ
+                    </ThemedText>
+                    <View
+                      style={[
+                        styles.priceRow,
+                        { borderBottomColor: theme.border },
+                      ]}
+                    >
                       <TextInput
-                        style={styles.priceInput}
+                        style={[styles.priceInput, { color: theme.textMain }]}
                         placeholder="0"
+                        placeholderTextColor={
+                          colorScheme === "dark" ? "#666" : "#BCBCBC"
+                        }
                         keyboardType="numeric"
                         value={price}
                         onChangeText={setPrice}
                       />
-                      <Text style={styles.currency}>€</Text>
+                      <ThemedText
+                        colorName="textSecondary"
+                        style={styles.currency}
+                      >
+                        €
+                      </ThemedText>
                     </View>
                   </View>
 
                   {/* PRIORITÉ */}
                   <View style={[styles.inputGroup, { flex: 0.5 }]}>
-                    <Text style={styles.miniLabel}>PRIORITÉ</Text>
-                    <View style={styles.prioritySelector}>
+                    <ThemedText
+                      type="label"
+                      colorName="textSecondary"
+                      style={{ marginBottom: 12 }}
+                    >
+                      PRIORITÉ
+                    </ThemedText>
+                    <View
+                      style={[
+                        styles.prioritySelector,
+                        {
+                          backgroundColor:
+                            colorScheme === "dark" ? "#2C2C2E" : "#E9E9EB",
+                        },
+                      ]}
+                    >
                       {PRIORITIES.map((p) => (
                         <TouchableOpacity
                           key={p.id}
@@ -251,14 +301,19 @@ export default function AddGiftScreen() {
                           }}
                           style={[
                             styles.priorityTab,
-                            priority === p.id && styles.priorityTabActive,
+                            priority === p.id && {
+                              backgroundColor: theme.accent,
+                              shadowColor: "#000",
+                              shadowOpacity: 0.1,
+                              shadowRadius: 4,
+                            },
                           ]}
                         >
-                          <Ionicons
+                          <ThemedIcon
                             name={p.icon as any}
                             size={16}
                             color={
-                              priority === p.id ? "#FFF" : THEME.textSecondary
+                              priority === p.id ? "#FFF" : theme.textSecondary
                             }
                           />
                         </TouchableOpacity>
@@ -269,17 +324,33 @@ export default function AddGiftScreen() {
 
                 {/* LIEN URL */}
                 <View style={styles.inputGroup}>
-                  <Text style={styles.miniLabel}>LIEN DU PRODUIT</Text>
-                  <View style={styles.urlInputWrapper}>
-                    <Ionicons
+                  <ThemedText
+                    type="label"
+                    colorName="textSecondary"
+                    style={{ marginBottom: 12 }}
+                  >
+                    LIEN DU PRODUIT
+                  </ThemedText>
+                  <View
+                    style={[
+                      styles.urlInputWrapper,
+                      {
+                        backgroundColor: theme.surface,
+                        borderColor: theme.border,
+                      },
+                    ]}
+                  >
+                    <ThemedIcon
                       name="link-outline"
                       size={18}
-                      color={THEME.accent}
+                      colorName="accent"
                     />
                     <TextInput
-                      style={styles.urlInput}
+                      style={[styles.urlInput, { color: theme.textMain }]}
                       placeholder="https://..."
-                      placeholderTextColor="#BCBCBC"
+                      placeholderTextColor={
+                        colorScheme === "dark" ? "#666" : "#BCBCBC"
+                      }
                       value={url}
                       onChangeText={setUrl}
                       autoCapitalize="none"
@@ -289,11 +360,19 @@ export default function AddGiftScreen() {
 
                 {/* DESCRIPTION */}
                 <View style={styles.inputGroup}>
-                  <Text style={styles.miniLabel}>NOTES PERSONNELLES</Text>
+                  <ThemedText
+                    type="label"
+                    colorName="textSecondary"
+                    style={{ marginBottom: 12 }}
+                  >
+                    NOTES PERSONNELLES
+                  </ThemedText>
                   <TextInput
-                    style={styles.descriptionInput}
+                    style={[styles.descriptionInput, { color: theme.textMain }]}
                     placeholder="Taille, couleur, précisions..."
-                    placeholderTextColor="#BCBCBC"
+                    placeholderTextColor={
+                      colorScheme === "dark" ? "#666" : "#BCBCBC"
+                    }
                     multiline
                     value={description}
                     onChangeText={setDescription}
@@ -305,28 +384,30 @@ export default function AddGiftScreen() {
                   style={[
                     styles.ecoCard,
                     {
-                      backgroundColor: "#FDF7F2",
-                      borderColor: "rgba(175, 144, 98, 0.1)",
+                      backgroundColor:
+                        colorScheme === "dark" ? "#2C2C2E" : "#FDF7F2",
+                      borderColor: theme.border,
                       borderWidth: 1,
                     },
                   ]}
                 >
-                  <View style={[styles.ecoIconBg, { backgroundColor: "#FFF" }]}>
-                    <Ionicons
+                  <View
+                    style={[
+                      styles.ecoIconBg,
+                      { backgroundColor: theme.surface },
+                    ]}
+                  >
+                    <ThemedIcon
                       name="megaphone-outline"
                       size={20}
-                      color={THEME.accent}
+                      colorName="accent"
                     />
                   </View>
                   <View style={{ flex: 1, marginLeft: 15 }}>
-                    <Text style={[styles.ecoTitle, { color: THEME.textMain }]}>
-                      Mettre en avant
-                    </Text>
-                    <Text
-                      style={[styles.ecoSub, { color: THEME.textSecondary }]}
-                    >
+                    <ThemedText type="defaultBold">Mettre en avant</ThemedText>
+                    <ThemedText type="caption" colorName="textSecondary">
                       Publier dans le fil d&apos;actualité
-                    </Text>
+                    </ThemedText>
                   </View>
                   <Switch
                     value={isPublished}
@@ -335,21 +416,41 @@ export default function AddGiftScreen() {
                       if (v)
                         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
                     }}
-                    trackColor={{ false: "#E9E9EB", true: THEME.accent }}
+                    trackColor={{ false: theme.border, true: theme.accent }}
                     thumbColor="#FFF"
                   />
                 </View>
 
                 {/* OPTION ÉCO */}
-                <View style={styles.ecoCard}>
-                  <View style={styles.ecoIconBg}>
-                    <Ionicons name="leaf" size={20} color={THEME.eco} />
+                <View
+                  style={[
+                    styles.ecoCard,
+                    {
+                      backgroundColor:
+                        colorScheme === "dark" ? "#1B2A1B" : "#F0F4F0",
+                    },
+                  ]}
+                >
+                  <View
+                    style={[
+                      styles.ecoIconBg,
+                      { backgroundColor: theme.surface },
+                    ]}
+                  >
+                    <ThemedIcon name="leaf" size={20} colorName="success" />
                   </View>
                   <View style={{ flex: 1, marginLeft: 15 }}>
-                    <Text style={styles.ecoTitle}>Seconde main acceptée</Text>
-                    <Text style={styles.ecoSub}>
+                    <ThemedText type="defaultBold">
+                      Seconde main acceptée
+                    </ThemedText>
+                    <ThemedText
+                      type="caption"
+                      style={{
+                        color: colorScheme === "dark" ? "#81C784" : "#6A826A",
+                      }}
+                    >
                       Vinted, occasion ou reconditionné
-                    </Text>
+                    </ThemedText>
                   </View>
                   <Switch
                     value={acceptsSecondHand}
@@ -358,7 +459,7 @@ export default function AddGiftScreen() {
                       if (v)
                         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
                     }}
-                    trackColor={{ false: "#E9E9EB", true: THEME.eco }}
+                    trackColor={{ false: "#E9E9EB", true: theme.success }}
                     thumbColor="#FFF"
                   />
                 </View>
@@ -374,7 +475,7 @@ export default function AddGiftScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: THEME.background },
+  container: { flex: 1 },
 
   /* HEADER */
   header: {
@@ -386,13 +487,10 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 17,
-    fontWeight: "700",
-    color: THEME.textMain,
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
   },
   closeBtn: { width: 44, height: 44, justifyContent: "center" },
   saveAction: { paddingHorizontal: 10 },
-  saveActionText: { fontSize: 16, fontWeight: "600", color: THEME.accent },
+  saveActionText: { fontSize: 16 },
 
   scrollContent: { paddingBottom: 40 },
 
@@ -424,7 +522,6 @@ const styles = StyleSheet.create({
     width: 70,
     height: 70,
     borderRadius: 35,
-    backgroundColor: THEME.surface,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 15,
@@ -433,29 +530,14 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     elevation: 2,
   },
-  placeholderText: {
-    fontSize: 11,
-    fontWeight: "800",
-    color: THEME.textSecondary,
-    letterSpacing: 1.5,
-  },
 
   /* FORM */
   formContainer: { paddingHorizontal: 30 },
   inputGroup: { marginBottom: 35 },
-  miniLabel: {
-    fontSize: 9,
-    fontWeight: "800",
-    color: THEME.textSecondary,
-    letterSpacing: 1.5,
-    marginBottom: 12,
-  },
   titleInput: {
     fontSize: 26,
     fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-    color: THEME.textMain,
     borderBottomWidth: 1,
-    borderBottomColor: THEME.border,
     paddingBottom: 10,
   },
   row: {
@@ -467,11 +549,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "baseline",
     borderBottomWidth: 1,
-    borderBottomColor: THEME.border,
     paddingBottom: 10,
   },
-  priceInput: { fontSize: 22, fontWeight: "500", color: THEME.textMain },
-  currency: { fontSize: 18, color: THEME.textSecondary, marginLeft: 5 },
+  priceInput: { fontSize: 22, fontWeight: "500" },
+  currency: { fontSize: 18, marginLeft: 5 },
 
   /* PRIORITY */
   prioritySelector: {
@@ -487,28 +568,19 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderRadius: 10,
   },
-  priorityTabActive: {
-    backgroundColor: THEME.primary,
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
 
   /* URL & DESC */
   urlInputWrapper: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: THEME.surface,
     borderRadius: 15,
     paddingHorizontal: 15,
     height: 54,
     borderWidth: 1,
-    borderColor: THEME.border,
   },
-  urlInput: { flex: 1, marginLeft: 10, fontSize: 15, color: THEME.textMain },
+  urlInput: { flex: 1, marginLeft: 10, fontSize: 15 },
   descriptionInput: {
     fontSize: 16,
-    color: THEME.textMain,
     fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
     fontStyle: "italic",
     lineHeight: 24,
@@ -520,7 +592,6 @@ const styles = StyleSheet.create({
   ecoCard: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#F0F4F0",
     padding: 20,
     borderRadius: 24,
     marginTop: 10,
@@ -529,10 +600,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: THEME.surface,
     justifyContent: "center",
     alignItems: "center",
   },
-  ecoTitle: { fontSize: 15, fontWeight: "700", color: THEME.textMain },
-  ecoSub: { fontSize: 12, color: "#6A826A", marginTop: 2 },
 });

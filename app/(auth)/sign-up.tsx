@@ -1,14 +1,10 @@
-import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
-import { showErrorToast, showSuccessToast } from "../../lib/toast";
 import {
   ActivityIndicator,
   StyleSheet,
-  Text,
   TouchableOpacity,
   View,
-  Platform,
 } from "react-native";
 import * as Haptics from "expo-haptics";
 import {
@@ -22,20 +18,16 @@ import {
   LayoutAuth,
   FormError,
 } from "@/features/auth";
+import { showErrorToast, showSuccessToast } from "@/lib/toast";
+import { ThemedText } from "@/components/themed-text";
+import { useAppTheme } from "@/hooks/custom/use-app-theme";
+import ThemedIcon from "@/components/themed-icon";
 
-// --- THEME ÉDITORIAL COHÉRENT ---
-const THEME = {
-  background: "#FDFBF7", // Bone Silk
-  surface: "#FFFFFF",
-  textMain: "#1A1A1A",
-  textSecondary: "#8E8E93",
-  accent: "#AF9062", // Or brossé
-  border: "rgba(0,0,0,0.08)",
-  primary: "#1A1A1A",
-};
+// --- THEME ÉDITORIAL ---
 
 export default function SignUp() {
   const router = useRouter();
+  const theme = useAppTheme();
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -157,7 +149,8 @@ export default function SignUp() {
             value={password}
             onChangeText={(t) => {
               setPassword(t);
-              if (errors.password) setErrors({ ...errors, password: undefined });
+              if (errors.password)
+                setErrors({ ...errors, password: undefined });
             }}
             secureTextEntry
             error={errors.password}
@@ -171,38 +164,66 @@ export default function SignUp() {
               Haptics.selectionAsync();
               setAgreedToTerms(!agreedToTerms);
             }}
-            style={[styles.checkbox, agreedToTerms && styles.checkboxChecked]}
+            style={[
+              styles.checkbox,
+              { backgroundColor: theme.surface, borderColor: theme.border },
+              agreedToTerms && {
+                backgroundColor: theme.textMain,
+                borderColor: theme.textMain,
+              },
+            ]}
             activeOpacity={0.8}
           >
-            {agreedToTerms && <Ionicons name="checkmark" size={12} color="#FFF" />}
+            {agreedToTerms && (
+              <ThemedIcon name="checkmark" size={12} color={theme.background} />
+            )}
           </TouchableOpacity>
 
           <View style={styles.termsTextContainer}>
-            <Text style={styles.termsBaseText}>
+            <ThemedText type="caption" style={styles.termsBaseText}>
               Je certifie avoir pris connaissance des{" "}
-              <Text style={styles.termsLink} onPress={() => handleOpenLegal("TERMS")}>
+              <ThemedText
+                type="caption"
+                colorName="accent"
+                style={styles.termsLink}
+                onPress={() => handleOpenLegal("TERMS")}
+              >
                 Conditions
-              </Text>
-              {" "}et de la{" "}
-              <Text style={styles.termsLink} onPress={() => handleOpenLegal("PRIVACY")}>
+              </ThemedText>{" "}
+              et de la{" "}
+              <ThemedText
+                type="caption"
+                colorName="accent"
+                style={styles.termsLink}
+                onPress={() => handleOpenLegal("PRIVACY")}
+              >
                 Confidentialité
-              </Text>
+              </ThemedText>
               .
-            </Text>
+            </ThemedText>
           </View>
         </View>
 
         {/* Bouton Authority Rectangulaire */}
         <TouchableOpacity
-          style={[styles.primaryBtn, isLoading && styles.primaryBtnDisabled]}
+          style={[
+            styles.primaryBtn,
+            { backgroundColor: theme.textMain },
+            isLoading && styles.primaryBtnDisabled,
+          ]}
           activeOpacity={0.9}
           onPress={handleSignUp}
           disabled={isLoading}
         >
           {isLoading ? (
-            <ActivityIndicator size="small" color="#FFF" />
+            <ActivityIndicator size="small" color={theme.background} />
           ) : (
-            <Text style={styles.primaryBtnText}>CRÉER MON COMPTE</Text>
+            <ThemedText
+              type="label"
+              style={[styles.primaryBtnText, { color: theme.background }]}
+            >
+              CRÉER MON COMPTE
+            </ThemedText>
           )}
         </TouchableOpacity>
 
@@ -258,49 +279,34 @@ const styles = StyleSheet.create({
   checkbox: {
     width: 20,
     height: 20,
-    borderRadius: 0, // Carré pour le luxe
+    borderRadius: 0,
     borderWidth: 1,
-    borderColor: THEME.border,
     marginRight: 15,
     marginTop: 2,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: THEME.surface,
-  },
-  checkboxChecked: {
-    backgroundColor: THEME.primary,
-    borderColor: THEME.primary,
   },
   termsTextContainer: {
     flex: 1,
   },
   termsBaseText: {
-    fontSize: 13,
-    color: THEME.textSecondary,
-    lineHeight: 20,
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
     fontStyle: "italic",
   },
   termsLink: {
-    color: THEME.accent,
-    fontWeight: "800",
-    textDecorationLine: "none", // Plus épuré sans l'underline natif
+    textDecorationLine: "none",
     fontStyle: "normal",
   },
 
   /* PRIMARY BUTTON */
   primaryBtn: {
-    backgroundColor: THEME.primary,
     height: 60,
-    borderRadius: 0, // Authority style (rectangulaire)
+    borderRadius: 0,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 20,
   },
   primaryBtnText: {
-    color: "#FFFFFF",
     fontSize: 13,
-    fontWeight: "800",
     letterSpacing: 1.5,
   },
   primaryBtnDisabled: {

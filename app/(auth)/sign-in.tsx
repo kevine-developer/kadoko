@@ -1,10 +1,8 @@
-
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
   StyleSheet,
-  Text,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -20,19 +18,14 @@ import {
   LayoutAuth,
 } from "@/features/auth";
 
-// --- THEME ÉDITORIAL COHÉRENT ---
-const THEME = {
-  background: "#FDFBF7", // Bone Silk
-  surface: "#FFFFFF",
-  textMain: "#1A1A1A",
-  textSecondary: "#8E8E93",
-  accent: "#AF9062", // Or brossé
-  border: "rgba(0,0,0,0.08)",
-  primary: "#1A1A1A",
-};
+import { useAppTheme } from "@/hooks/custom/use-app-theme";
+import { ThemedText } from "@/components/themed-text";
+
+// --- THEME ÉDITORIAL ---
 
 export default function SignIn() {
   const router = useRouter();
+  const theme = useAppTheme();
   const [isLoading, setIsLoading] = useState(false);
 
   const [email, setEmail] = useState("");
@@ -130,22 +123,37 @@ export default function SignIn() {
             style={styles.forgotBtn}
             onPress={() => router.push("/forgot-password")}
           >
-            <Text style={styles.forgotText}>MOT DE PASSE OUBLIÉ ?</Text>
+            <ThemedText
+              type="label"
+              colorName="accent"
+              style={styles.forgotText}
+            >
+              MOT DE PASSE OUBLIÉ ?
+            </ThemedText>
           </TouchableOpacity>
         </View>
       </View>
 
       {/* 4. Bouton d'Action Principal - Style "Authority" */}
       <TouchableOpacity
-        style={[styles.primaryBtn, isLoading && styles.primaryBtnDisabled]}
+        style={[
+          styles.primaryBtn,
+          { backgroundColor: theme.textMain },
+          isLoading && styles.primaryBtnDisabled,
+        ]}
         activeOpacity={0.9}
         onPress={handleLogin}
         disabled={isLoading}
       >
         {isLoading ? (
-          <ActivityIndicator size="small" color="#FFF" />
+          <ActivityIndicator size="small" color={theme.background} />
         ) : (
-          <Text style={styles.primaryBtnText}>ACCÉDER À MON ESPACE</Text>
+          <ThemedText
+            type="label"
+            style={[styles.primaryBtnText, { color: theme.background }]}
+          >
+            ACCÉDER À MON ESPACE
+          </ThemedText>
         )}
       </TouchableOpacity>
 
@@ -190,25 +198,20 @@ const styles = StyleSheet.create({
   },
   forgotText: {
     fontSize: 9,
-    color: THEME.accent,
-    fontWeight: "800",
     letterSpacing: 1,
   },
 
   /* --- PRIMARY BUTTON (RECTANGULAR LUXE) --- */
   primaryBtn: {
-    backgroundColor: THEME.primary,
     height: 60,
-    borderRadius: 0, // Rectangulaire pour l'aspect autoritaire/luxe
+    borderRadius: 0,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 20,
     // Suppression des ombres portées pour un look flat plus moderne
   },
   primaryBtnText: {
-    color: "#FFFFFF",
     fontSize: 13,
-    fontWeight: "800",
     letterSpacing: 1.5,
   },
   primaryBtnDisabled: {

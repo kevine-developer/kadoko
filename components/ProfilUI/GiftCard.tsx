@@ -14,7 +14,6 @@ import { WishlistPhotoSummary } from "@/lib/getWishlistPhotos";
 import { WishlistVisibility } from "@/types/gift";
 import Icon from "../themed-icon";
 import { ThemedText } from "@/components/themed-text";
-import { useThemeColor } from "@/hooks/use-theme-color";
 import { useAppTheme } from "@/hooks/custom/use-app-theme";
 
 const { width } = Dimensions.get("window");
@@ -29,9 +28,10 @@ const ImageGrid = ({
   images?: string[];
   coverUrl?: string;
 }) => {
+  const theme = useAppTheme();
   const count = images?.length ?? 0;
   const GAP = 1;
-  const borderColor = useThemeColor({}, "border");
+  const borderColor = theme.border;
 
   if (count === 0) {
     if (coverUrl) {
@@ -90,7 +90,7 @@ export default function GiftWishlistCard({
 }: WishlistPhotoSummary & { coverUrl?: string }) {
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
-const theme = useAppTheme();
+  const theme = useAppTheme();
 
   const handlePressIn = () => {
     Animated.spring(scaleAnim, {
@@ -140,7 +140,12 @@ const theme = useAppTheme();
           <ImageGrid images={images?.slice(0, 3)} coverUrl={coverUrl} />
 
           {/* Badge de décompte style "Numéro d'inventaire" */}
-          <View style={[styles.countBadge, { borderColor: theme.border }]}>
+          <View
+            style={[
+              styles.countBadge,
+              { borderColor: theme.border, backgroundColor: theme.surface },
+            ]}
+          >
             <ThemedText type="label" style={styles.countText}>
               {totalGifts.toString().padStart(2, "0")}
             </ThemedText>
@@ -164,7 +169,9 @@ const theme = useAppTheme();
           </ThemedText>
 
           {/* Ligne de signature Or brossé */}
-          <View style={[styles.accentLine, { backgroundColor: theme.accent }]} />
+          <View
+            style={[styles.accentLine, { backgroundColor: theme.accent }]}
+          />
         </View>
       </TouchableOpacity>
     </Animated.View>
@@ -202,7 +209,6 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 10,
     right: 10,
-    backgroundColor: "rgba(255,255,255,0.9)",
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderWidth: 0.5,

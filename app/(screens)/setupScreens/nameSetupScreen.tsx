@@ -1,39 +1,29 @@
-import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-  ActivityIndicator,
   Keyboard,
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
-  Text,
   TextInput,
   TouchableOpacity,
   TouchableWithoutFeedback,
   View,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MotiView } from "moti";
 import * as Haptics from "expo-haptics";
 import { authClient } from "@/features/auth";
 import { userService } from "@/lib/services/user-service";
 import { showErrorToast, showSuccessToast } from "@/lib/toast";
-
-// --- THEME ÉDITORIAL COHÉRENT ---
-const THEME = {
-  background: "#FDFBF7", // Bone Silk
-  surface: "#FFFFFF",
-  textMain: "#1A1A1A",
-  textSecondary: "#8E8E93",
-  primary: "#1A1A1A",
-  accent: "#AF9062", // Or brossé
-  border: "rgba(0,0,0,0.08)",
-};
+import BtnValidate from "@/components/Settings/BtnValidate";
+import { ThemedText } from "@/components/themed-text";
+import { useAppTheme } from "@/hooks/custom/use-app-theme";
+import SettingsNavBar from "@/components/Settings/SettingsNavBar";
+import ThemedIcon from "@/components/themed-icon";
 
 export default function NameSetupScreen() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
+  const theme = useAppTheme();
   const { data: session, refetch } = authClient.useSession();
   const user = session?.user;
 
@@ -68,25 +58,14 @@ export default function NameSetupScreen() {
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-      <View style={styles.container}>
-        {/* NAV BAR MINIMALISTE */}
-        <View style={[styles.navBar, { paddingTop: insets.top + 10 }]}>
-          <TouchableOpacity
-            onPress={() => router.back()}
-            style={styles.backBtn}
-          >
-            <Ionicons name="chevron-back" size={24} color={THEME.textMain} />
-          </TouchableOpacity>
-          <Text style={styles.navTitle}>NOM COMPLET</Text>
-          <View style={{ width: 44 }} />
-        </View>
+      <View style={[styles.container, { backgroundColor: theme.background }]}>
+        <SettingsNavBar title="NOM COMPLET" />
 
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : "height"}
           style={{ flex: 1 }}
         >
           <View style={styles.content}>
-            {/* HERO SECTION */}
             <MotiView
               from={{ opacity: 0, translateY: 15 }}
               animate={{ opacity: 1, translateY: 0 }}
@@ -97,28 +76,47 @@ export default function NameSetupScreen() {
                 from={{ width: 0 }}
                 animate={{ width: 35 }}
                 transition={{ type: "timing", duration: 800, delay: 200 }}
-                style={styles.titleDivider}
+                style={[styles.titleDivider, { backgroundColor: theme.accent }]}
               />
-              <Text style={styles.heroTitle}>Comment vous{"\n"}appelle-t-on ?</Text>
-              <Text style={styles.heroSubtitle}>
-                Votre nom sera l&apos;élément central de votre profil pour vos listes et vos cercles d&apos;amis.
-              </Text>
+              <ThemedText type="hero" style={styles.heroTitle}>
+                Comment vous{"\n"}appelle-t-on ?
+              </ThemedText>
+              <ThemedText
+                type="subtitle"
+                colorName="textSecondary"
+                style={styles.heroSubtitle}
+              >
+                Votre nom sera l&apos;élément central de votre profil pour vos
+                listes et vos cercles d&apos;amis.
+              </ThemedText>
             </MotiView>
 
-            {/* INPUT "SIGNATURE" */}
             <View style={styles.inputSection}>
-              <Text style={styles.miniLabel}>NOM OU PSEUDONYME</Text>
+              <ThemedText
+                type="label"
+                colorName="textSecondary"
+                style={styles.miniLabel}
+              >
+                NOM OU PSEUDONYME
+              </ThemedText>
               <MotiView
                 from={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 300 }}
                 style={[
                   styles.inputUnderline,
-                  hasChanges && { borderBottomColor: THEME.accent }
+                  { borderBottomColor: theme.border },
+                  hasChanges && { borderBottomColor: theme.accent },
                 ]}
               >
                 <TextInput
-                  style={styles.input}
+                  style={[
+                    styles.input,
+                    {
+                      color: theme.textMain,
+                      fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
+                    },
+                  ]}
                   value={name}
                   onChangeText={setName}
                   placeholder="Ex: Alexandre Dumas"
@@ -126,9 +124,9 @@ export default function NameSetupScreen() {
                   autoFocus
                   maxLength={50}
                   autoCapitalize="words"
-                  selectionColor={THEME.accent}
+                  selectionColor={theme.accent}
                 />
-                
+
                 {name.length > 0 && (
                   <TouchableOpacity
                     onPress={() => {
@@ -137,31 +135,23 @@ export default function NameSetupScreen() {
                     }}
                     style={styles.clearBtn}
                   >
-                    <Ionicons name="close-circle" size={18} color="#D1D5DB" />
+                    <ThemedIcon
+                      name="close-circle"
+                      size={18}
+                      colorName="border"
+                    />
                   </TouchableOpacity>
                 )}
               </MotiView>
             </View>
           </View>
 
-          {/* FOOTER ACTION - BOUTON RECTANGULAIRE */}
-          <View style={[styles.footer, { paddingBottom: insets.bottom + 20 }]}>
-            <TouchableOpacity
-              style={[
-                styles.primaryBtn,
-                (!hasChanges || isSaving) && styles.primaryBtnDisabled,
-              ]}
-              onPress={handleSave}
-              disabled={!hasChanges || isSaving}
-              activeOpacity={0.9}
-            >
-              {isSaving ? (
-                <ActivityIndicator color="#FFF" size="small" />
-              ) : (
-                <Text style={styles.primaryBtnText}>CONFIRMER L&apos;IDENTITÉ</Text>
-              )}
-            </TouchableOpacity>
-          </View>
+          <BtnValidate
+            hasChanges={hasChanges}
+            isSaving={isSaving}
+            handleSave={handleSave}
+            text="CONFIRMER L'IDENTITÉ"
+          />
         </KeyboardAvoidingView>
       </View>
     </TouchableWithoutFeedback>
@@ -169,106 +159,20 @@ export default function NameSetupScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: THEME.background,
-  },
-  /* NAV BAR */
-  navBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 15,
-  },
-  backBtn: {
-    width: 44,
-    height: 44,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  navTitle: {
-    fontSize: 10,
-    fontWeight: "800",
-    color: THEME.textMain,
-    letterSpacing: 2,
-  },
-  /* CONTENT */
-  content: {
-    flex: 1,
-    paddingHorizontal: 32,
-    paddingTop: 30,
-  },
-  heroSection: {
-    marginBottom: 50,
-  },
-  titleDivider: {
-    height: 2,
-    backgroundColor: THEME.accent,
-    marginBottom: 25,
-  },
-  heroTitle: {
-    fontSize: 38,
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-    color: THEME.textMain,
-    lineHeight: 44,
-    letterSpacing: -1,
-  },
-  heroSubtitle: {
-    fontSize: 15,
-    color: THEME.textSecondary,
-    lineHeight: 24,
-    marginTop: 20,
-    fontStyle: "italic",
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-  },
-  /* INPUT AREA */
-  inputSection: {
-    marginTop: 10,
-  },
-  miniLabel: {
-    fontSize: 9,
-    fontWeight: "800",
-    color: THEME.textSecondary,
-    letterSpacing: 1.5,
-    marginBottom: 12,
-  },
+  container: { flex: 1 },
+  content: { flex: 1, paddingHorizontal: 32, paddingTop: 30 },
+  heroSection: { marginBottom: 50 },
+  titleDivider: { height: 2, marginBottom: 25 },
+  heroTitle: {},
+  heroSubtitle: { marginTop: 20 },
+  inputSection: { marginTop: 10 },
+  miniLabel: { letterSpacing: 1.5, marginBottom: 12 },
   inputUnderline: {
     flexDirection: "row",
     alignItems: "center",
     borderBottomWidth: 1,
-    borderBottomColor: THEME.border,
     paddingBottom: 8,
   },
-  input: {
-    flex: 1,
-    fontSize: 26,
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-    color: THEME.textMain,
-    paddingVertical: 0,
-  },
-  clearBtn: {
-    paddingLeft: 10,
-  },
-  /* FOOTER & BUTTON */
-  footer: {
-    paddingHorizontal: 32,
-  },
-  primaryBtn: {
-    backgroundColor: THEME.primary,
-    height: 60,
-    borderRadius: 0, // Rectangulaire luxe
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  primaryBtnDisabled: {
-    backgroundColor: "#E5E7EB",
-    opacity: 0.6,
-  },
-  primaryBtnText: {
-    color: "#FFFFFF",
-    fontSize: 14,
-    fontWeight: "700",
-    letterSpacing: 1,
-    textTransform: "uppercase",
-  },
+  input: { flex: 1, fontSize: 26, paddingVertical: 0 },
+  clearBtn: { paddingLeft: 10 },
 });

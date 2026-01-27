@@ -1,22 +1,10 @@
-import {
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { StyleSheet, TouchableOpacity, View } from "react-native";
 import React from "react";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-
-// --- THEME ÉDITORIAL COHÉRENT ---
-const THEME = {
-  background: "#FDFBF7", // Bone Silk
-  surface: "#FFFFFF",
-  textMain: "#1A1A1A",
-  textSecondary: "#8E8E93",
-  accent: "#AF9062", // Or brossé
-  border: "rgba(0,0,0,0.08)",
-};
+import { ThemedText } from "@/components/themed-text";
+import { useAppTheme } from "@/hooks/custom/use-app-theme";
+import ThemedIcon from "@/components/themed-icon";
 
 interface BtnSocialProps {
   handleSocialLogin: () => void;
@@ -31,6 +19,8 @@ const BtnSocial = ({
   label,
   disabled,
 }: BtnSocialProps) => {
+  const theme = useAppTheme();
+
   const onPress = () => {
     if (disabled) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -39,25 +29,42 @@ const BtnSocial = ({
 
   return (
     <TouchableOpacity
-      style={[styles.socialBtn, disabled && styles.disabledBtn]}
+      style={[
+        styles.socialBtn,
+        { backgroundColor: theme.surface, borderColor: theme.border },
+        disabled && {
+          backgroundColor: "rgba(0,0,0,0.01)",
+          borderColor: "rgba(0,0,0,0.04)",
+        },
+      ]}
       onPress={onPress}
       disabled={disabled}
       activeOpacity={disabled ? 1 : 0.6}
     >
       <View style={styles.content}>
-        <Ionicons
+        <ThemedIcon
           name={icon}
           size={18}
-          color={disabled ? THEME.textSecondary : THEME.textMain}
+          colorName={disabled ? "textSecondary" : "textMain"}
         />
-        <Text style={[styles.socialText, disabled && styles.disabledText]}>
+        <ThemedText
+          type="label"
+          colorName={disabled ? "textSecondary" : "textMain"}
+          style={[styles.socialText, disabled && { opacity: 0.5 }]}
+        >
           {label.toUpperCase()}
-        </Text>
+        </ThemedText>
       </View>
 
       {disabled && (
         <View style={styles.comingSoonWrapper}>
-          <Text style={styles.comingSoonText}>BIENTÔT</Text>
+          <ThemedText
+            type="label"
+            colorName="accent"
+            style={styles.comingSoonText}
+          >
+            BIENTÔT
+          </ThemedText>
         </View>
       )}
     </TouchableOpacity>
@@ -70,14 +77,11 @@ const styles = StyleSheet.create({
   socialBtn: {
     flex: 1,
     height: 54,
-    borderRadius: 0, // Carré luxe pour un aspect architectural
-    backgroundColor: THEME.surface,
+    borderRadius: 0,
     borderWidth: 1,
-    borderColor: THEME.border,
     alignItems: "center",
     justifyContent: "center",
     position: "relative",
-    // Pas d'ombres lourdes, on privilégie la pureté de la ligne
   },
   content: {
     flexDirection: "row",
@@ -86,28 +90,16 @@ const styles = StyleSheet.create({
   },
   socialText: {
     fontSize: 11,
-    fontWeight: "800",
-    color: THEME.textMain,
-    letterSpacing: 1.2, // Espacement luxueux
-  },
-  disabledBtn: {
-    backgroundColor: "rgba(0,0,0,0.01)",
-    borderColor: "rgba(0,0,0,0.04)",
-  },
-  disabledText: {
-    color: THEME.textSecondary,
-    opacity: 0.5,
+    letterSpacing: 1.2,
   },
   comingSoonWrapper: {
     position: "absolute",
-    bottom: -18, // Placé sous le bouton comme une légende
+    bottom: -18,
     width: "100%",
     alignItems: "center",
   },
   comingSoonText: {
     fontSize: 8,
-    fontWeight: "800",
-    color: THEME.accent, // Touche dorée discrète
     letterSpacing: 1,
   },
 });

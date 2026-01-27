@@ -1,6 +1,3 @@
-import { Ionicons } from "@expo/vector-icons";
-import { Image } from "expo-image";
-import React, { useRef } from "react";
 import {
   Animated,
   StyleSheet,
@@ -8,8 +5,11 @@ import {
   View,
   ActivityIndicator,
 } from "react-native";
+import { Image } from "expo-image";
+import React, { useRef } from "react";
 import { ThemedText } from "@/components/themed-text";
 import { useAppTheme } from "@/hooks/custom/use-app-theme";
+import ThemedIcon from "@/components/themed-icon";
 
 export default function ReservedGiftItem({
   gift,
@@ -21,8 +21,8 @@ export default function ReservedGiftItem({
   isReleasing,
 }: any) {
   const scaleAnim = useRef(new Animated.Value(1)).current;
-
   const theme = useAppTheme();
+
   return (
     <Animated.View
       style={[
@@ -30,7 +30,6 @@ export default function ReservedGiftItem({
         { borderBottomColor: theme.border, transform: [{ scale: scaleAnim }] },
       ]}
     >
-      {/* Image format carré "Galerie" */}
       <Image
         source={gift.imageUrl}
         style={[styles.image, { backgroundColor: theme.surface }]}
@@ -50,7 +49,6 @@ export default function ReservedGiftItem({
           </ThemedText>
         </View>
 
-        {/* Titre en Serif (Georgia) via type="title" */}
         <ThemedText type="title" style={styles.title}>
           {gift.title}
         </ThemedText>
@@ -83,10 +81,10 @@ export default function ReservedGiftItem({
               {isReleasing ? (
                 <ActivityIndicator size="small" color={theme.textSecondary} />
               ) : (
-                <Ionicons
+                <ThemedIcon
                   name="trash-outline"
                   size={16}
-                  color={theme.textSecondary}
+                  colorName="textSecondary"
                 />
               )}
             </TouchableOpacity>
@@ -95,7 +93,7 @@ export default function ReservedGiftItem({
 
         {isHistory && (
           <View style={styles.historyBadge}>
-            <Ionicons name="checkmark-circle" size={14} color={theme.success} />
+            <ThemedIcon name="checkmark-circle" size={14} colorName="success" />
             <ThemedText
               type="caption"
               style={{ color: theme.success, fontWeight: "600" }}
@@ -125,7 +123,7 @@ const styles = StyleSheet.create({
   image: {
     width: 60,
     height: 60,
-    borderRadius: 0, // Style boutique/carré
+    borderRadius: 0,
   },
   content: {
     flex: 1,
@@ -150,11 +148,11 @@ const styles = StyleSheet.create({
   mainAction: {
     paddingVertical: 6,
     paddingHorizontal: 12,
-    borderRadius: 0, // Rectangulaire luxe
+    borderRadius: 0,
   },
   mainActionText: {
     fontSize: 9,
-    color: "#FFF", // On garde blanc car le fond du bouton est textMain (noir)
+    color: "#FFF",
   },
   subAction: {
     padding: 5,

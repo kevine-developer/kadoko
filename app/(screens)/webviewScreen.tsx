@@ -1,12 +1,9 @@
-import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useRef, useState } from "react";
 import {
   ActivityIndicator,
   Linking,
-  Platform,
   StyleSheet,
-  Text,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -14,26 +11,18 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { WebView } from "react-native-webview";
 import * as Haptics from "expo-haptics";
 import { MotiView } from "moti";
-
-// --- THEME ÉDITORIAL COHÉRENT ---
-const THEME = {
-  background: "#FDFBF7", // Papier / Bone
-  surface: "#FFFFFF",
-  textMain: "#1A1A1A",
-  textSecondary: "#8E8E93",
-  accent: "#AF9062", // Or brossé
-  border: "rgba(0,0,0,0.06)",
-  progressBar: "#AF9062",
-};
+import { ThemedText } from "@/components/themed-text";
+import { useAppTheme } from "@/hooks/custom/use-app-theme";
+import ThemedIcon from "@/components/themed-icon";
 
 export default function WebviewScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const theme = useAppTheme();
   const { url, title } = useLocalSearchParams<{ url: string; title: string }>();
 
   const webViewRef = useRef<WebView>(null);
 
-  // States pour la navigation
   const [canGoBack, setCanGoBack] = useState(false);
   const [canGoForward, setCanGoForward] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -49,40 +38,52 @@ export default function WebviewScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      {/* HEADER ÉDITORIAL */}
-      <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <View
+        style={[
+          styles.header,
+          { paddingTop: insets.top + 10, backgroundColor: theme.background },
+        ]}
+      >
         <TouchableOpacity onPress={handleClose} style={styles.closeBtn}>
-          <Ionicons name="close-outline" size={26} color={THEME.textMain} />
+          <ThemedIcon name="close-outline" size={26} colorName="textMain" />
         </TouchableOpacity>
 
         <View style={styles.titleContainer}>
-          <Text style={styles.headerLabel}>SOURCE EXTERNE</Text>
-          <Text style={styles.headerTitle} numberOfLines={1}>
+          <ThemedText
+            type="label"
+            colorName="textSecondary"
+            style={styles.headerLabel}
+          >
+            SOURCE EXTERNE
+          </ThemedText>
+          <ThemedText
+            type="defaultBold"
+            style={styles.headerTitle}
+            numberOfLines={1}
+          >
             {title || "Navigation"}
-          </Text>
+          </ThemedText>
         </View>
 
         <TouchableOpacity
           onPress={handleOpenExternal}
           style={styles.externalBtn}
         >
-          <Ionicons name="share-outline" size={20} color={THEME.textMain} />
+          <ThemedIcon name="share-outline" size={20} colorName="textMain" />
         </TouchableOpacity>
       </View>
 
-      {/* PROGRESS BAR - FIL D'OR */}
       <View style={styles.progressTrack}>
         {progress < 1 && (
           <MotiView
             animate={{ width: `${progress * 100}%` }}
             transition={{ type: "timing", duration: 250 }}
-            style={styles.progressBar}
+            style={[styles.progressBar, { backgroundColor: theme.accent }]}
           />
         )}
       </View>
 
-      {/* WEBVIEW CONTAINER */}
       <View style={styles.webviewContainer}>
         <WebView
           ref={webViewRef}
@@ -97,18 +98,26 @@ export default function WebviewScreen() {
           }}
           startInLoadingState={true}
           renderLoading={() => (
-            <View style={styles.loadingOverlay}>
-              <ActivityIndicator size="small" color={THEME.accent} />
+            <View
+              style={[
+                styles.loadingOverlay,
+                { backgroundColor: theme.background },
+              ]}
+            >
+              <ActivityIndicator size="small" color={theme.accent} />
             </View>
           )}
         />
       </View>
 
-      {/* TOOLBAR DE NAVIGATION BASSE */}
       <View
         style={[
           styles.toolbar,
-          { paddingBottom: insets.bottom > 0 ? insets.bottom + 10 : 25 },
+          {
+            paddingBottom: insets.bottom > 0 ? insets.bottom + 10 : 25,
+            backgroundColor: theme.background,
+            borderTopColor: theme.border,
+          },
         ]}
       >
         <View style={styles.controlsGroup}>
@@ -120,7 +129,7 @@ export default function WebviewScreen() {
             }}
             style={[styles.toolbarBtn, !canGoBack && styles.btnDisabled]}
           >
-            <Ionicons name="chevron-back" size={24} color={THEME.textMain} />
+            <ThemedIcon name="chevron-back" size={24} colorName="textMain" />
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -131,7 +140,7 @@ export default function WebviewScreen() {
             }}
             style={[styles.toolbarBtn, !canGoForward && styles.btnDisabled]}
           >
-            <Ionicons name="chevron-forward" size={24} color={THEME.textMain} />
+            <ThemedIcon name="chevron-forward" size={24} colorName="textMain" />
           </TouchableOpacity>
         </View>
 
@@ -142,10 +151,10 @@ export default function WebviewScreen() {
           }}
           style={styles.refreshBtn}
         >
-          <Ionicons
+          <ThemedIcon
             name="refresh-outline"
             size={20}
-            color={THEME.textSecondary}
+            colorName="textSecondary"
           />
         </TouchableOpacity>
       </View>
@@ -156,17 +165,13 @@ export default function WebviewScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: THEME.background,
   },
-
-  /* HEADER */
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 20,
     paddingBottom: 15,
-    backgroundColor: THEME.background,
   },
   titleContainer: {
     flex: 1,
@@ -175,16 +180,11 @@ const styles = StyleSheet.create({
   },
   headerLabel: {
     fontSize: 9,
-    fontWeight: "800",
-    color: THEME.textSecondary,
     letterSpacing: 1.5,
     marginBottom: 2,
   },
   headerTitle: {
     fontSize: 16,
-    fontWeight: "600",
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-    color: THEME.textMain,
     textAlign: "center",
   },
   closeBtn: {
@@ -198,8 +198,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "flex-end",
   },
-
-  /* PROGRESS BAR */
   progressTrack: {
     height: 2,
     width: "100%",
@@ -208,10 +206,7 @@ const styles = StyleSheet.create({
   },
   progressBar: {
     height: "100%",
-    backgroundColor: THEME.progressBar,
   },
-
-  /* WEBVIEW */
   webviewContainer: {
     flex: 1,
     backgroundColor: "#FFF",
@@ -223,19 +218,14 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: THEME.background,
   },
-
-  /* TOOLBAR BASSE */
   toolbar: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 30,
     paddingTop: 15,
-    backgroundColor: THEME.background,
     borderTopWidth: 1,
-    borderTopColor: THEME.border,
   },
   controlsGroup: {
     flexDirection: "row",

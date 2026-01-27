@@ -1,4 +1,3 @@
-import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import {
   Platform,
@@ -10,15 +9,8 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import { MotiView } from "moti";
-
-// --- THEME ÉDITORIAL COHÉRENT ---
-const THEME = {
-  surface: "#FFFFFF",
-  primary: "#1A1A1A", // Noir profond
-  accent: "#AF9062", // Or brossé
-  textSecondary: "#8E8E93",
-  border: "rgba(0,0,0,0.06)",
-};
+import { useAppTheme } from "@/hooks/custom/use-app-theme";
+import ThemedIcon from "@/components/themed-icon";
 
 interface FloatingDockProps {
   handleAdd: () => void;
@@ -36,6 +28,7 @@ const FloatingDockActions = ({
   shareTitle,
 }: FloatingDockProps) => {
   const insets = useSafeAreaInsets();
+  const theme = useAppTheme();
 
   const handlePress = (
     callback: () => void,
@@ -71,71 +64,80 @@ const FloatingDockActions = ({
         { marginBottom: insets.bottom > 0 ? insets.bottom : 20 },
       ]}
     >
-      <View style={styles.dockSurface}>
-        {/* PARTAGER */}
+      <View
+        style={[
+          styles.dockSurface,
+          { backgroundColor: theme.surface, borderColor: theme.border },
+        ]}
+      >
         <TouchableOpacity
           style={styles.dockItem}
           activeOpacity={0.6}
           onPress={onShare}
         >
-          <Ionicons
+          <ThemedIcon
             name="share-social-outline"
             size={20}
-            color={THEME.textSecondary}
+            colorName="textSecondary"
           />
         </TouchableOpacity>
 
-        <View style={styles.hairlineDivider} />
+        <View
+          style={[styles.hairlineDivider, { backgroundColor: theme.border }]}
+        />
 
-        {/* MODIFIER */}
         <TouchableOpacity
           style={styles.dockItem}
           activeOpacity={0.6}
           onPress={() => handlePress(handleEdit)}
         >
-          <Ionicons
+          <ThemedIcon
             name="create-outline"
             size={20}
-            color={THEME.textSecondary}
+            colorName="textSecondary"
           />
         </TouchableOpacity>
 
-        {/* AJOUTER (POINT FOCAL) */}
         <TouchableOpacity
           style={styles.mainActionBtn}
           activeOpacity={0.8}
           onPress={() => handlePress(handleAdd, "medium")}
         >
-          <View style={styles.mainActionInner}>
-            <Ionicons name="add" size={28} color="#FFFFFF" />
+          <View
+            style={[
+              styles.mainActionInner,
+              { backgroundColor: theme.textMain },
+            ]}
+          >
+            <ThemedIcon name="add" size={28} color={theme.background} />
           </View>
         </TouchableOpacity>
 
-        {/* SUPPRIMER */}
         <TouchableOpacity
           style={styles.dockItem}
           activeOpacity={0.6}
           onPress={() => handlePress(handleDelete)}
         >
-          <Ionicons
+          <ThemedIcon
             name="trash-outline"
             size={20}
-            color={THEME.textSecondary}
+            colorName="textSecondary"
           />
         </TouchableOpacity>
 
-        <View style={styles.hairlineDivider} />
+        <View
+          style={[styles.hairlineDivider, { backgroundColor: theme.border }]}
+        />
 
-        {/* INFO / ANALYTICS (OU AUTRE) */}
         <TouchableOpacity
           style={styles.dockItem}
           activeOpacity={0.6}
           onPress={() => Haptics.selectionAsync()}
         >
-          <Ionicons
+          <ThemedIcon
             name="ellipsis-horizontal"
             size={20}
-            color={THEME.textSecondary}
+            colorName="textSecondary"
           />
         </TouchableOpacity>
       </View>
@@ -154,14 +156,10 @@ const styles = StyleSheet.create({
   dockSurface: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: THEME.surface,
     paddingHorizontal: 12,
     height: 64,
-    borderRadius: 0, // Look rectangulaire luxe
+    borderRadius: 0,
     borderWidth: 1,
-    borderColor: THEME.border,
-
-    // Ombre "Glace" ultra légère
     ...Platform.select({
       ios: {
         shadowColor: "#000",
@@ -174,33 +172,24 @@ const styles = StyleSheet.create({
       },
     }),
   },
-
-  /* ITEMS */
   dockItem: {
     width: 48,
     height: 48,
     alignItems: "center",
     justifyContent: "center",
   },
-
-  /* SÉPARATEUR ÉDITORIAL */
   hairlineDivider: {
     width: 1,
     height: 20,
-    backgroundColor: THEME.border,
     marginHorizontal: 4,
   },
-
-  /* BOUTON D'AUTORITÉ (ADD) */
   mainActionBtn: {
     marginHorizontal: 15,
-    // On retire le décalage vertical agressif pour plus d'élégance
   },
   mainActionInner: {
     width: 50,
     height: 50,
-    backgroundColor: THEME.primary,
-    borderRadius: 0, // Carré pour matcher le reste de l'UI luxe
+    borderRadius: 0,
     alignItems: "center",
     justifyContent: "center",
     shadowColor: "#000",

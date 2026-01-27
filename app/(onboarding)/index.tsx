@@ -1,28 +1,24 @@
-import { useIsFirstLaunch } from "@/hooks/use-is-first-launch";
-import { Ionicons } from "@expo/vector-icons";
-import { Image } from "expo-image";
-import { router } from "expo-router";
-import React, { useRef, useState } from "react";
 import {
   Animated,
   Dimensions,
   FlatList,
-  Platform,
   StatusBar,
   StyleSheet,
-  Text,
   TouchableOpacity,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { useIsFirstLaunch } from "@/hooks/use-is-first-launch";
+import { Image } from "expo-image";
+import { router } from "expo-router";
+import React, { useRef, useState } from "react";
+
+import { ThemedText } from "@/components/themed-text";
+import { useAppTheme } from "@/hooks/custom/use-app-theme";
+import ThemedIcon from "@/components/themed-icon";
+
 // --- THEME ---
-const THEME = {
-  white: "#FFFFFF",
-  textMain: "#111827",
-  primary: "#111827", // Noir profond
-  overlay: "rgba(0,0,0,0.4)", // Assombrissement pour lisibilité
-};
 
 const { width, height } = Dimensions.get("window");
 
@@ -70,8 +66,12 @@ const SlideItem = ({ item }: { item: (typeof SLIDES)[0] }) => {
       <View style={styles.overlay} />
 
       <View style={styles.textContainer}>
-        <Text style={styles.title}>{item.title}</Text>
-        <Text style={styles.description}>{item.description}</Text>
+        <ThemedText type="hero" style={styles.title}>
+          {item.title}
+        </ThemedText>
+        <ThemedText type="subtitle" style={styles.description}>
+          {item.description}
+        </ThemedText>
       </View>
     </View>
   );
@@ -80,6 +80,7 @@ const SlideItem = ({ item }: { item: (typeof SLIDES)[0] }) => {
 // --- ECRAN PRINCIPAL ---
 export default function OnboardingScreen() {
   const insets = useSafeAreaInsets();
+  const theme = useAppTheme();
   const [currentIndex, setCurrentIndex] = useState(0);
   const flatListRef = useRef<FlatList>(null);
 
@@ -130,14 +131,19 @@ export default function OnboardingScreen() {
       {/* HEADER NAVIGATION (Skip) */}
       <View style={[styles.topBar, { top: insets.top }]}>
         <View style={styles.logoContainer}>
-          <Text style={styles.logoText}>
-            GIFT<Text style={{ fontStyle: "italic" }}>FLOW</Text>
-          </Text>
+          <ThemedText type="label" style={styles.logoText}>
+            GIFT
+            <ThemedText type="label" style={{ fontStyle: "italic" }}>
+              FLOW
+            </ThemedText>
+          </ThemedText>
         </View>
 
         {currentIndex < SLIDES.length - 1 && (
           <TouchableOpacity onPress={completeOnboarding} style={styles.skipBtn}>
-            <Text style={styles.skipText}>Passer</Text>
+            <ThemedText type="caption" style={styles.skipText}>
+              Passer
+            </ThemedText>
           </TouchableOpacity>
         )}
       </View>
@@ -162,18 +168,17 @@ export default function OnboardingScreen() {
 
         {/* BOUTON D'ACTION */}
         <TouchableOpacity
-          style={styles.actionBtn}
+          style={[styles.actionBtn, { backgroundColor: theme.textMain }]}
           activeOpacity={0.9}
           onPress={handleNext}
         >
-          <Text style={styles.actionBtnText}>
+          <ThemedText
+            type="defaultBold"
+            style={[styles.actionBtnText, { color: theme.background }]}
+          >
             {currentIndex === SLIDES.length - 1 ? "Commencer" : "Suivant"}
-          </Text>
-          <Ionicons
-            name="arrow-forward"
-            size={18}
-            color={THEME.primary} // Texte noir sur bouton blanc
-          />
+          </ThemedText>
+          <ThemedIcon name="arrow-forward" size={18} color={theme.background} />
         </TouchableOpacity>
       </View>
     </View>
@@ -206,15 +211,11 @@ const styles = StyleSheet.create({
   },
   title: {
     color: "#FFFFFF",
-    fontSize: 42,
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-    marginBottom: 16,
     lineHeight: 48,
+    marginBottom: 16,
   },
   description: {
     color: "#E5E5E5",
-    fontSize: 16,
-    lineHeight: 26,
     maxWidth: "90%",
   },
 
@@ -234,9 +235,7 @@ const styles = StyleSheet.create({
   },
   logoText: {
     color: "#FFFFFF",
-    fontWeight: "800",
     letterSpacing: 2,
-    fontSize: 14,
   },
   skipBtn: {
     padding: 8,
@@ -247,8 +246,6 @@ const styles = StyleSheet.create({
   },
   skipText: {
     color: "#FFFFFF",
-    fontWeight: "600",
-    fontSize: 12,
   },
 
   /* FOOTER */
@@ -283,7 +280,6 @@ const styles = StyleSheet.create({
 
   /* ACTION BUTTON */
   actionBtn: {
-    backgroundColor: "#FFFFFF",
     flexDirection: "row",
     alignItems: "center",
     paddingVertical: 14,
@@ -296,9 +292,5 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     elevation: 5,
   },
-  actionBtnText: {
-    color: THEME.primary, // Noir
-    fontWeight: "700",
-    fontSize: 15,
-  },
+  actionBtnText: {},
 });

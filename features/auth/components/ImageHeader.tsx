@@ -1,17 +1,9 @@
-import { StyleSheet, Text, View, Platform, Dimensions } from "react-native";
+import { StyleSheet, View, Platform, Dimensions, Text } from "react-native";
 import React from "react";
 import { Image } from "expo-image";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MotiView } from "moti";
-
-// --- THEME ÉDITORIAL COHÉRENT ---
-const THEME = {
-  background: "#FDFBF7", // Bone Silk
-  textMain: "#FFFFFF",
-  accent: "#AF9062", // Or brossé
-};
-
-const { height: SCREEN_HEIGHT } = Dimensions.get("window");
+import { useAppTheme } from "@/hooks/custom/use-app-theme";
 
 interface ImageHeaderProps {
   imageBackground?: string;
@@ -19,10 +11,10 @@ interface ImageHeaderProps {
 
 const ImageHeader = ({ imageBackground }: ImageHeaderProps) => {
   const insets = useSafeAreaInsets();
+  const theme = useAppTheme();
 
   return (
     <View style={styles.headerImageContainer}>
-      {/* 1. IMAGE DE COUVERTURE AVEC TRANSITION DOUCE */}
       <Image
         source={{
           uri:
@@ -34,21 +26,21 @@ const ImageHeader = ({ imageBackground }: ImageHeaderProps) => {
         transition={1000}
       />
 
-      {/* 2. OVERLAY ARTISTIQUE (Vignette) */}
       <View style={styles.overlay} />
 
-      {/* 3. LOGO TYPE "MAISON DE LUXE" */}
       <MotiView
         from={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ type: "timing", duration: 1000 }}
         style={[styles.brandContainer, { top: insets.top + 40 }]}
       >
-        <Text style={styles.brandText}>
+        <Text style={[styles.brandText, { color: "#FFFFFF" }]}>
           GIFT<Text style={styles.brandItalic}>FLOW</Text>
         </Text>
-        <View style={styles.logoDivider} />
-        <Text style={styles.brandTagline}>EST. 2024</Text>
+        <View style={[styles.logoDivider, { backgroundColor: theme.accent }]} />
+        <Text style={[styles.brandTagline, { color: "#FFFFFF" }]}>
+          EST. 2024
+        </Text>
       </MotiView>
     </View>
   );
@@ -62,7 +54,7 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    height: "100%", // 55% de l'écran pour l'aspect immersif
+    height: "100%",
     backgroundColor: "#1A1A1A",
   },
   headerImage: {
@@ -72,7 +64,7 @@ const styles = StyleSheet.create({
   },
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.25)", // Filtre cinématographique léger
+    backgroundColor: "rgba(0,0,0,0.25)",
   },
   brandContainer: {
     position: "absolute",
@@ -82,12 +74,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   brandText: {
-    color: THEME.textMain,
     fontSize: 22,
     fontWeight: "300",
-    letterSpacing: 10, // Espacement extrême style "Vogue"
+    letterSpacing: 10,
     textAlign: "center",
-    marginLeft: 10, // Pour compenser le letterSpacing final
+    marginLeft: 10,
   },
   brandItalic: {
     fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
@@ -97,27 +88,13 @@ const styles = StyleSheet.create({
   logoDivider: {
     width: 20,
     height: 1,
-    backgroundColor: THEME.accent,
     marginVertical: 10,
     opacity: 0.8,
   },
   brandTagline: {
-    color: THEME.textMain,
     fontSize: 8,
     fontWeight: "800",
     letterSpacing: 3,
     opacity: 0.6,
-  },
-  bottomGradient: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 150,
-    // On simule un dégradé vers le fond Bone Silk du formulaire
-    backgroundColor: "transparent",
-    borderBottomWidth: 150,
-    borderBottomColor: "#FDFBF7",
-    opacity: 1,
   },
 });

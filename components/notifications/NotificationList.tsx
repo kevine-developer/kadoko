@@ -2,24 +2,18 @@ import React from "react";
 import {
   FlatList,
   View,
-  Text,
   StyleSheet,
   RefreshControl,
   ActivityIndicator,
-  Platform,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
 import { NotificationItem } from "./NotificationItem";
 import { useNotifications } from "../../hooks/useNotifications";
-
-const THEME = {
-  background: "#FDFBF7",
-  textMain: "#1A1A1A",
-  textSecondary: "#8E8E93",
-  accent: "#AF9062",
-};
+import { ThemedText } from "@/components/themed-text";
+import { useAppTheme } from "@/hooks/custom/use-app-theme";
+import ThemedIcon from "@/components/themed-icon";
 
 export const NotificationList = () => {
+  const theme = useAppTheme();
   const {
     notifications,
     loading,
@@ -38,17 +32,25 @@ export const NotificationList = () => {
     !loading ? (
       <View style={styles.emptyContainer}>
         <View style={styles.iconCircle}>
-          <Ionicons
+          <ThemedIcon
             name="notifications-off-outline"
             size={24}
-            color={THEME.accent}
+            colorName="accent"
           />
         </View>
-        <Text style={styles.emptyTitle}>Silence radio.</Text>
-        <Text style={styles.emptyText}>
+        <ThemedText type="hero" style={styles.emptyTitle}>
+          Silence radio.
+        </ThemedText>
+        <ThemedText
+          type="subtitle"
+          colorName="textSecondary"
+          style={styles.emptyText}
+        >
           Votre flux d&lsquo;activité est actuellement vierge.
-        </Text>
-        <View style={styles.decorativeLine} />
+        </ThemedText>
+        <View
+          style={[styles.decorativeLine, { backgroundColor: theme.accent }]}
+        />
       </View>
     ) : null;
 
@@ -69,14 +71,14 @@ export const NotificationList = () => {
         <RefreshControl
           refreshing={loading && notifications.length === 0}
           onRefresh={refresh}
-          tintColor={THEME.accent}
+          tintColor={theme.accent}
         />
       }
       ListEmptyComponent={renderEmpty}
       ListFooterComponent={() =>
         loading && (
           <View style={styles.footer}>
-            <ActivityIndicator size="small" color={THEME.accent} />
+            <ActivityIndicator size="small" color={theme.accent} />
           </View>
         )
       }
@@ -104,22 +106,14 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   emptyTitle: {
-    fontSize: 20,
-    color: THEME.textMain,
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
     marginBottom: 10,
   },
   emptyText: {
-    fontSize: 14,
-    color: THEME.textSecondary,
     textAlign: "center",
-    lineHeight: 20,
-    fontStyle: "italic",
   },
   decorativeLine: {
     width: 30,
     height: 1,
-    backgroundColor: THEME.accent,
     marginTop: 25,
     opacity: 0.3,
   },

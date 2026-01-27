@@ -1,21 +1,16 @@
 import CreateWishlistBanner from "@/components/HomeUI/CreateWishlistBanner";
 import GiftCardHome from "@/components/HomeUI/GiftCardHome";
 import HeaderHome from "@/components/HomeUI/HeaderHome";
-import RadarTicker from "@/components/HomeUI/RadarTicker";
 import { authClient } from "@/features/auth";
 import { giftService } from "@/lib/services/gift-service";
 import { wishlistService } from "@/lib/services/wishlist-service";
 import { router, useFocusEffect } from "expo-router";
 import React, { useCallback, useMemo, useState } from "react";
-import { Ionicons } from "@expo/vector-icons";
 import {
-  Platform,
   RefreshControl,
   ScrollView,
   StatusBar,
   StyleSheet,
-  Text,
-  TouchableOpacity,
   View,
 } from "react-native";
 import { MotiView } from "moti";
@@ -25,45 +20,32 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { GiftCardSkeleton } from "@/components/ui/SkeletonGroup";
 import { socketService } from "@/lib/services/socket";
 import GiftFriendBuy from "@/components/HomeUI/GiftFriendBuy";
-
-// --- THEME ÉDITORIAL ---
-const THEME = {
-  background: "#FDFBF7", // Bone Silk
-  surface: "#FFFFFF",
-  textMain: "#1A1A1A",
-  textSecondary: "#8E8E93",
-  accent: "#AF9062", // Or brossé
-  border: "rgba(0,0,0,0.08)",
-  danger: "#C34A4A",
-};
+import { ThemedText } from "@/components/themed-text";
+import { useAppTheme } from "@/hooks/custom/use-app-theme";
+import ThemedIcon from "@/components/themed-icon";
+import MailVerified from "@/components/HomeUI/MailVerified";
+import EmptyFeed from "@/components/HomeUI/EmptyFeed";
 
 // --- SKELETON GÉOMÉTRIQUE ---
 const HomeSkeleton = () => (
   <View style={{ paddingHorizontal: 20, paddingTop: 20 }}>
-    {/* Slider Stories */}
     <View style={{ flexDirection: "row", gap: 10, marginBottom: 40 }}>
       {[1, 2, 3, 4].map((i) => (
         <Skeleton key={i} width={70} height={70} borderRadius={0} />
       ))}
     </View>
-
-    {/* Bannière rectangulaire */}
     <Skeleton
       width="100%"
       height={180}
       borderRadius={0}
       style={{ marginBottom: 40 }}
     />
-
-    {/* Titre Section */}
     <Skeleton
       width={150}
       height={30}
       borderRadius={0}
       style={{ marginBottom: 20 }}
     />
-
-    {/* Cartes */}
     <GiftCardSkeleton />
   </View>
 );
@@ -72,9 +54,11 @@ export default function LuxuryFeedScreen() {
   const [inspirations, setInspirations] = useState<any[]>([]);
   const [receivedGifts, setReceivedGifts] = useState<any[]>([]);
   const [myWishlists, setMyWishlists] = useState<any[]>([]);
-
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
+  // --- THEME ---
+  const theme = useAppTheme();
 
   const { data: session } = authClient.useSession();
 
@@ -115,36 +99,22 @@ export default function LuxuryFeedScreen() {
       loadMyWishlists();
 
       const handleGiftUpdate = (updatedGift: any) => {
-        console.log(
-          "🎁 Socket event received:",
-          updatedGift.title,
-          updatedGift.status,
-        );
-
-        // 1. Mettre à jour les inspirations (Feed général)
         setInspirations((prev) =>
-          prev.map((item) => {
-            if (item.id === updatedGift.id) {
-              return { ...item, ...updatedGift };
-            }
-            return item;
-          }),
+          prev.map((item) =>
+            item.id === updatedGift.id ? { ...item, ...updatedGift } : item,
+          ),
         );
 
-        // 2. Mettre à jour "Cadeaux en approche" (Mes listes)
-        // On check si le cadeau appartient à l'une de nos wishlists
         const ownerId =
           updatedGift.wishlist?.userId || updatedGift.wishlist?.user?.id;
         const myId = session?.user?.id;
 
         if (ownerId && myId && ownerId === myId) {
-          console.log("✨ It's my gift! Updating receivedGifts...");
           setReceivedGifts((prev) => {
             const isIncoming =
               updatedGift.status === "RESERVED" ||
               updatedGift.status === "PURCHASED";
             const exists = prev.find((g) => g.id === updatedGift.id);
-
             if (isIncoming) {
               const giftWithCrowd = {
                 ...updatedGift,
@@ -153,19 +123,15 @@ export default function LuxuryFeedScreen() {
               return exists
                 ? prev.map((g) => (g.id === updatedGift.id ? giftWithCrowd : g))
                 : [giftWithCrowd, ...prev];
-            } else {
-              return prev.filter((g) => g.id !== updatedGift.id);
             }
+            return prev.filter((g) => g.id !== updatedGift.id);
           });
         }
       };
 
       socketService.connect(session?.user?.id);
       socketService.on("gift:updated", handleGiftUpdate);
-
-      return () => {
-        socketService.off("gift:updated", handleGiftUpdate);
-      };
+      return () => socketService.off("gift:updated", handleGiftUpdate);
     }, [loadFeed, loadMyWishlists, session?.user?.id]),
   );
 
@@ -203,47 +169,29 @@ export default function LuxuryFeedScreen() {
   }, [inspirations, session?.user?.id]);
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={THEME.background} />
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <StatusBar barStyle="dark-content" backgroundColor={theme.background} />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 120 }}
-        stickyHeaderIndices={[1]} // Le Ticker reste collé
+        stickyHeaderIndices={[1]}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor={THEME.textMain}
-            colors={[THEME.textMain]}
-            progressBackgroundColor={THEME.background}
+            tintColor={theme.textMain}
+            colors={[theme.textMain]}
+            progressBackgroundColor={theme.background}
           />
         }
       >
-        {/* 1. HEADER JOURNAL */}
         <HeaderHome user={session?.user} />
 
-        {/* 2. TICKER D'ACTUALITÉ */}
-        <View style={styles.tickerContainer}>
-          {session?.user?.emailVerified ? (
-            <RadarTicker />
-          ) : (
-            <TouchableOpacity
-              activeOpacity={0.9}
-              onPress={() => router.push("/(screens)/settingsScreen")}
-              style={styles.verificationBanner}
-            >
-              <View style={styles.warningIcon}>
-                <Ionicons name="alert" size={14} color="#FFF" />
-              </View>
-              <Text style={styles.verificationText}>
-                VÉRIFICATION REQUISE : CONFIRMEZ VOTRE EMAIL
-              </Text>
-              <Ionicons name="arrow-forward" size={14} color={THEME.danger} />
-            </TouchableOpacity>
-          )}
-        </View>
-
+        {/* 2. TICKER D'ACTUALITÉ / ALERTE */}
+        {session?.user?.emailVerified === false && (
+          <MailVerified />
+        )}
         {loading && !refreshing ? (
           <HomeSkeleton />
         ) : (
@@ -252,7 +200,7 @@ export default function LuxuryFeedScreen() {
             animate={{ opacity: 1 }}
             transition={{ type: "timing", duration: 700 }}
           >
-            {/* 3. CERCLE (Slider) */}
+            {/* 3. CERCLE */}
             {receivedGifts.length > 0 && (
               <View style={styles.sectionContainer}>
                 <GiftFriendBuy gifts={receivedGifts} />
@@ -274,10 +222,13 @@ export default function LuxuryFeedScreen() {
             {/* 5. LE JOURNAL (Feed) */}
             <View style={styles.feedSection}>
               <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>
-                  Dernières retrouvailles.
-                </Text>
-                <View style={styles.sectionDivider} />
+                <ThemedText type="subtitle">Les plaisirs partagés</ThemedText>
+                <View
+                  style={[
+                    styles.sectionDivider,
+                    { backgroundColor: theme.accent },
+                  ]}
+                />
               </View>
 
               {feedPosts.length > 0 ? (
@@ -285,22 +236,7 @@ export default function LuxuryFeedScreen() {
                   <GiftCardHome key={post.id} item={post} />
                 ))
               ) : (
-                <View style={styles.emptyFeed}>
-                  <View style={styles.iconCircle}>
-                    <Ionicons
-                      name="gift-outline"
-                      size={28}
-                      color={THEME.accent}
-                    />
-                  </View>
-                  <Text style={styles.emptyFeedTitle}>
-                    La page est blanche.
-                  </Text>
-                  <Text style={styles.emptyFeedText}>
-                    Vos amis n&apos;ont pas encore partagé leurs envies. Soyez
-                    le premier à inaugurer le registre.
-                  </Text>
-                </View>
+                <EmptyFeed />
               )}
             </View>
           </MotiView>
@@ -311,102 +247,14 @@ export default function LuxuryFeedScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: THEME.background,
-  },
+  container: { flex: 1 },
+  tickerContainer: { zIndex: 10, paddingBottom: 10 },
 
-  /* TICKER & ALERTS */
-  tickerContainer: {
-    zIndex: 10,
-    backgroundColor: THEME.background, // Pour cacher le scroll derrière
-    paddingBottom: 10,
-  },
-  verificationBanner: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "rgba(195, 74, 74, 0.08)", // Rouge brique très pâle
-    marginHorizontal: 20,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderLeftWidth: 3,
-    borderLeftColor: THEME.danger,
-    gap: 12,
-  },
-  warningIcon: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: THEME.danger,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  verificationText: {
-    color: THEME.danger,
-    fontSize: 10,
-    fontWeight: "800",
-    flex: 1,
-    letterSpacing: 1,
-  },
+  sectionContainer: { marginBottom: 40 },
+  bannerWrapper: { paddingHorizontal: 20, marginBottom: 40 },
+  feedSection: { paddingHorizontal: 20 },
+  sectionHeader: { marginBottom: 30 },
+  sectionTitle: { fontSize: 18, letterSpacing: -0.5 },
+  sectionDivider: { width: 40, height: 2, marginTop: 15 },
 
-  /* SECTIONS */
-  sectionContainer: {
-    marginBottom: 40,
-  },
-  bannerWrapper: {
-    paddingHorizontal: 20,
-    marginBottom: 40,
-  },
-
-  /* FEED */
-  feedSection: {
-    paddingHorizontal: 20,
-  },
-  sectionHeader: {
-    marginBottom: 30,
-  },
-  sectionTitle: {
-    fontSize: 32,
-    fontWeight: "400",
-    color: THEME.textMain,
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-    letterSpacing: -0.5,
-  },
-  sectionDivider: {
-    width: 40,
-    height: 2,
-    backgroundColor: THEME.accent,
-    marginTop: 15,
-  },
-
-  /* EMPTY STATE */
-  emptyFeed: {
-    paddingVertical: 80,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  iconCircle: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    borderWidth: 1,
-    borderColor: "rgba(175, 144, 98, 0.2)",
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 20,
-  },
-  emptyFeedTitle: {
-    fontSize: 20,
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-    color: THEME.textMain,
-    marginBottom: 10,
-  },
-  emptyFeedText: {
-    color: THEME.textSecondary,
-    fontSize: 14,
-    textAlign: "center",
-    lineHeight: 24,
-    maxWidth: "80%",
-    fontStyle: "italic",
-  },
 });
