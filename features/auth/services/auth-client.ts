@@ -16,7 +16,7 @@ export const authClient = createAuthClient({
   },
   plugins: [
     expoClient({
-      scheme: "wishly",
+      scheme: "kadokou",
       storagePrefix: "withbetterauth",
       storage: SecureStore,
     }),

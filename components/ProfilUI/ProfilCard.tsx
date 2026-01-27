@@ -34,7 +34,7 @@ const ProfilCard = ({ user, onEditAvatar }: any) => {
           </View>
         </TouchableOpacity>
         <View style={styles.info}>
-          <ThemedText type="defaultBold" style={styles.name}>
+          <ThemedText type="title" style={styles.name}>
             {user?.name}
           </ThemedText>
 
@@ -91,7 +91,7 @@ const styles = StyleSheet.create({
     marginLeft: 20,
   },
   name: {
-    letterSpacing: -1,
+   fontSize: 20,
   },
   bio: {
     fontSize: 14,

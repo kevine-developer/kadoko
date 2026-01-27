@@ -9,13 +9,12 @@ import { Gift } from "@/types/gift";
 import {
   Dimensions,
   Linking,
-  Platform,
   StyleSheet,
   TouchableOpacity,
   View,
   ViewStyle,
-  ActivityIndicator,
 } from "react-native";
+import { Loader } from "@/components/ui/Loader";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import { MotiView } from "moti";
@@ -75,7 +74,7 @@ export default function GiftDetailView() {
       <View
         style={[styles.centerContainer, { backgroundColor: theme.background }]}
       >
-        <ActivityIndicator size="large" color={theme.textMain} />
+        <Loader size="large" />
       </View>
     );
   }
@@ -334,8 +333,9 @@ export default function GiftDetailView() {
                   <ThemedText type="default" style={styles.attrText}>
                     {isPurchased ? "Offert par " : "Réservé par "}
                     <ThemedText
-                      type="defaultBold"
+                      type="default"
                       style={{ color: theme.accent }}
+                      bold
                     >
                       {isPurchased
                         ? gift.purchasedBy?.id === session?.user?.id

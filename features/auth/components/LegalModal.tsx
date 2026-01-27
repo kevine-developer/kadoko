@@ -1,14 +1,9 @@
-import {
-  ActivityIndicator,
-  Modal,
-  StyleSheet,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { Modal, StyleSheet, TouchableOpacity, View } from "react-native";
 import React from "react";
 import WebView from "react-native-webview";
 import { useAppTheme } from "@/hooks/custom/use-app-theme";
 import { ThemedText } from "@/components/themed-text";
+import { Loader } from "@/components/ui/Loader";
 import ThemedIcon from "@/components/themed-icon";
 
 interface LegalModalProps {
@@ -37,7 +32,10 @@ const LegalModal = ({ visible, onClose, url, title }: LegalModalProps) => {
             { backgroundColor: theme.surface, borderBottomColor: theme.border },
           ]}
         >
-          <ThemedText type="defaultBold" style={{ color: theme.textMain }}>
+          <ThemedText
+            type="default"
+            style={{ color: theme.textMain, fontWeight: "700" }}
+          >
             {title}
           </ThemedText>
           <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
@@ -55,7 +53,7 @@ const LegalModal = ({ visible, onClose, url, title }: LegalModalProps) => {
                 { backgroundColor: theme.background },
               ]}
             >
-              <ActivityIndicator size="large" color={theme.textMain} />
+              <Loader size="large" />
             </View>
           )}
           style={{ flex: 1 }}

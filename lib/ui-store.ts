@@ -24,11 +24,13 @@ interface AlertModalState {
 interface UIStoreState {
   toast: ToastState;
   alertModal: AlertModalState;
+  themePreference: "light" | "dark" | "system";
 }
 
 let state: UIStoreState = {
   toast: { visible: false, message: "", type: "info" },
   alertModal: { visible: false, title: "", message: "", actions: [] },
+  themePreference: "system",
 };
 
 const listeners = new Set<(state: UIStoreState) => void>();
@@ -64,6 +66,11 @@ export const uiStore = {
     listeners.forEach((l) => l(state));
   },
 
+  setThemePreference: (preference: "light" | "dark" | "system") => {
+    state = { ...state, themePreference: preference };
+    listeners.forEach((l) => l(state));
+  },
+
   subscribe: (listener: (state: UIStoreState) => void) => {
     listeners.add(listener);
     return () => listeners.delete(listener);
@@ -86,5 +93,6 @@ export const useUIStore = () => {
     hideToast: uiStore.hideToast,
     showAlert: uiStore.showAlert,
     hideAlert: uiStore.hideAlert,
+    setThemePreference: uiStore.setThemePreference,
   };
 };

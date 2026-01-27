@@ -1,16 +1,13 @@
 import { useRouter } from "expo-router";
 import React, { useState, useEffect } from "react";
 import {
-  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
   StyleSheet,
-  TouchableOpacity,
   View,
   UIManager,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { authClient } from "@/features/auth";
 import { userService, type PrivateInfo } from "@/lib/services/user-service";
 import { showErrorToast, showSuccessToast } from "@/lib/toast";
@@ -27,7 +24,7 @@ import { EditorialInput } from "@/components/Settings/InfoPrive/EditorialInput";
 import { PreferenceChip } from "@/components/Settings/InfoPrive/PreferenceChip";
 import { ThemedText } from "@/components/themed-text";
 import { useAppTheme } from "@/hooks/custom/use-app-theme";
-import ThemedIcon from "@/components/themed-icon";
+import SettingsNavBar from "@/components/Settings/SettingsNavBar";
 
 if (
   Platform.OS === "android" &&
@@ -38,7 +35,6 @@ if (
 
 export default function PrivateInfoScreen() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const theme = useAppTheme();
   const { data: session, refetch } = authClient.useSession();
   const user = session?.user as any;
@@ -106,28 +102,11 @@ export default function PrivateInfoScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <View style={[styles.navBar, { paddingTop: insets.top + 10 }]}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.navBtn}>
-          <ThemedIcon name="chevron-back" size={24} colorName="textMain" />
-        </TouchableOpacity>
-        <ThemedText type="label" style={styles.navTitle}>
-          CARNET DE MESURES
-        </ThemedText>
-        <TouchableOpacity
-          onPress={handleSave}
-          disabled={saving}
-          style={styles.saveAction}
-        >
-          {saving ? (
-            <ActivityIndicator size="small" color={theme.accent} />
-          ) : (
-            <ThemedText type="label" colorName="accent">
-              OK
-            </ThemedText>
-          )}
-        </TouchableOpacity>
-      </View>
-
+      <SettingsNavBar
+        title="Carnet de mesures"
+        onPress={handleSave}
+        isSaving={saving}
+      />
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
@@ -335,23 +314,7 @@ export default function PrivateInfoScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  navBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingBottom: 15,
-  },
-  navTitle: {
-    marginTop: 10,
-  },
-  navBtn: { width: 44, height: 44, justifyContent: "center" },
-  saveAction: {
-    width: 44,
-    height: 44,
-    justifyContent: "center",
-    alignItems: "flex-end",
-  },
+
   scrollContent: { paddingHorizontal: 30, paddingTop: 20 },
   row: { flexDirection: "row", alignItems: "center" },
   miniLabel: {

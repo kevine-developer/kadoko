@@ -4,7 +4,6 @@ import {
   View,
   TextInputProps,
   TouchableOpacity,
-  Text,
   Platform,
 } from "react-native";
 import React, { useState } from "react";
@@ -72,10 +71,9 @@ const InputCustom = ({
             name={icon}
             size={18}
             color={isFocused ? theme.accent : "#BCBCBC"}
-            // style={styles.inputIcon} // Props style not supported on ThemedIcon yet
           />
         )}
-        {icon && <View style={{ width: 12 }} />} {/* Spacer for icon */}
+        {icon && <View style={{ width: 12 }} />}
         <TextInput
           placeholder={placeholder}
           placeholderTextColor="#BCBCBC"

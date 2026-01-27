@@ -1,7 +1,6 @@
 import { Tabs } from "expo-router";
 import React from "react";
 import { Platform, StyleSheet, TouchableOpacity, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 
 // Hooks & Components
@@ -12,8 +11,7 @@ import Icon from "@/components/themed-icon";
 import { useAppTheme } from "@/hooks/custom/use-app-theme";
 
 export default function TabLayout() {
-  const insets = useSafeAreaInsets();
-  const theme = useAppTheme(); // Récupération du thème global
+  const theme = useAppTheme(); 
 
   return (
     <Tabs
@@ -28,7 +26,7 @@ export default function TabLayout() {
           {
             backgroundColor: theme.surface,
             borderTopColor: theme.border,
-            bottom: Platform.OS === "ios" ? insets.bottom + 10 : 20,
+           
           },
         ],
         tabBarItemStyle: {
@@ -193,6 +191,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingTop: 12,
     height: "100%",
+    width: 100,
   },
   activeDot: {
     position: "absolute",
@@ -227,8 +226,8 @@ const styles = StyleSheet.create({
     }),
   },
   diamondShape: {
-    width: 54,
-    height: 54,
+    width: 45,
+    height: 45,
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",

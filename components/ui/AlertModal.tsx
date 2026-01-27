@@ -38,6 +38,8 @@ export const AlertModal = ({
     action.onPress?.();
   };
 
+const dangerBackground = "rgba(255, 0, 0, 0.1)";
+
   return (
     <Modal
       transparent
@@ -73,7 +75,7 @@ export const AlertModal = ({
               style={[
                 styles.iconWrapper,
                 {
-                  borderColor: `rgba(${theme.accent.replace(/[^0-9,]/g, "")}, 0.2)`,
+                  borderColor: dangerBackground,
                 },
               ]}
             >
@@ -120,13 +122,14 @@ export const AlertModal = ({
                       borderTopColor: theme.border,
                     },
                   action.style === "destructive" && {
-                    backgroundColor: `rgba(${theme.danger.replace(/[^0-9,]/g, "")}, 0.03)`,
+                    backgroundColor: dangerBackground,
                   },
                 ]}
                 onPress={() => handlePress(action)}
               >
                 <ThemedText
                   type="label"
+                  bold
                   style={[
                     styles.buttonText,
                     { color: theme.textMain },

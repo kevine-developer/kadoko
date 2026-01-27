@@ -1,9 +1,5 @@
-import {
-  StyleSheet,
-  View,
-  TouchableOpacity,
-  ActivityIndicator,
-} from "react-native";
+import { StyleSheet, View, TouchableOpacity } from "react-native";
+import { Loader } from "@/components/ui/Loader";
 import React from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAppTheme } from "@/hooks/custom/use-app-theme";
@@ -40,7 +36,7 @@ const BtnValidate = ({
         activeOpacity={0.9}
       >
         {isSaving ? (
-          <ActivityIndicator color={theme.background} size="small" />
+          <Loader size="small" />
         ) : (
           <ThemedText type="label" lightColor="#FFF" darkColor="#000">
             {text}

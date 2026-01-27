@@ -34,9 +34,7 @@ const ImageHeader = ({ imageBackground }: ImageHeaderProps) => {
         transition={{ type: "timing", duration: 1000 }}
         style={[styles.brandContainer, { top: insets.top + 40 }]}
       >
-        <Text style={[styles.brandText, { color: "#FFFFFF" }]}>
-          GIFT<Text style={styles.brandItalic}>FLOW</Text>
-        </Text>
+        <Text style={[styles.brandText, { color: "#FFFFFF" }]}>Kadô-Kou</Text>
         <View style={[styles.logoDivider, { backgroundColor: theme.accent }]} />
         <Text style={[styles.brandTagline, { color: "#FFFFFF" }]}>
           EST. 2024

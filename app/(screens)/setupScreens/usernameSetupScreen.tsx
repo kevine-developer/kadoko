@@ -132,7 +132,7 @@ export default function UsernameSetupScreen() {
             {/* HERO SECTION */}
             <SettingHero
               title={`Votre alias\nunique.`}
-              subtitle="C&apos;est ainsi que vos amis vous identifieront pour partager leurs intentions."
+              subtitle="C'est ainsi que vos amis vous identifieront pour partager leurs intentions."
             />
 
             {/* INFO LOCK */}
@@ -140,9 +140,9 @@ export default function UsernameSetupScreen() {
               <View
                 style={[styles.lockBanner, { backgroundColor: theme.surface }]}
               >
-                <Icon name="time-outline"  colorName="accent" />
+                <Icon name="time-outline" colorName="accent" />
                 <ThemedText
-                  type="defaultBold"
+                  type="label"
                   colorName="textSecondary"
                   style={{ fontSize: 12 }}
                 >
@@ -187,9 +187,9 @@ export default function UsernameSetupScreen() {
                   {isChecking ? (
                     <ActivityIndicator size="small" color={theme.accent} />
                   ) : isAvailable === true ? (
-                    <Icon name="checkmark"  colorName="success" />
+                    <Icon name="checkmark" colorName="success" />
                   ) : isAvailable === false ? (
-                    <Icon name="close"  colorName="danger" />
+                    <Icon name="close" colorName="danger" />
                   ) : null}
                 </View>
               </View>
@@ -243,10 +243,7 @@ export default function UsernameSetupScreen() {
                             setUsername(s);
                           }}
                         >
-                          <ThemedText
-                            type="defaultBold"
-                            style={{ fontSize: 12 }}
-                          >
+                          <ThemedText type="label" style={{ fontSize: 12 }}>
                             {s}
                           </ThemedText>
                         </TouchableOpacity>
@@ -283,18 +280,6 @@ export default function UsernameSetupScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  navBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 15,
-  },
-  backBtn: {
-    width: 44,
-    height: 44,
-    justifyContent: "center",
-    alignItems: "center",
-  },
   content: { flex: 1, paddingHorizontal: 32, paddingTop: 30 },
   lockBanner: {
     flexDirection: "row",
@@ -319,6 +304,5 @@ const styles = StyleSheet.create({
   chipsRow: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
   suggestionChip: { paddingHorizontal: 15, paddingVertical: 8, borderWidth: 1 },
   footer: { paddingHorizontal: 32 },
-  primaryBtn: { height: 60, alignItems: "center", justifyContent: "center" },
   disclaimer: { textAlign: "center", marginTop: 15, fontStyle: "italic" },
 });
