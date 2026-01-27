@@ -1,27 +1,16 @@
+import {
+  StyleSheet,
+  TouchableOpacity,
+  View,
+  ActivityIndicator,
+} from "react-native";
 import { Image } from "expo-image";
 import { router } from "expo-router";
 import React from "react";
-import {
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-  Platform,
-  ActivityIndicator,
-} from "react-native";
 import * as Haptics from "expo-haptics";
-
-// --- THEME ÉDITORIAL COHÉRENT ---
-const THEME = {
-  background: "#FDFBF7",
-  surface: "#FFFFFF",
-  textMain: "#1A1A1A",
-  textSecondary: "#8E8E93",
-  accent: "#AF9062", // Or brossé
-  border: "rgba(0,0,0,0.08)",
-  danger: "#C34A4A",
-  success: "#4A6741", // Vert forêt luxe
-};
+import { ThemedText } from "@/components/themed-text";
+import { useAppTheme } from "@/hooks/custom/use-app-theme";
+import ThemedIcon from "@/components/themed-icon";
 
 interface UserRowCardProps {
   user: any;
@@ -42,6 +31,8 @@ const UserRowCard = ({
   handleCancelRequest,
   handleRemoveFriend,
 }: UserRowCardProps) => {
+  const theme = useAppTheme();
+
   const handleAction = () => {
     if (loading) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -54,7 +45,6 @@ const UserRowCard = ({
     }
   };
 
-  // Rendu textuel de l'action pour le look "Boutique"
   const renderActionLabel = () => {
     if (isFriend) return "RETIRER";
     if (isPendingAdd) return "EN ATTENTE";
@@ -64,7 +54,7 @@ const UserRowCard = ({
   return (
     <TouchableOpacity
       activeOpacity={0.6}
-      style={styles.container}
+      style={[styles.container, { borderBottomColor: theme.border }]}
       onPress={() =>
         router.push({
           pathname: "/profilFriend/[friendId]",
@@ -72,24 +62,29 @@ const UserRowCard = ({
         })
       }
     >
-      {/* SECTION IDENTITÉ */}
       <View style={styles.userInfo}>
         <Image
           source={{
             uri: user.avatarUrl || user.image || "https://i.pravatar.cc/150",
           }}
-          style={styles.avatar}
+          style={[styles.avatar, { borderColor: theme.border }]}
           contentFit="cover"
         />
         <View style={styles.textContainer}>
-          <Text style={styles.name}>{user.name}</Text>
-          <Text style={styles.status}>
+          <ThemedText type="subtitle" style={styles.name}>
+            {user.name}
+          </ThemedText>
+          <ThemedText
+            type="label"
+            colorName="textSecondary"
+            style={styles.status}
+          >
             {isFriend
               ? "CERCLE PROCHE"
               : isPendingAdd
                 ? "DEMANDE ENVOYÉE"
                 : "MEMBRE GIFTFLOW"}
-          </Text>
+          </ThemedText>
         </View>
       </View>
 
@@ -101,26 +96,35 @@ const UserRowCard = ({
         disabled={loading}
         style={[
           styles.actionBtn,
-          isFriend && styles.actionBtnDelete,
-          isPendingAdd && styles.actionBtnPending,
+          { borderColor: theme.textMain, backgroundColor: theme.textMain },
+          isFriend && {
+            borderColor: "rgba(195, 74, 74, 0.2)",
+            backgroundColor: "transparent",
+          },
+          isPendingAdd && {
+            borderColor: theme.border,
+            backgroundColor: "transparent",
+          },
           loading && { opacity: 0.7 },
         ]}
       >
         {loading ? (
           <ActivityIndicator
             size="small"
-            color={isFriend || isPendingAdd ? THEME.textMain : "#FFF"}
+            color={isFriend || isPendingAdd ? theme.textMain : theme.background}
           />
         ) : (
-          <Text
+          <ThemedText
+            type="label"
             style={[
               styles.actionText,
-              isFriend && styles.actionTextDelete,
-              isPendingAdd && styles.actionTextPending,
+              { color: theme.background },
+              isFriend && { color: theme.danger },
+              isPendingAdd && { color: theme.textSecondary },
             ]}
           >
             {renderActionLabel()}
-          </Text>
+          </ThemedText>
         )}
       </TouchableOpacity>
     </TouchableOpacity>
@@ -136,7 +140,6 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingVertical: 18,
     borderBottomWidth: 0.5,
-    borderBottomColor: THEME.border,
     backgroundColor: "transparent",
   },
   userInfo: {
@@ -148,57 +151,29 @@ const styles = StyleSheet.create({
   avatar: {
     width: 46,
     height: 46,
-    borderRadius: 0, // Carré pour le look luxe / boutique
+    borderRadius: 0,
     backgroundColor: "#F2F2F7",
     borderWidth: 1,
-    borderColor: THEME.border,
   },
   textContainer: {
     flex: 1,
   },
   name: {
-    fontSize: 17,
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-    color: THEME.textMain,
     letterSpacing: -0.3,
   },
   status: {
-    fontSize: 9,
-    fontWeight: "800",
-    color: THEME.textSecondary,
     letterSpacing: 1,
     marginTop: 3,
     textTransform: "uppercase",
   },
-
-  /* BOUTON D'ACTION STYLE ÉDITORIAL */
   actionBtn: {
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderWidth: 1,
-    borderColor: THEME.textMain,
-    backgroundColor: THEME.textMain,
-    borderRadius: 0, // Rectangulaire
-  },
-  actionBtnPending: {
-    backgroundColor: "transparent",
-    borderColor: THEME.border,
-  },
-  actionBtnDelete: {
-    backgroundColor: "transparent",
-    borderColor: "rgba(195, 74, 74, 0.2)", // Rouge discret
+    borderRadius: 0,
   },
   actionText: {
-    fontSize: 10,
-    fontWeight: "800",
-    color: "#FFF",
     letterSpacing: 1.2,
     textAlign: "center",
-  },
-  actionTextPending: {
-    color: THEME.textSecondary,
-  },
-  actionTextDelete: {
-    color: THEME.danger,
   },
 });

@@ -6,13 +6,11 @@ import { giftService } from "@/lib/services/gift-service";
 import { wishlistService } from "@/lib/services/wishlist-service";
 import { router, useFocusEffect } from "expo-router";
 import React, { useCallback, useMemo, useState } from "react";
-import { Ionicons } from "@expo/vector-icons";
 import {
   RefreshControl,
   ScrollView,
   StatusBar,
   StyleSheet,
-  TouchableOpacity,
   View,
 } from "react-native";
 import { MotiView } from "moti";
@@ -23,7 +21,10 @@ import { GiftCardSkeleton } from "@/components/ui/SkeletonGroup";
 import { socketService } from "@/lib/services/socket";
 import GiftFriendBuy from "@/components/HomeUI/GiftFriendBuy";
 import { ThemedText } from "@/components/themed-text";
-import { useThemeColor } from "@/hooks/use-theme-color";
+import { useAppTheme } from "@/hooks/custom/use-app-theme";
+import ThemedIcon from "@/components/themed-icon";
+import MailVerified from "@/components/HomeUI/MailVerified";
+import EmptyFeed from "@/components/HomeUI/EmptyFeed";
 
 // --- SKELETON GÉOMÉTRIQUE ---
 const HomeSkeleton = () => (
@@ -56,12 +57,9 @@ export default function LuxuryFeedScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  // --- THEME COLORS ---
-  const backgroundColor = useThemeColor({}, "background");
-  const textMain = useThemeColor({}, "textMain");
-  const accentColor = useThemeColor({}, "accent");
-  const errorColor = useThemeColor({}, "danger");
- 
+  // --- THEME ---
+  const theme = useAppTheme();
+
   const { data: session } = authClient.useSession();
 
   const loadFeed = useCallback(
@@ -102,18 +100,26 @@ export default function LuxuryFeedScreen() {
 
       const handleGiftUpdate = (updatedGift: any) => {
         setInspirations((prev) =>
-          prev.map((item) => (item.id === updatedGift.id ? { ...item, ...updatedGift } : item))
+          prev.map((item) =>
+            item.id === updatedGift.id ? { ...item, ...updatedGift } : item,
+          ),
         );
 
-        const ownerId = updatedGift.wishlist?.userId || updatedGift.wishlist?.user?.id;
+        const ownerId =
+          updatedGift.wishlist?.userId || updatedGift.wishlist?.user?.id;
         const myId = session?.user?.id;
 
         if (ownerId && myId && ownerId === myId) {
           setReceivedGifts((prev) => {
-            const isIncoming = updatedGift.status === "RESERVED" || updatedGift.status === "PURCHASED";
+            const isIncoming =
+              updatedGift.status === "RESERVED" ||
+              updatedGift.status === "PURCHASED";
             const exists = prev.find((g) => g.id === updatedGift.id);
             if (isIncoming) {
-              const giftWithCrowd = { ...updatedGift, crowd: updatedGift.crowd || 1 };
+              const giftWithCrowd = {
+                ...updatedGift,
+                crowd: updatedGift.crowd || 1,
+              };
               return exists
                 ? prev.map((g) => (g.id === updatedGift.id ? giftWithCrowd : g))
                 : [giftWithCrowd, ...prev];
@@ -163,8 +169,8 @@ export default function LuxuryFeedScreen() {
   }, [inspirations, session?.user?.id]);
 
   return (
-    <View style={[styles.container, { backgroundColor }]}>
-      <StatusBar barStyle="dark-content" backgroundColor={backgroundColor} />
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <StatusBar barStyle="dark-content" backgroundColor={theme.background} />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -174,33 +180,18 @@ export default function LuxuryFeedScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor={textMain}
-            colors={[textMain]}
-            progressBackgroundColor={backgroundColor}
+            tintColor={theme.textMain}
+            colors={[theme.textMain]}
+            progressBackgroundColor={theme.background}
           />
         }
       >
         <HeaderHome user={session?.user} />
 
         {/* 2. TICKER D'ACTUALITÉ / ALERTE */}
-        <View style={[styles.tickerContainer, { backgroundColor }]}>
-          {!session?.user?.emailVerified && (
-            <TouchableOpacity
-              activeOpacity={0.9}
-              onPress={() => router.push("/(screens)/settingsScreen")}
-              style={[styles.verificationBanner, { borderLeftColor: errorColor }]}
-            >
-              <View style={[styles.warningIcon, { backgroundColor: errorColor }]}>
-                <Ionicons name="alert" size={14} color="#FFF" />
-              </View>
-              <ThemedText type="label" style={{ color: errorColor, flex: 1 }}>
-                VÉRIFICATION REQUISE : CONFIRMEZ VOTRE EMAIL
-              </ThemedText>
-              <Ionicons name="arrow-forward" size={14} color={errorColor} />
-            </TouchableOpacity>
-          )}
-        </View>
-
+        {session?.user?.emailVerified === false && (
+          <MailVerified />
+        )}
         {loading && !refreshing ? (
           <HomeSkeleton />
         ) : (
@@ -231,10 +222,13 @@ export default function LuxuryFeedScreen() {
             {/* 5. LE JOURNAL (Feed) */}
             <View style={styles.feedSection}>
               <View style={styles.sectionHeader}>
-                <ThemedText type="subtitle">
-                  Les plaisirs partagés
-                </ThemedText>
-                <View style={[styles.sectionDivider, { backgroundColor: accentColor }]} />
+                <ThemedText type="subtitle">Les plaisirs partagés</ThemedText>
+                <View
+                  style={[
+                    styles.sectionDivider,
+                    { backgroundColor: theme.accent },
+                  ]}
+                />
               </View>
 
               {feedPosts.length > 0 ? (
@@ -242,17 +236,7 @@ export default function LuxuryFeedScreen() {
                   <GiftCardHome key={post.id} item={post} />
                 ))
               ) : (
-                <View style={styles.emptyFeed}>
-                  <View style={[styles.iconCircle, { borderColor: `${accentColor}33` }]}>
-                    <Ionicons name="gift-outline" size={28} color={accentColor} />
-                  </View>
-                  <ThemedText type="title" style={styles.emptyFeedTitle}>
-                    La page est blanche.
-                  </ThemedText>
-                  <ThemedText type="subtitle" style={styles.emptyFeedText}>
-                    Vos amis n&apos;ont pas encore partagé leurs envies. Soyez le premier à inaugurer le registre.
-                  </ThemedText>
-                </View>
+                <EmptyFeed />
               )}
             </View>
           </MotiView>
@@ -265,39 +249,12 @@ export default function LuxuryFeedScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   tickerContainer: { zIndex: 10, paddingBottom: 10 },
-  verificationBanner: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "rgba(195, 74, 74, 0.08)",
-    marginHorizontal: 20,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderLeftWidth: 3,
-    gap: 12,
-  },
-  warningIcon: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    alignItems: "center",
-    justifyContent: "center",
-  },
+
   sectionContainer: { marginBottom: 40 },
   bannerWrapper: { paddingHorizontal: 20, marginBottom: 40 },
   feedSection: { paddingHorizontal: 20 },
   sectionHeader: { marginBottom: 30 },
   sectionTitle: { fontSize: 18, letterSpacing: -0.5 },
   sectionDivider: { width: 40, height: 2, marginTop: 15 },
-  emptyFeed: { paddingVertical: 80, alignItems: "center", justifyContent: "center" },
-  iconCircle: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    borderWidth: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 20,
-  },
-  emptyFeedTitle: { fontSize: 20, marginBottom: 10 },
-  emptyFeedText: { textAlign: "center", maxWidth: "80%" },
+
 });

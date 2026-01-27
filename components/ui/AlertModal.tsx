@@ -1,27 +1,10 @@
 import React from "react";
-import {
-  Modal,
-  StyleSheet,
-  TouchableOpacity,
-  View,
-  Platform,
-  Text,
-} from "react-native";
+import { Modal, StyleSheet, TouchableOpacity, View } from "react-native";
 import { MotiView } from "moti";
-import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-
-// --- THEME ÉDITORIAL COHÉRENT ---
-const THEME = {
-  overlay: "rgba(26, 26, 26, 0.7)", // Fond sombre soyeux
-  background: "#FDFBF7", // Bone Silk
-  surface: "#FFFFFF",
-  textMain: "#1A1A1A",
-  textSecondary: "#8E8E93",
-  accent: "#AF9062", // Or brossé
-  danger: "#C34A4A", // Rouge brique luxe
-  border: "rgba(0,0,0,0.08)",
-};
+import { ThemedText } from "@/components/themed-text";
+import { useAppTheme } from "@/hooks/custom/use-app-theme";
+import ThemedIcon from "@/components/themed-icon";
 
 export interface AlertAction {
   text: string;
@@ -44,6 +27,8 @@ export const AlertModal = ({
   actions,
   onClose,
 }: AlertModalProps) => {
+  const theme = useAppTheme();
+
   const handlePress = (action: AlertAction) => {
     if (action.style === "destructive") {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
@@ -61,37 +46,60 @@ export const AlertModal = ({
       onRequestClose={onClose}
       statusBarTranslucent
     >
-      <View style={styles.overlay}>
+      <View
+        style={[
+          styles.overlay,
+          {
+            backgroundColor:
+              theme.background === "#FFFFFF"
+                ? "rgba(0,0,0,0.4)"
+                : "rgba(26, 26, 26, 0.7)",
+          },
+        ]}
+      >
         <MotiView
           from={{ opacity: 0, scale: 0.98, translateY: 10 }}
           animate={{ opacity: 1, scale: 1, translateY: 0 }}
           transition={{ type: "timing", duration: 400 }}
-          style={styles.container}
+          style={[
+            styles.container,
+            { backgroundColor: theme.background, borderColor: theme.border },
+          ]}
         >
-          {/* LIGNE D'ACCENTUATION OR DISSIMULÉE */}
-          <View style={styles.topAccent} />
+          <View style={[styles.topAccent, { backgroundColor: theme.accent }]} />
 
           <View style={styles.content}>
-            {/* ICONE BIJOU */}
-            <View style={styles.iconWrapper}>
-              <Ionicons
+            <View
+              style={[
+                styles.iconWrapper,
+                {
+                  borderColor: `rgba(${theme.accent.replace(/[^0-9,]/g, "")}, 0.2)`,
+                },
+              ]}
+            >
+              <ThemedIcon
                 name="information-circle-outline"
                 size={24}
-                color={THEME.accent}
+                colorName="accent"
               />
             </View>
 
-            {/* TITRE ÉDITORIAL */}
-            <Text style={styles.title}>{title}</Text>
-
-            {/* MESSAGE MANUSCRIT */}
-            <Text style={styles.message}>{message}</Text>
+            <ThemedText type="hero" style={styles.title}>
+              {title}
+            </ThemedText>
+            <ThemedText
+              type="subtitle"
+              colorName="textSecondary"
+              style={styles.message}
+            >
+              {message}
+            </ThemedText>
           </View>
 
-          {/* ACTIONS STYLE "REGISTRE" */}
           <View
             style={[
               styles.actionsContainer,
+              { borderTopColor: theme.border },
               actions.length > 2 && { flexDirection: "column" },
             ]}
           >
@@ -101,21 +109,33 @@ export const AlertModal = ({
                 activeOpacity={0.8}
                 style={[
                   styles.button,
-                  index > 0 && actions.length <= 2 && styles.borderLeft,
-                  index > 0 && actions.length > 2 && styles.borderTop,
-                  action.style === "destructive" && styles.buttonDestructive,
+                  index > 0 &&
+                    actions.length <= 2 && {
+                      borderLeftWidth: 1,
+                      borderLeftColor: theme.border,
+                    },
+                  index > 0 &&
+                    actions.length > 2 && {
+                      borderTopWidth: 1,
+                      borderTopColor: theme.border,
+                    },
+                  action.style === "destructive" && {
+                    backgroundColor: `rgba(${theme.danger.replace(/[^0-9,]/g, "")}, 0.03)`,
+                  },
                 ]}
                 onPress={() => handlePress(action)}
               >
-                <Text
+                <ThemedText
+                  type="label"
                   style={[
                     styles.buttonText,
-                    action.style === "destructive" && styles.textDestructive,
-                    action.style === "cancel" && styles.textCancel,
+                    { color: theme.textMain },
+                    action.style === "destructive" && { color: theme.danger },
+                    action.style === "cancel" && { color: theme.textSecondary },
                   ]}
                 >
                   {action.text.toUpperCase()}
-                </Text>
+                </ThemedText>
               </TouchableOpacity>
             ))}
           </View>
@@ -128,18 +148,15 @@ export const AlertModal = ({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: THEME.overlay,
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 32,
   },
   container: {
-    backgroundColor: THEME.background,
     width: "100%",
     maxWidth: 340,
-    borderRadius: 0, // Rectangulaire luxe
+    borderRadius: 0,
     borderWidth: 1,
-    borderColor: THEME.border,
     overflow: "hidden",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 20 },
@@ -149,7 +166,6 @@ const styles = StyleSheet.create({
   },
   topAccent: {
     height: 3,
-    backgroundColor: THEME.accent,
     width: "100%",
   },
   content: {
@@ -161,61 +177,28 @@ const styles = StyleSheet.create({
     height: 48,
     borderRadius: 24,
     borderWidth: 1,
-    borderColor: "rgba(175, 144, 98, 0.2)",
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 20,
   },
   title: {
-    fontSize: 22,
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-    color: THEME.textMain,
     textAlign: "center",
     marginBottom: 12,
-    letterSpacing: -0.5,
   },
   message: {
-    fontSize: 14,
-    color: THEME.textSecondary,
     textAlign: "center",
-    lineHeight: 22,
-    fontStyle: "italic",
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
   },
   actionsContainer: {
     flexDirection: "row",
     borderTopWidth: 1,
-    borderTopColor: THEME.border,
   },
   button: {
     flex: 1,
     height: 56,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "transparent",
-  },
-  buttonDestructive: {
-    backgroundColor: "rgba(195, 74, 74, 0.03)",
-  },
-  borderLeft: {
-    borderLeftWidth: 1,
-    borderLeftColor: THEME.border,
-  },
-  borderTop: {
-    borderTopWidth: 1,
-    borderTopColor: THEME.border,
   },
   buttonText: {
-    fontSize: 10,
-    fontWeight: "800",
-    color: THEME.textMain,
     letterSpacing: 1.5,
-  },
-  textCancel: {
-    color: THEME.textSecondary,
-    fontWeight: "600",
-  },
-  textDestructive: {
-    color: THEME.danger,
   },
 });

@@ -1,28 +1,13 @@
-import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import React, { memo } from "react";
-import {
-  Platform,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { StyleSheet, TouchableOpacity, View } from "react-native";
 import * as Haptics from "expo-haptics";
 
 import { Gift } from "@/types/gift";
 import { authClient } from "@/features/auth";
-
-// --- THEME ÉDITORIAL COHÉRENT ---
-const THEME = {
-  background: "#FDFBF7", // Bone Silk
-  surface: "#FFFFFF",
-  textMain: "#1A1A1A",
-  textSecondary: "#8E8E93",
-  accent: "#AF9062", // Or brossé
-  border: "rgba(0,0,0,0.08)",
-  success: "#4A6741", // Vert forêt luxe
-};
+import { ThemedText } from "@/components/themed-text";
+import { useAppTheme } from "@/hooks/custom/use-app-theme";
+import ThemedIcon from "@/components/themed-icon";
 
 type GuestGiftCardProps = {
   gift: Gift;
@@ -31,6 +16,7 @@ type GuestGiftCardProps = {
 
 function GuestGiftCard({ gift, onPress }: GuestGiftCardProps) {
   const { data: session } = authClient.useSession();
+  const theme = useAppTheme();
 
   // Logique des statuts étendue
   const isReceived = gift.status === "RECEIVED";
@@ -60,8 +46,12 @@ function GuestGiftCard({ gift, onPress }: GuestGiftCardProps) {
       onPress={handlePress}
       style={styles.container}
     >
-      {/* 1. CADRE IMAGE STYLE GALERIE */}
-      <View style={styles.imageFrame}>
+      <View
+        style={[
+          styles.imageFrame,
+          { borderColor: theme.border, backgroundColor: theme.surface },
+        ]}
+      >
         {gift.imageUrl ? (
           <Image
             source={gift.imageUrl}
@@ -71,15 +61,33 @@ function GuestGiftCard({ gift, onPress }: GuestGiftCardProps) {
           />
         ) : (
           <View style={styles.placeholder}>
-            <Ionicons name="gift-outline" size={24} color={THEME.border} />
+            <ThemedIcon name="gift-outline" size={24} colorName="border" />
           </View>
         )}
 
-        {/* OVERLAY D'INDISPONIBILITÉ (Voile soie) */}
         {isTaken && (
-          <View style={styles.takenOverlay}>
-            <View style={styles.takenLabel}>
-              <Text style={styles.takenLabelText}>
+          <View
+            style={[
+              styles.takenOverlay,
+              {
+                backgroundColor:
+                  theme.background === "#FFFFFF"
+                    ? "rgba(253, 251, 247, 0.4)"
+                    : "rgba(0,0,0,0.5)",
+              },
+            ]}
+          >
+            <View
+              style={[
+                styles.takenLabel,
+                { backgroundColor: theme.surface, borderColor: theme.accent },
+              ]}
+            >
+              <ThemedText
+                type="label"
+                colorName="accent"
+                style={styles.takenLabelText}
+              >
                 {isReceived
                   ? "PIÈCE REÇUE"
                   : isPurchased
@@ -87,28 +95,36 @@ function GuestGiftCard({ gift, onPress }: GuestGiftCardProps) {
                     : isReservedByMe
                       ? "RÉSERVÉE PAR VOUS"
                       : "RÉSERVÉE"}
-              </Text>
+              </ThemedText>
             </View>
           </View>
         )}
 
-        {/* BADGE DE PRIX */}
         {gift.estimatedPrice && (
-          <View style={styles.priceTag}>
-            <Text style={styles.priceText}>{gift.estimatedPrice}€</Text>
+          <View
+            style={[
+              styles.priceTag,
+              { backgroundColor: theme.surface, borderColor: theme.border },
+            ]}
+          >
+            <ThemedText type="defaultBold" style={styles.priceText}>
+              {gift.estimatedPrice}€
+            </ThemedText>
           </View>
         )}
       </View>
 
-      {/* 2. INFORMATIONS ÉDITORIALES */}
       <View style={styles.infoSection}>
-        {/* STATUT */}
         {isReservedByMe ? (
           <View style={styles.statusRow}>
-            <View style={[styles.dot, { backgroundColor: THEME.accent }]} />
-            <Text style={[styles.statusLabel, { color: THEME.accent }]}>
+            <View style={[styles.dot, { backgroundColor: theme.accent }]} />
+            <ThemedText
+              type="label"
+              colorName="accent"
+              style={styles.statusLabel}
+            >
               VOTRE RÉSERVATION
-            </Text>
+            </ThemedText>
           </View>
         ) : isTaken ? (
           <View style={styles.statusRow}>
@@ -117,15 +133,16 @@ function GuestGiftCard({ gift, onPress }: GuestGiftCardProps) {
                 styles.dot,
                 {
                   backgroundColor: isReceived
-                    ? THEME.success
-                    : THEME.textSecondary,
+                    ? theme.success
+                    : theme.textSecondary,
                 },
               ]}
             />
-            <Text
+            <ThemedText
+              type="label"
               style={[
                 styles.statusLabel,
-                { color: isReceived ? THEME.success : THEME.textSecondary },
+                { color: isReceived ? theme.success : theme.textSecondary },
               ]}
             >
               {isReceived
@@ -133,24 +150,35 @@ function GuestGiftCard({ gift, onPress }: GuestGiftCardProps) {
                 : isPurchased
                   ? "PIÈCE ACQUISE"
                   : "DÉJÀ RÉSERVÉ"}
-            </Text>
+            </ThemedText>
           </View>
         ) : (
-          <Text style={styles.statusLabel}>DISPONIBLE</Text>
+          <ThemedText
+            type="label"
+            colorName="textSecondary"
+            style={styles.statusLabel}
+          >
+            DISPONIBLE
+          </ThemedText>
         )}
 
-        {/* TITRE SERIF */}
-        <Text
-          style={[styles.title, isTaken && styles.titleTaken]}
+        <ThemedText
+          type="subtitle"
+          style={[
+            styles.title,
+            isTaken && styles.titleTaken,
+            { color: theme.textMain },
+          ]}
           numberOfLines={1}
         >
           {gift.title}
-        </Text>
+        </ThemedText>
 
-        {/* LIGNE DE DÉTAIL FINALE */}
         <View style={styles.footerRow}>
-          <Text style={styles.detailLink}>DÉCOUVRIR</Text>
-          <View style={styles.hairline} />
+          <ThemedText type="label" colorName="accent" style={styles.detailLink}>
+            DÉCOUVRIR
+          </ThemedText>
+          <View style={[styles.hairline, { backgroundColor: theme.accent }]} />
         </View>
       </View>
     </TouchableOpacity>
@@ -169,9 +197,7 @@ const styles = StyleSheet.create({
     aspectRatio: 0.9,
     borderRadius: 0,
     overflow: "hidden",
-    backgroundColor: "#F2F2F7",
     borderWidth: 1,
-    borderColor: THEME.border,
     position: "relative",
   },
   image: {
@@ -188,38 +214,27 @@ const styles = StyleSheet.create({
   },
   takenOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(253, 251, 247, 0.4)",
     alignItems: "center",
     justifyContent: "center",
   },
   takenLabel: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    backgroundColor: THEME.surface,
-    borderWidth: 0.5,
-    borderColor: THEME.accent,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderWidth: 1,
   },
   takenLabelText: {
-    color: THEME.accent,
-    fontWeight: "900",
-    letterSpacing: 1,
     fontSize: 7,
-    textTransform: "uppercase",
   },
   priceTag: {
     position: "absolute",
     bottom: 0,
     left: 0,
-    backgroundColor: THEME.surface,
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderWidth: 1,
-    borderColor: THEME.border,
   },
   priceText: {
     fontSize: 12,
-    fontWeight: "700",
-    color: THEME.textMain,
     letterSpacing: -0.5,
   },
   infoSection: {
@@ -238,23 +253,14 @@ const styles = StyleSheet.create({
     borderRadius: 2,
   },
   statusLabel: {
-    fontSize: 9,
-    fontWeight: "800",
-    color: THEME.textSecondary,
-    letterSpacing: 1.5,
-    textTransform: "uppercase",
     marginBottom: 4,
   },
   title: {
     fontSize: 16,
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-    color: THEME.textMain,
     lineHeight: 20,
     letterSpacing: -0.2,
   },
   titleTaken: {
-    color: THEME.textSecondary,
-    fontStyle: "italic",
     opacity: 0.7,
   },
   footerRow: {
@@ -266,13 +272,11 @@ const styles = StyleSheet.create({
   detailLink: {
     fontSize: 8,
     fontWeight: "800",
-    color: THEME.accent,
     letterSpacing: 1,
   },
   hairline: {
     flex: 1,
     height: 1,
-    backgroundColor: THEME.accent,
     opacity: 0.2,
   },
 });

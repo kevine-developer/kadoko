@@ -1,10 +1,6 @@
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
-import {
-  StyleSheet,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { StyleSheet, TouchableOpacity, View } from "react-native";
 import { MotiView } from "moti";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import * as Haptics from "expo-haptics";
@@ -18,8 +14,7 @@ import SettingsNavBar from "@/components/Settings/SettingsNavBar";
 
 export default function BirthdaySetupScreen() {
   const router = useRouter();
-  // --- COULEURS DU THÈME ---
-const theme = useAppTheme();
+  const theme = useAppTheme();
 
   const { data: session, refetch } = authClient.useSession();
   const user = session?.user as any;
@@ -85,11 +80,9 @@ const theme = useAppTheme();
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      {/* NAV BAR MINIMALISTE */}
       <SettingsNavBar title="ANNIVERSAIRE" />
 
       <View style={styles.content}>
-        {/* HERO SECTION */}
         <MotiView
           from={{ opacity: 0, translateY: 15 }}
           animate={{ opacity: 1, translateY: 0 }}
@@ -99,26 +92,31 @@ const theme = useAppTheme();
           <ThemedText type="hero" style={styles.heroTitle}>
             Votre date{"\n"}de naissance.
           </ThemedText>
-          
-          <View style={[styles.titleDivider, { backgroundColor: theme.accent }]} />
-          
-          <ThemedText type="subtitle" style={{ color: theme.textSecondary }}>
+
+          <View
+            style={[styles.titleDivider, { backgroundColor: theme.accent }]}
+          />
+
+          <ThemedText type="subtitle" colorName="textSecondary">
             Cette information permet à votre cercle de célébrer votre journée
             spéciale et de préparer vos attentions.
           </ThemedText>
         </MotiView>
 
-        {/* DATE DISPLAY - STYLE REGISTRE */}
         <MotiView
           from={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 300 }}
           style={styles.registrySection}
         >
-          <ThemedText type="label" style={{ color: theme.textSecondary, marginBottom: 12 }}>
+          <ThemedText
+            type="label"
+            colorName="textSecondary"
+            style={{ marginBottom: 12 }}
+          >
             MOMENT DE CÉLÉBRATION
           </ThemedText>
-          
+
           <TouchableOpacity
             onPress={showDatePicker}
             activeOpacity={0.7}
@@ -127,7 +125,7 @@ const theme = useAppTheme();
             <ThemedText type="title" style={{ fontSize: 22 }}>
               {formatDate(date)}
             </ThemedText>
-            
+
             <ThemedText type="label" colorName="accent">
               MODIFIER
             </ThemedText>
@@ -147,7 +145,6 @@ const theme = useAppTheme();
         />
       </View>
 
-      {/* FOOTER ACTION */}
       <BtnValidate
         hasChanges={hasChanges}
         isSaving={isSaving}
@@ -159,30 +156,12 @@ const theme = useAppTheme();
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  /* CONTENT */
-  content: {
-    flex: 1,
-    paddingHorizontal: 32,
-    paddingTop: 30,
-  },
-  heroSection: {
-    marginBottom: 50,
-  },
-  heroTitle: {
-    marginBottom: 10,
-  },
-  titleDivider: {
-    width: 35,
-    height: 2,
-    marginVertical: 25,
-  },
-  /* REGISTRE DATE */
-  registrySection: {
-    marginTop: 10,
-  },
+  container: { flex: 1 },
+  content: { flex: 1, paddingHorizontal: 32, paddingTop: 30 },
+  heroSection: { marginBottom: 50 },
+  heroTitle: { marginBottom: 10 },
+  titleDivider: { width: 35, height: 2, marginVertical: 25 },
+  registrySection: { marginTop: 10 },
   dateSelector: {
     flexDirection: "row",
     justifyContent: "space-between",

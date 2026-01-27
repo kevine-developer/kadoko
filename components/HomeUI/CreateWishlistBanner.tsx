@@ -1,22 +1,13 @@
-import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import React, { useRef } from "react";
-import {
-  Animated,
-  Platform,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { Animated, StyleSheet, TouchableOpacity, View } from "react-native";
 import * as Haptics from "expo-haptics";
 
-// --- THEME ÉDITORIAL COHÉRENT ---
-const THEME = {
-  textMain: "#1A1A1A",
-  white: "#FFFFFF",
-  accent: "#AF9062", // Or brossé
-};
+import { ThemedText } from "@/components/themed-text";
+import { useAppTheme } from "@/hooks/custom/use-app-theme";
+import ThemedIcon from "@/components/themed-icon";
+
+// --- THEME ---
 
 interface CreateWishlistBannerProps {
   onPress: () => void;
@@ -25,6 +16,7 @@ interface CreateWishlistBannerProps {
 export default function CreateWishlistBanner({
   onPress,
 }: CreateWishlistBannerProps) {
+  const theme = useAppTheme();
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
   const handlePress = () => {
@@ -78,24 +70,40 @@ export default function CreateWishlistBanner({
         {/* 4. CONTENU ÉDITORIAL */}
         <View style={styles.content}>
           <View style={styles.topSection}>
-            <View style={styles.accentLine} />
-            <Text style={styles.badgeText}>NOUVEAU CHAPITRE</Text>
+            <View
+              style={[styles.accentLine, { backgroundColor: theme.accent }]}
+            />
+            <ThemedText
+              type="label"
+              colorName="accent"
+              style={styles.badgeText}
+            >
+              NOUVEAU CHAPITRE
+            </ThemedText>
           </View>
 
           <View style={styles.textContainer}>
-            <Text style={styles.title}>
+            <ThemedText type="hero" style={styles.title}>
               Inaugurez votre{"\n"}première collection.
-            </Text>
-            <Text style={styles.subtitle}>
+            </ThemedText>
+            <ThemedText type="subtitle" style={styles.subtitle}>
               Initiez un registre de vos envies et partagez-le avec votre cercle
               privé.
-            </Text>
+            </ThemedText>
           </View>
 
           {/* BOUTON AUTHORITY RECTANGULAIRE */}
-          <View style={styles.ctaButton}>
-            <Text style={styles.ctaText}>COMMENCER</Text>
-            <Ionicons name="arrow-forward" size={14} color={THEME.textMain} />
+          <View
+            style={[styles.ctaButton, { backgroundColor: theme.background }]}
+          >
+            <ThemedText
+              type="label"
+              colorName="textMain"
+              style={styles.ctaText}
+            >
+              COMMENCER
+            </ThemedText>
+            <ThemedIcon name="arrow-forward" size={14} colorName="textMain" />
           </View>
         </View>
       </TouchableOpacity>
@@ -153,12 +161,8 @@ const styles = StyleSheet.create({
   accentLine: {
     width: 20,
     height: 1,
-    backgroundColor: THEME.accent, // Or brossé
   },
   badgeText: {
-    color: THEME.accent,
-    fontSize: 10,
-    fontWeight: "800",
     letterSpacing: 2,
     textTransform: "uppercase",
   },
@@ -168,25 +172,18 @@ const styles = StyleSheet.create({
     marginBottom: 25,
   },
   title: {
-    fontSize: 32,
-    color: THEME.white,
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
+    color: "#FFFFFF",
     lineHeight: 38,
     marginBottom: 10,
     letterSpacing: -0.5,
   },
   subtitle: {
-    fontSize: 14,
     color: "rgba(255,255,255,0.85)",
-    lineHeight: 22,
-    fontStyle: "italic",
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
     maxWidth: "90%",
   },
 
   /* CTA BUTTON */
   ctaButton: {
-    backgroundColor: THEME.white,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
@@ -196,9 +193,6 @@ const styles = StyleSheet.create({
     borderRadius: 0, // Rectangulaire
   },
   ctaText: {
-    color: THEME.textMain,
-    fontSize: 11,
-    fontWeight: "800",
     letterSpacing: 1.5,
   },
 });

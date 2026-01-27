@@ -1,26 +1,8 @@
-import { Ionicons } from "@expo/vector-icons";
 import React from "react";
-import {
-  Modal,
-  Platform,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { Modal, StyleSheet, TouchableOpacity, View } from "react-native";
 import * as Haptics from "expo-haptics";
-
-// --- THEME ÉDITORIAL COHÉRENT ---
-const THEME = {
-  overlay: "rgba(26, 26, 26, 0.7)", // Fond sombre soyeux
-  background: "#FDFBF7", // Bone Silk
-  surface: "#FFFFFF",
-  textMain: "#1A1A1A",
-  textSecondary: "#8E8E93",
-  accent: "#AF9062", // Or brossé
-  danger: "#C34A4A", // Rouge brique luxe
-  border: "rgba(0,0,0,0.08)",
-};
+import { ThemedText } from "@/components/themed-text";
+import { useAppTheme } from "@/hooks/custom/use-app-theme";
 
 interface ConfirmationModalProps {
   visible: boolean;
@@ -43,6 +25,8 @@ export default function ConfirmationModal({
   cancelText = "ANNULER",
   isDestructive = false,
 }: ConfirmationModalProps) {
+  const theme = useAppTheme();
+
   const handleConfirm = () => {
     Haptics.notificationAsync(
       isDestructive
@@ -64,38 +48,74 @@ export default function ConfirmationModal({
       animationType="fade"
       statusBarTranslucent
     >
-      <View style={styles.overlay}>
-        <View style={styles.container}>
+      <View
+        style={[
+          styles.overlay,
+          {
+            backgroundColor:
+              theme.background === "#FFFFFF"
+                ? "rgba(0,0,0,0.4)"
+                : "rgba(26, 26, 26, 0.7)",
+          },
+        ]}
+      >
+        <View
+          style={[
+            styles.container,
+            { backgroundColor: theme.background, borderColor: theme.border },
+          ]}
+        >
           {/* PETIT DIVISEUR DÉCORATIF OR */}
-          <View style={styles.topAccent} />
+          <View style={[styles.topAccent, { backgroundColor: theme.accent }]} />
 
           <View style={styles.content}>
             {/* TITRE ÉDITORIAL */}
-            <Text style={styles.title}>{title}</Text>
+            <ThemedText type="hero" style={styles.title}>
+              {title}
+            </ThemedText>
 
             {/* DESCRIPTION MANUSCRITE */}
-            <Text style={styles.description}>{description}</Text>
+            <ThemedText
+              type="subtitle"
+              colorName="textSecondary"
+              style={styles.description}
+            >
+              {description}
+            </ThemedText>
           </View>
 
           {/* ACTIONS AUTHORITY (STYLE RECTANGULAIRE) */}
-          <View style={styles.actionRow}>
+          <View style={[styles.actionRow, { borderTopColor: theme.border }]}>
             <TouchableOpacity
-              style={styles.cancelBtn}
+              style={[styles.cancelBtn, { borderRightColor: theme.border }]}
               onPress={handleClose}
               activeOpacity={0.7}
             >
-              <Text style={styles.cancelText}>{cancelText}</Text>
+              <ThemedText
+                type="label"
+                colorName="textSecondary"
+                style={styles.cancelText}
+              >
+                {cancelText}
+              </ThemedText>
             </TouchableOpacity>
 
             <TouchableOpacity
               style={[
                 styles.confirmBtn,
-                isDestructive ? styles.destructiveBtn : styles.primaryBtn,
+                isDestructive
+                  ? { backgroundColor: theme.danger }
+                  : { backgroundColor: theme.textMain },
               ]}
               onPress={handleConfirm}
               activeOpacity={0.8}
             >
-              <Text style={styles.confirmText}>{confirmText}</Text>
+              <ThemedText
+                type="label"
+                style={[styles.confirmText, { color: theme.background }]}
+              >
+                {confirmText}
+              </ThemedText>
             </TouchableOpacity>
           </View>
         </View>
@@ -107,19 +127,15 @@ export default function ConfirmationModal({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: THEME.overlay,
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 32,
   },
   container: {
     width: "100%",
-    backgroundColor: THEME.background,
-    borderRadius: 0, // Rectangulaire luxe
+    borderRadius: 0,
     borderWidth: 1,
-    borderColor: THEME.border,
-    paddingTop: 2, // Pour laisser voir l'accent top
-    // Ombre très diffuse
+    paddingTop: 2,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 20 },
     shadowOpacity: 0.15,
@@ -128,7 +144,6 @@ const styles = StyleSheet.create({
   },
   topAccent: {
     height: 3,
-    backgroundColor: THEME.accent,
     width: "100%",
   },
   content: {
@@ -136,25 +151,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   title: {
-    fontSize: 24,
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-    color: THEME.textMain,
     textAlign: "center",
     marginBottom: 15,
-    letterSpacing: -0.5,
   },
   description: {
-    fontSize: 15,
-    color: THEME.textSecondary,
     textAlign: "center",
-    lineHeight: 22,
-    fontStyle: "italic",
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
   },
   actionRow: {
     flexDirection: "row",
     borderTopWidth: 1,
-    borderTopColor: THEME.border,
   },
   cancelBtn: {
     flex: 1,
@@ -162,7 +167,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderRightWidth: 1,
-    borderRightColor: THEME.border,
   },
   confirmBtn: {
     flex: 1,
@@ -171,21 +175,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   cancelText: {
-    fontSize: 10,
-    fontWeight: "800",
-    color: THEME.textSecondary,
     letterSpacing: 1.5,
   },
   confirmText: {
-    fontSize: 10,
-    fontWeight: "800",
-    color: "#FFFFFF",
     letterSpacing: 1.5,
-  },
-  primaryBtn: {
-    backgroundColor: THEME.textMain,
-  },
-  destructiveBtn: {
-    backgroundColor: THEME.danger,
   },
 });

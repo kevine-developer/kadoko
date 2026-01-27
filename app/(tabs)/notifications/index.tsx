@@ -1,28 +1,17 @@
-import {
-  View,
-  StyleSheet,
-  TouchableOpacity,
-  Text,
-  Platform,
-} from "react-native";
+import { View, StyleSheet, TouchableOpacity } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { NotificationList } from "@/components/notifications/NotificationList";
 import { useNotifications } from "@/hooks/useNotifications";
 import * as Haptics from "expo-haptics";
 import { MotiView } from "moti";
+import { ThemedText } from "@/components/themed-text";
+import { useAppTheme } from "@/hooks/custom/use-app-theme";
 
-// --- THEME ÉDITORIAL COHÉRENT ---
-const THEME = {
-  background: "#FDFBF7", // Bone Silk
-  surface: "#FFFFFF",
-  textMain: "#1A1A1A",
-  textSecondary: "#8E8E93",
-  accent: "#AF9062", // Or brossé
-  border: "rgba(0,0,0,0.08)",
-};
+// --- THEME ÉDITORIAL ---
 
 export default function NotificationsScreen() {
   const insets = useSafeAreaInsets();
+  const theme = useAppTheme();
   const { markAllAsRead, deleteAllNotifications, notifications } =
     useNotifications();
 
@@ -39,9 +28,14 @@ export default function NotificationsScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       {/* NAV BAR MINIMALISTE */}
-      <View style={[styles.navBar, { paddingTop: insets.top + 10 }]}>
+      <View
+        style={[
+          styles.navBar,
+          { paddingTop: insets.top + 10, backgroundColor: theme.background },
+        ]}
+      >
         <TouchableOpacity
           onPress={handleMarkAll}
           style={[
@@ -50,9 +44,15 @@ export default function NotificationsScreen() {
           ]}
           disabled={notifications.length === 0}
         >
-          <Text style={styles.markAllActionText}>TOUT LIRE</Text>
+          <ThemedText
+            type="label"
+            colorName="accent"
+            style={styles.markAllActionText}
+          >
+            TOUT LIRE
+          </ThemedText>
         </TouchableOpacity>
-        <View style={styles.navDivider} />
+        <View style={[styles.navDivider, { backgroundColor: theme.border }]} />
         <TouchableOpacity
           onPress={handleDeleteAll}
           style={[
@@ -61,9 +61,12 @@ export default function NotificationsScreen() {
           ]}
           disabled={notifications.length === 0}
         >
-          <Text style={[styles.markAllActionText, { color: "#FF3B30" }]}>
+          <ThemedText
+            type="label"
+            style={[styles.markAllActionText, { color: "#FF3B30" }]}
+          >
             TOUT SUPPRIMER
-          </Text>
+          </ThemedText>
         </TouchableOpacity>
       </View>
 
@@ -75,11 +78,19 @@ export default function NotificationsScreen() {
           transition={{ type: "timing", duration: 600 }}
           style={styles.heroSection}
         >
-          <Text style={styles.heroTitle}>Notifications.</Text>
-          <View style={styles.titleDivider} />
-          <Text style={styles.heroSubtitle}>
+          <ThemedText type="hero" style={styles.heroTitle}>
+            Notifications.
+          </ThemedText>
+          <View
+            style={[styles.titleDivider, { backgroundColor: theme.accent }]}
+          />
+          <ThemedText
+            type="subtitle"
+            colorName="textSecondary"
+            style={styles.heroSubtitle}
+          >
             Restez informé des intentions et des attentions de votre cercle.
-          </Text>
+          </ThemedText>
         </MotiView>
 
         {/* LISTE DE NOTIFICATIONS STYLE REGISTRE */}
@@ -94,7 +105,6 @@ export default function NotificationsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: THEME.background,
   },
   /* NAV BAR */
   navBar: {
@@ -103,7 +113,6 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
     paddingHorizontal: 15,
     paddingBottom: 15,
-    backgroundColor: THEME.background,
   },
   navBtn: {
     width: 44,
@@ -113,8 +122,6 @@ const styles = StyleSheet.create({
   },
   navTitle: {
     fontSize: 10,
-    fontWeight: "800",
-    color: THEME.textMain,
     letterSpacing: 2,
   },
   markAllAction: {
@@ -124,14 +131,11 @@ const styles = StyleSheet.create({
   },
   markAllActionText: {
     fontSize: 10,
-    fontWeight: "800",
-    color: THEME.accent,
     letterSpacing: 1,
   },
   navDivider: {
     width: 1,
     height: 12,
-    backgroundColor: THEME.border,
     marginHorizontal: 5,
   },
   /* CONTENT */
@@ -144,22 +148,12 @@ const styles = StyleSheet.create({
     marginBottom: 30,
   },
   heroTitle: {
-    fontSize: 38,
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-    color: THEME.textMain,
     letterSpacing: -1,
   },
   titleDivider: {
     width: 35,
     height: 2,
-    backgroundColor: THEME.accent,
     marginVertical: 20,
   },
-  heroSubtitle: {
-    fontSize: 14,
-    color: THEME.textSecondary,
-    lineHeight: 22,
-    fontStyle: "italic",
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-  },
+  heroSubtitle: {},
 });

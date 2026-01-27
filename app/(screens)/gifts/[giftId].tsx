@@ -1,5 +1,4 @@
 import ParallaxScrollView from "@/components/parallax-scroll-view";
-import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useState, useEffect, useCallback } from "react";
@@ -12,7 +11,6 @@ import {
   Linking,
   Platform,
   StyleSheet,
-  Text,
   TouchableOpacity,
   View,
   ViewStyle,
@@ -22,18 +20,9 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import { MotiView } from "moti";
 import { shareGift } from "@/lib/share";
-
-// --- THEME ÉDITORIAL ---
-const THEME = {
-  background: "#FDFBF7", // Bone Silk
-  surface: "#FFFFFF",
-  textMain: "#1A1A1A",
-  textSecondary: "#8E8E93",
-  accent: "#AF9062", // Or brossé
-  border: "rgba(0,0,0,0.08)",
-  success: "#4A6741",
-  warning: "#C34A4A", // Rouge brique pour "réservé"
-};
+import { ThemedText } from "@/components/themed-text";
+import { useAppTheme } from "@/hooks/custom/use-app-theme";
+import ThemedIcon from "@/components/themed-icon";
 
 const SCREEN_HEIGHT = Dimensions.get("window").height;
 
@@ -48,6 +37,7 @@ const openLink = async (url?: string) => {
 export default function GiftDetailView() {
   const { giftId } = useLocalSearchParams<{ giftId: string }>();
   const insets = useSafeAreaInsets();
+  const theme = useAppTheme();
   const { data: session } = authClient.useSession();
 
   const [giftData, setGiftData] = useState<any>(null);
@@ -82,25 +72,44 @@ export default function GiftDetailView() {
 
   if (loading) {
     return (
-      <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color={THEME.textMain} />
+      <View
+        style={[styles.centerContainer, { backgroundColor: theme.background }]}
+      >
+        <ActivityIndicator size="large" color={theme.textMain} />
       </View>
     );
   }
 
   if (!gift || !group) {
     return (
-      <View style={styles.centerContainer}>
-        <Ionicons name="gift-outline" size={48} color={THEME.border} />
-        <Text style={styles.errorText}>OBJET INTROUVABLE</Text>
-        <Text style={styles.errorSubText}>
+      <View
+        style={[styles.centerContainer, { backgroundColor: theme.background }]}
+      >
+        <ThemedIcon name="gift-outline" size={48} colorName="border" />
+        <ThemedText
+          type="label"
+          colorName="textSecondary"
+          style={styles.errorText}
+        >
+          OBJET INTROUVABLE
+        </ThemedText>
+        <ThemedText
+          type="default"
+          colorName="textSecondary"
+          style={styles.errorSubText}
+        >
           Ce cadeau a peut-être été supprimé ou n&apos;est plus disponible.
-        </Text>
+        </ThemedText>
         <TouchableOpacity
-          style={styles.homeBtn}
+          style={[styles.homeBtn, { backgroundColor: theme.textMain }]}
           onPress={() => router.replace("/(tabs)")}
         >
-          <Text style={styles.homeBtnText}>RETOUR À L&apos;ACCUEIL</Text>
+          <ThemedText
+            type="label"
+            style={[styles.homeBtnText, { color: theme.background }]}
+          >
+            RETOUR À L&apos;ACCUEIL
+          </ThemedText>
         </TouchableOpacity>
       </View>
     );
@@ -124,7 +133,7 @@ export default function GiftDetailView() {
     action?: () => void;
   } = {
     label: "DISPONIBLE",
-    color: THEME.textMain,
+    color: theme.textMain,
     buttonText: "RÉSERVER CETTE PIÈCE",
     isButtonDisabled: false,
     buttonStyle: styles.primaryBtn,
@@ -138,7 +147,7 @@ export default function GiftDetailView() {
   if (isDraft) {
     statusConfig = {
       label: "NON PUBLIÉ",
-      color: THEME.textSecondary,
+      color: theme.textSecondary,
       buttonText: isOwner ? "PUBLIER MAINTENANT" : "INDISPONIBLE",
       isButtonDisabled: !isOwner,
       buttonStyle: isOwner ? styles.primaryBtn : styles.disabledBtn,
@@ -152,7 +161,7 @@ export default function GiftDetailView() {
   } else if (isPurchased) {
     statusConfig = {
       label: "ACQUIS",
-      color: THEME.success,
+      color: theme.success,
       buttonText: isOwner ? "CONFIRMER RÉCEPTION" : "DÉJÀ OFFERT",
       isButtonDisabled: !isOwner,
       buttonStyle: isOwner ? styles.successBtn : styles.disabledBtn,
@@ -167,7 +176,7 @@ export default function GiftDetailView() {
     const isReserver = gift.reservedById === session?.user?.id;
     statusConfig = {
       label: "RÉSERVÉ",
-      color: THEME.warning,
+      color: theme.danger, // On remplace warning par danger pour cohérence brique
       buttonText: isReserver
         ? "ANNULER MA RÉSERVATION"
         : "ACTUELLEMENT RÉSERVÉ",
@@ -206,49 +215,75 @@ export default function GiftDetailView() {
           transition={800}
         />
       ) : (
-        <View style={styles.placeholderImage}>
-          <Ionicons name="gift-outline" size={64} color={THEME.border} />
+        <View
+          style={[styles.placeholderImage, { backgroundColor: theme.surface }]}
+        >
+          <ThemedIcon name="gift-outline" size={64} colorName="border" />
         </View>
       )}
 
       {/* Overlay dégradé pour fusionner avec le contenu */}
-      <View style={styles.gradientOverlay} />
+      <View
+        style={[
+          styles.gradientOverlay,
+          { borderBottomColor: theme.background },
+        ]}
+      />
 
       {/* Navbar Minimaliste */}
       <View style={[styles.navbar, { top: insets.top + 10 }]}>
-        <TouchableOpacity style={styles.iconBtn} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color="#FFF" />
+        <TouchableOpacity
+          style={styles.iconBtn}
+          onPress={() => router.back()}
+          activeOpacity={0.7}
+        >
+          <ThemedIcon name="arrow-back" size={24} colorName="background" />
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.iconBtn}
           onPress={() => shareGift(giftId as string, gift.title)}
+          activeOpacity={0.7}
         >
-          <Ionicons name="share-social-outline" size={24} color="#FFF" />
+          <ThemedIcon
+            name="share-social-outline"
+            size={24}
+            colorName="background"
+          />
         </TouchableOpacity>
       </View>
     </View>
   );
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       <ParallaxScrollView
         headerBackgroundColor={{
-          light: THEME.background,
-          dark: THEME.background,
+          light: theme.background,
+          dark: theme.background,
         }}
         headerImage={renderHeader()}
         parallaxHeaderHeight={SCREEN_HEIGHT * 0.55}
       >
-        <View style={styles.contentContainer}>
+        <View
+          style={[
+            styles.contentContainer,
+            { backgroundColor: theme.background },
+          ]}
+        >
           {/* ÉTIQUETTE PRIX "REGISTRE" */}
           {gift.estimatedPrice && (
             <MotiView
               from={{ opacity: 0, translateY: 20 }}
               animate={{ opacity: 1, translateY: 0 }}
               transition={{ delay: 300 }}
-              style={styles.priceTag}
+              style={[
+                styles.priceTag,
+                { backgroundColor: theme.surface, borderColor: theme.border },
+              ]}
             >
-              <Text style={styles.priceValue}>{gift.estimatedPrice}€</Text>
+              <ThemedText type="subtitle" style={styles.priceValue}>
+                {gift.estimatedPrice}€
+              </ThemedText>
             </MotiView>
           )}
 
@@ -261,28 +296,47 @@ export default function GiftDetailView() {
                   { backgroundColor: statusConfig.color },
                 ]}
               />
-              <Text style={[styles.statusText, { color: statusConfig.color }]}>
+              <ThemedText
+                type="label"
+                style={[styles.statusText, { color: statusConfig.color }]}
+              >
                 {statusConfig.label}
-              </Text>
+              </ThemedText>
             </View>
 
-            <Text style={styles.title}>{gift.title}</Text>
+            <ThemedText type="hero" style={styles.title}>
+              {gift.title}
+            </ThemedText>
 
             {/* INFO RÉSERVEUR */}
             {(isReserved || isPurchased) &&
               (gift.reservedBy || gift.purchasedBy) && (
-                <View style={styles.attributionBox}>
+                <View
+                  style={[
+                    styles.attributionBox,
+                    {
+                      borderLeftColor: theme.accent,
+                      backgroundColor: `rgba(${theme.accent.replace(/[^0-9,]/g, "")}, 0.05)`,
+                    },
+                  ]}
+                >
                   <Image
                     source={{
                       uri: isPurchased
                         ? gift.purchasedBy?.image
                         : gift.reservedBy?.image,
                     }}
-                    style={styles.attrAvatar}
+                    style={[
+                      styles.attrAvatar,
+                      { backgroundColor: theme.border },
+                    ]}
                   />
-                  <Text style={styles.attrText}>
+                  <ThemedText type="default" style={styles.attrText}>
                     {isPurchased ? "Offert par " : "Réservé par "}
-                    <Text style={styles.attrName}>
+                    <ThemedText
+                      type="defaultBold"
+                      style={{ color: theme.accent }}
+                    >
                       {isPurchased
                         ? gift.purchasedBy?.id === session?.user?.id
                           ? "VOUS"
@@ -290,8 +344,8 @@ export default function GiftDetailView() {
                         : gift.reservedBy?.id === session?.user?.id
                           ? "VOUS"
                           : gift.reservedBy?.name}
-                    </Text>
-                  </Text>
+                    </ThemedText>
+                  </ThemedText>
                 </View>
               )}
 
@@ -300,17 +354,19 @@ export default function GiftDetailView() {
                 onPress={() => openLink(gift.productUrl)}
                 style={styles.linkRow}
               >
-                <Text style={styles.linkText}>CONSULTER LA BOUTIQUE</Text>
-                <Ionicons
+                <ThemedText type="label" style={styles.linkText}>
+                  CONSULTER LA BOUTIQUE
+                </ThemedText>
+                <ThemedIcon
                   name="arrow-forward"
                   size={12}
-                  color={THEME.textMain}
+                  colorName="textMain"
                 />
               </TouchableOpacity>
             )}
           </View>
 
-          <View style={styles.hairline} />
+          <View style={[styles.hairline, { backgroundColor: theme.border }]} />
 
           {/* CARTE COLLECTION */}
           <TouchableOpacity
@@ -323,24 +379,38 @@ export default function GiftDetailView() {
             }
           >
             <View>
-              <Text style={styles.collectionLabel}>COLLECTION</Text>
-              <Text style={styles.collectionTitle}>{group.title}</Text>
+              <ThemedText
+                type="label"
+                colorName="textSecondary"
+                style={styles.collectionLabel}
+              >
+                COLLECTION
+              </ThemedText>
+              <ThemedText type="subtitle" style={styles.collectionTitle}>
+                {group.title}
+              </ThemedText>
             </View>
-            <Ionicons
+            <ThemedIcon
               name="chevron-forward"
               size={20}
-              color={THEME.textSecondary}
+              colorName="textSecondary"
             />
           </TouchableOpacity>
 
-          <View style={styles.hairline} />
+          <View style={[styles.hairline, { backgroundColor: theme.border }]} />
 
           {/* DESCRIPTION */}
           <View style={styles.descriptionSection}>
-            <Text style={styles.collectionLabel}>NOTES</Text>
-            <Text style={styles.descriptionText}>
+            <ThemedText
+              type="label"
+              colorName="textSecondary"
+              style={styles.collectionLabel}
+            >
+              NOTES
+            </ThemedText>
+            <ThemedText type="default" style={styles.descriptionText}>
               {gift.description || "Aucune précision particulière."}
-            </Text>
+            </ThemedText>
           </View>
 
           <View style={{ height: 120 }} />
@@ -351,33 +421,60 @@ export default function GiftDetailView() {
       <View
         style={[
           styles.bottomBar,
-          { paddingBottom: insets.bottom > 0 ? insets.bottom + 10 : 25 },
+          {
+            paddingBottom: insets.bottom > 0 ? insets.bottom + 10 : 25,
+            backgroundColor:
+              theme.background === "#FFFFFF"
+                ? "rgba(255, 255, 255, 0.95)"
+                : "rgba(253, 251, 247, 0.95)", // Adapté à Bone Silk
+            borderTopColor: theme.border,
+          },
         ]}
       >
         <View style={styles.actionRow}>
           <TouchableOpacity
-            style={styles.secondaryBtn}
+            style={[styles.secondaryBtn, { borderColor: theme.border }]}
             onPress={() => router.back()}
           >
-            <Text style={styles.secondaryBtnText}>RETOUR</Text>
+            <ThemedText type="label" style={styles.secondaryBtnText}>
+              RETOUR
+            </ThemedText>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[statusConfig.buttonStyle, { flex: 2 }]}
+            style={[
+              statusConfig.buttonStyle,
+              { flex: 2 },
+              statusConfig.buttonStyle === styles.primaryBtn && {
+                backgroundColor: theme.textMain,
+              },
+              statusConfig.buttonStyle === styles.successBtn && {
+                backgroundColor: theme.success,
+              },
+              statusConfig.buttonStyle === styles.secondaryBtn && {
+                borderColor: theme.textMain,
+                borderWidth: 1,
+              },
+              statusConfig.buttonStyle === styles.disabledBtn && {
+                backgroundColor: theme.border,
+              },
+            ]}
             activeOpacity={statusConfig.isButtonDisabled ? 1 : 0.9}
             disabled={statusConfig.isButtonDisabled}
             onPress={() => statusConfig.action?.()}
           >
-            <Text
+            <ThemedText
+              type="label"
               style={[
                 styles.primaryBtnText,
+                { color: theme.background },
                 statusConfig.buttonStyle === styles.secondaryBtn && {
-                  color: THEME.textMain,
+                  color: theme.textMain,
                 },
               ]}
             >
               {statusConfig.buttonText}
-            </Text>
+            </ThemedText>
           </TouchableOpacity>
         </View>
       </View>
@@ -386,36 +483,26 @@ export default function GiftDetailView() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: THEME.background },
+  container: { flex: 1 },
   centerContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: THEME.background,
   },
   errorText: {
-    fontSize: 12,
-    fontWeight: "800",
-    color: THEME.textSecondary,
     marginTop: 15,
   },
   errorSubText: {
-    fontSize: 14,
-    color: THEME.textSecondary,
     marginTop: 10,
     marginBottom: 30,
     textAlign: "center",
     maxWidth: "70%",
   },
   homeBtn: {
-    backgroundColor: THEME.textMain,
     paddingHorizontal: 25,
     paddingVertical: 15,
   },
   homeBtnText: {
-    color: "#FFF",
-    fontSize: 11,
-    fontWeight: "800",
     letterSpacing: 1.5,
   },
 
@@ -428,7 +515,6 @@ const styles = StyleSheet.create({
     height: "100%",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#F2F2F7",
   },
 
   gradientOverlay: {
@@ -439,7 +525,6 @@ const styles = StyleSheet.create({
     height: 150,
     backgroundColor: "transparent",
     borderBottomWidth: 150,
-    borderBottomColor: THEME.background,
     opacity: 1,
   },
 
@@ -463,18 +548,15 @@ const styles = StyleSheet.create({
   /* CONTENT */
   contentContainer: {
     flex: 1,
-    backgroundColor: THEME.background,
     marginTop: -40,
     paddingHorizontal: 32,
   },
 
   priceTag: {
     alignSelf: "flex-end",
-    backgroundColor: THEME.surface,
     paddingHorizontal: 15,
     paddingVertical: 8,
     borderWidth: 1,
-    borderColor: THEME.border,
     marginTop: -25,
     marginRight: -10,
     transform: [{ rotate: "2deg" }],
@@ -483,7 +565,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 10,
   },
-  priceValue: { fontSize: 18, fontWeight: "700", color: THEME.textMain },
+  priceValue: { fontWeight: "700" },
 
   headerSection: { marginTop: 20, marginBottom: 30 },
   statusRow: {
@@ -493,14 +575,9 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   statusDot: { width: 6, height: 6, borderRadius: 3 },
-  statusText: { fontSize: 10, fontWeight: "800", letterSpacing: 1.5 },
+  statusText: { letterSpacing: 1.5 },
 
   title: {
-    fontSize: 36,
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-    color: THEME.textMain,
-    lineHeight: 42,
-    letterSpacing: -1,
     marginBottom: 20,
   },
 
@@ -508,20 +585,16 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-    backgroundColor: "rgba(175, 144, 98, 0.05)",
     padding: 12,
     borderLeftWidth: 2,
-    borderLeftColor: THEME.accent,
     marginBottom: 20,
   },
   attrAvatar: {
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: THEME.border,
   },
-  attrText: { fontSize: 12, color: THEME.textMain },
-  attrName: { fontWeight: "800", color: THEME.accent },
+  attrText: { fontSize: 12 },
 
   linkRow: {
     flexDirection: "row",
@@ -530,14 +603,11 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   linkText: {
-    fontSize: 10,
-    fontWeight: "800",
-    color: THEME.textMain,
     letterSpacing: 1,
     textDecorationLine: "underline",
   },
 
-  hairline: { height: 1, backgroundColor: THEME.border, marginVertical: 25 },
+  hairline: { height: 1, marginVertical: 25 },
 
   collectionRow: {
     flexDirection: "row",
@@ -545,24 +615,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   collectionLabel: {
-    fontSize: 9,
-    fontWeight: "800",
-    color: THEME.textSecondary,
     letterSpacing: 1.5,
     marginBottom: 5,
   },
-  collectionTitle: {
-    fontSize: 16,
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-    color: THEME.textMain,
-  },
+  collectionTitle: {},
 
   descriptionSection: { marginBottom: 30 },
   descriptionText: {
-    fontSize: 16,
-    lineHeight: 26,
-    color: THEME.textMain,
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
     marginTop: 10,
   },
 
@@ -572,9 +631,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: "rgba(253, 251, 247, 0.95)",
     borderTopWidth: 1,
-    borderTopColor: THEME.border,
     paddingTop: 20,
     paddingHorizontal: 32,
   },
@@ -584,40 +641,30 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 60,
     borderWidth: 1,
-    borderColor: THEME.border,
     alignItems: "center",
     justifyContent: "center",
   },
   secondaryBtnText: {
-    fontSize: 11,
-    fontWeight: "800",
-    color: THEME.textMain,
     letterSpacing: 1,
   },
 
   primaryBtn: {
-    backgroundColor: THEME.textMain,
     height: 60,
     alignItems: "center",
     justifyContent: "center",
   },
   successBtn: {
-    backgroundColor: THEME.success,
     height: 60,
     alignItems: "center",
     justifyContent: "center",
   },
   disabledBtn: {
-    backgroundColor: THEME.border,
     height: 60,
     alignItems: "center",
     justifyContent: "center",
   },
 
   primaryBtnText: {
-    fontSize: 11,
-    fontWeight: "800",
-    color: "#FFF",
     letterSpacing: 1.5,
   },
 });

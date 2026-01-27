@@ -1,26 +1,22 @@
-import { StyleSheet, Text, TouchableOpacity, View,Platform } from "react-native";
+import {
+  StyleSheet,
+  View,
+  Text,
+  TouchableOpacity,
+  Platform,
+  Dimensions,
+} from "react-native";
 import React from "react";
 import { Image } from "expo-image";
 import { MotiView } from "moti";
-import { Ionicons } from "@expo/vector-icons";
-
-// --- THEME ---
-const THEME = {
-  background: "#FDFBF7",
-  textMain: "#1A1A1A",
-  textSecondary: "#8E8E93",
-  accent: "#AF9062", // Or
-  mystery: "#1A1A1A", // Noir profond pour le mystère
-  border: "rgba(0,0,0,0.08)",
-  surface: "#FDFBF7",
-};
-
-
+import { ThemedText } from "@/components/themed-text";
+import { useAppTheme } from "@/hooks/custom/use-app-theme";
+import ThemedIcon from "@/components/themed-icon";
 
 const OpportunityCard = ({ opp, index, handleContribute }: any) => {
-
-        const remaining = opp.price - opp.currentAmount;
-              const percent = (opp.currentAmount / opp.price) * 100;
+  const theme = useAppTheme();
+  const remaining = opp.price - opp.currentAmount;
+  const percent = (opp.currentAmount / opp.price) * 100;
 
   return (
     <MotiView
@@ -28,62 +24,78 @@ const OpportunityCard = ({ opp, index, handleContribute }: any) => {
       from={{ opacity: 0, translateY: 20 }}
       animate={{ opacity: 1, translateY: 0 }}
       transition={{ delay: index * 150 + 300 }}
-      style={styles.oppCard}
+      style={[
+        styles.oppCard,
+        { backgroundColor: theme.surface, borderColor: theme.border },
+      ]}
     >
-      {/* Image Produit */}
       <Image
         source={{ uri: opp.image }}
-        style={styles.oppImage}
+        style={[styles.oppImage, { backgroundColor: theme.border }]}
         contentFit="cover"
       />
 
       <View style={styles.oppContent}>
-        {/* Header: Ami & Délai */}
         <View style={styles.oppHeader}>
           <View style={styles.friendBadge}>
             <Image
               source={{ uri: opp.friendAvatar }}
               style={styles.friendAvatar}
             />
-            <Text style={styles.friendName}>{opp.friendName}</Text>
+            <ThemedText type="defaultBold" style={styles.friendName}>
+              {opp.friendName}
+            </ThemedText>
           </View>
-          <Text style={styles.deadlineText}>{opp.deadline.toUpperCase()}</Text>
+          <ThemedText
+            type="label"
+            colorName="accent"
+            style={styles.deadlineText}
+          >
+            {opp.deadline.toUpperCase()}
+          </ThemedText>
         </View>
 
-        <Text style={styles.giftName} numberOfLines={1}>
+        <ThemedText type="title" style={styles.giftName} numberOfLines={1}>
           {opp.giftName}
-        </Text>
+        </ThemedText>
 
-        {/* Progress Bar (Gamification) */}
         {opp.currentAmount > 0 ? (
           <View style={styles.progressContainer}>
             <View style={styles.progressBarBg}>
               <View
-                style={[styles.progressBarFill, { width: `${percent}%` }]}
+                style={[
+                  styles.progressBarFill,
+                  { width: `${percent}%`, backgroundColor: theme.accent },
+                ]}
               />
             </View>
-            <Text style={styles.progressText}>
+            <ThemedText type="caption" colorName="textSecondary">
               Manque{" "}
-              <Text style={{ fontWeight: "700", color: THEME.accent }}>
+              <ThemedText type="defaultBold" colorName="accent">
                 {remaining}€
-              </Text>
-            </Text>
+              </ThemedText>
+            </ThemedText>
           </View>
         ) : (
-          <Text style={styles.priceText}>{opp.price}€ — GESTE ACCESSIBLE</Text>
+          <ThemedText
+            type="caption"
+            colorName="textSecondary"
+            style={styles.priceText}
+          >
+            {opp.price}€ — GESTE ACCESSIBLE
+          </ThemedText>
         )}
 
-        {/* Action */}
         <TouchableOpacity
-          style={styles.actionBtn}
+          style={[styles.actionBtn, { backgroundColor: theme.textMain }]}
           onPress={() => handleContribute(remaining > 20 ? 20 : remaining)}
         >
-          <Text style={styles.actionBtnText}>
+          <ThemedText type="label" style={{ color: theme.background }}>
             {opp.currentAmount > 0
               ? "COMPLÉTER LA CAGNOTTE"
               : "OFFRIR MAINTENANT"}
-          </Text>
-          <Ionicons name="arrow-forward" size={12} color="#FFF" />
+          </ThemedText>
+          <ThemedIcon name="arrow-forward" size={12} color={theme.background} />
         </TouchableOpacity>
       </View>
     </MotiView>
@@ -92,17 +104,15 @@ const OpportunityCard = ({ opp, index, handleContribute }: any) => {
 
 export default OpportunityCard;
 
-const styles = StyleSheet.create({  oppCard: {
-    backgroundColor: THEME.surface,
+const styles = StyleSheet.create({
+  oppCard: {
     borderWidth: 1,
-    borderColor: THEME.border,
     flexDirection: "row",
-    height: 160, // Carte horizontale
+    height: 160,
   },
   oppImage: {
     width: 110,
     height: "100%",
-    backgroundColor: "#F2F2F7",
   },
   oppContent: {
     flex: 1,
@@ -120,16 +130,12 @@ const styles = StyleSheet.create({  oppCard: {
     gap: 6,
   },
   friendAvatar: { width: 20, height: 20, borderRadius: 10 },
-  friendName: { fontSize: 12, fontWeight: "700", color: THEME.textMain },
-  deadlineText: { fontSize: 9, color: THEME.accent, fontWeight: "800" },
-
+  friendName: { fontSize: 12 },
+  deadlineText: { fontSize: 9 },
   giftName: {
     fontSize: 18,
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-    color: THEME.textMain,
+    lineHeight: 22,
   },
-
-  /* PROGRESS BAR */
   progressContainer: { gap: 6 },
   progressBarBg: {
     height: 4,
@@ -139,32 +145,17 @@ const styles = StyleSheet.create({  oppCard: {
   },
   progressBarFill: {
     height: "100%",
-    backgroundColor: THEME.accent,
     borderRadius: 2,
   },
-  progressText: {
-    fontSize: 11,
-    color: THEME.textSecondary,
-  },
   priceText: {
-    fontSize: 11,
     fontWeight: "600",
-    color: THEME.textSecondary,
   },
-
-  /* ACTION BTN */
   actionBtn: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    backgroundColor: THEME.textMain,
     paddingVertical: 10,
     paddingHorizontal: 12,
     marginTop: 5,
   },
-  actionBtnText: {
-    color: "#FFF",
-    fontSize: 10,
-    fontWeight: "800",
-    letterSpacing: 1,
-  },});
+});

@@ -12,13 +12,12 @@ import GuestWishlist from "@/components/wishlist/GuestWishlist";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { GiftGridSkeleton } from "@/components/ui/SkeletonGroup";
 
-const THEME = {
-  background: "#FDFBF7", // Bone Silk
-};
+import { useAppTheme } from "@/hooks/custom/use-app-theme";
 
 export default function WishlistGroupView() {
   const { wishlistId } = useLocalSearchParams<{ wishlistId: string }>();
   const insets = useSafeAreaInsets();
+  const theme = useAppTheme();
 
   // --- STATES ---
   // Data
@@ -64,7 +63,7 @@ export default function WishlistGroupView() {
 
   if (loading && !group) {
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, { backgroundColor: theme.background }]}>
         <StatusBar barStyle="dark-content" />
         <View style={{ paddingTop: insets.top + 80, paddingHorizontal: 30 }}>
           <Skeleton
@@ -135,5 +134,5 @@ export default function WishlistGroupView() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: THEME.background },
+  container: { flex: 1 },
 });

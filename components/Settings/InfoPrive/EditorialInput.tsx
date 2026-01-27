@@ -1,19 +1,13 @@
 import React from "react";
 import {
   View,
-  Text,
   TextInput,
   StyleSheet,
   Platform,
   TextInputProps,
 } from "react-native";
-
-const THEME = {
-  textMain: "#1A1A1A",
-  textSecondary: "#8E8E93",
-  accent: "#AF9062",
-  border: "rgba(0,0,0,0.08)",
-};
+import { ThemedText } from "@/components/themed-text";
+import { useAppTheme } from "@/hooks/custom/use-app-theme";
 
 interface EditorialInputProps extends TextInputProps {
   label: string;
@@ -25,18 +19,31 @@ export const EditorialInput = ({
   onChangeText,
   ...props
 }: EditorialInputProps) => {
+  const theme = useAppTheme();
+
   return (
     <View style={styles.inputGroup}>
-      <Text style={styles.miniLabel}>{label}</Text>
+      <ThemedText
+        type="label"
+        colorName="textSecondary"
+        style={styles.miniLabel}
+      >
+        {label}
+      </ThemedText>
       <TextInput
         style={[
           styles.editorialInput,
-          props.multiline && { minHeight: 40, paddingTop: 8 }
+          {
+            color: theme.textMain,
+            borderBottomColor: theme.border,
+            fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
+          },
+          props.multiline && { minHeight: 40, paddingTop: 8 },
         ]}
         value={value}
         onChangeText={onChangeText}
         placeholderTextColor="#BCBCBC"
-        selectionColor={THEME.accent}
+        selectionColor={theme.accent}
         {...props}
       />
     </View>
@@ -48,19 +55,12 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   miniLabel: {
-    fontSize: 9,
-    fontWeight: "800",
-    color: THEME.textSecondary,
     letterSpacing: 1.5,
     marginBottom: 8,
-    textTransform: "uppercase",
   },
   editorialInput: {
     fontSize: 16,
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-    color: THEME.textMain,
     borderBottomWidth: 1,
-    borderBottomColor: THEME.border,
     paddingVertical: 10,
   },
 });

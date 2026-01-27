@@ -1,30 +1,37 @@
-
 import React from "react";
-import {
-  Platform,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-
+import { ThemedText } from "@/components/themed-text";
+import { useAppTheme } from "@/hooks/custom/use-app-theme";
 
 const HeaderHome = ({ user }: any) => {
-  const insets = useSafeAreaInsets();;
+  const insets = useSafeAreaInsets();
+  const theme = useAppTheme();
 
   return (
-    <View style={[styles.headerContainer, { paddingTop: insets.top + 10 }]}>
+    <View
+      style={[
+        styles.headerContainer,
+        { paddingTop: insets.top + 10, backgroundColor: theme.background },
+      ]}
+    >
       <View>
-        <Text style={styles.headerDate}>
+        <ThemedText
+          type="label"
+          colorName="textSecondary"
+          style={styles.headerDate}
+        >
           {new Date()
             .toLocaleDateString("fr-FR", { weekday: "long", day: "numeric" })
             .toUpperCase()}
-        </Text>
-        <Text style={styles.headerTitle}>
-          Gift<Text style={styles.headerTitleItalic}>Flow</Text>
-        </Text>
+        </ThemedText>
+        <ThemedText type="hero" style={styles.headerTitle}>
+          Gift
+          <ThemedText type="hero" style={styles.headerTitleItalic}>
+            Flow
+          </ThemedText>
+        </ThemedText>
       </View>
- 
     </View>
   );
 };
@@ -39,20 +46,12 @@ const styles = StyleSheet.create({
     alignItems: "flex-end",
     paddingHorizontal: 24,
     paddingBottom: 20,
-    backgroundColor: "#FDFBF7",
   },
   headerDate: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: "#9CA3AF",
     letterSpacing: 1.5,
     marginBottom: 4,
   },
   headerTitle: {
-    fontSize: 34,
-    fontWeight: "300", // Light pour un look éditorial
-    color: "#111827",
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif", // Typographie Serif
     letterSpacing: -0.5,
   },
   headerTitleItalic: {

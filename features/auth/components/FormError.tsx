@@ -1,36 +1,48 @@
 import React from "react";
-import { StyleSheet, Text, View, Platform } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { StyleSheet, View, Platform } from "react-native";
 import { MotiView } from "moti";
-
-// --- THEME ÉDITORIAL COHÉRENT ---
-const THEME = {
-  textMain: "#1A1A1A",
-  accent: "#AF9062", // Or brossé
-  error: "#C34A4A", // Rouge brique profond (Luxe)
-  errorBg: "#FFF9F9", // Fond rosé extrêmement pâle
-  border: "rgba(195, 74, 74, 0.1)",
-};
+import { ThemedText } from "@/components/themed-text";
+import { useAppTheme } from "@/hooks/custom/use-app-theme";
+import ThemedIcon from "@/components/themed-icon";
 
 interface FormErrorProps {
   message?: string | null;
 }
 
 export const FormError = ({ message }: FormErrorProps) => {
+  const theme = useAppTheme();
+
   if (!message) return null;
 
   return (
-    <MotiView 
+    <MotiView
       from={{ opacity: 0, translateY: -10 }}
       animate={{ opacity: 1, translateY: 0 }}
-      transition={{ type: 'timing', duration: 400 }}
-      style={styles.container}
+      transition={{ type: "timing", duration: 400 }}
+      style={[
+        styles.container,
+        {
+          backgroundColor:
+            theme.background === "#FFFFFF"
+              ? "#FFF9F9"
+              : "rgba(195, 74, 74, 0.1)",
+          borderColor: theme.danger,
+        },
+      ]}
     >
-      <View style={styles.errorIndicator} />
-      
+      <View
+        style={[styles.errorIndicator, { backgroundColor: theme.danger }]}
+      />
+
       <View style={styles.content}>
-        <Ionicons name="information-circle-outline" size={16} color={THEME.error} />
-        <Text style={styles.text}>{message}</Text>
+        <ThemedIcon
+          name="information-circle-outline"
+          size={16}
+          colorName="danger"
+        />
+        <ThemedText type="caption" colorName="danger" style={styles.text}>
+          {message}
+        </ThemedText>
       </View>
     </MotiView>
   );
@@ -39,17 +51,13 @@ export const FormError = ({ message }: FormErrorProps) => {
 const styles = StyleSheet.create({
   container: {
     flexDirection: "row",
-    backgroundColor: THEME.errorBg,
     marginBottom: 25,
-    // Pas de border radius complet pour le look "Éditorial"
-    borderRadius: 0, 
+    borderRadius: 0,
     borderWidth: 1,
-    borderColor: THEME.border,
     overflow: "hidden",
   },
   errorIndicator: {
     width: 3,
-    backgroundColor: THEME.error,
   },
   content: {
     flexDirection: "row",
@@ -60,10 +68,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   text: {
-    color: THEME.error,
-    fontSize: 13,
     fontWeight: "500",
-    // Utilisation du Serif pour un aspect "Note de bas de page"
     fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
     fontStyle: "italic",
     lineHeight: 18,

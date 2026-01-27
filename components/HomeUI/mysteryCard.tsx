@@ -1,6 +1,5 @@
 import {
   StyleSheet,
-  Text,
   View,
   TouchableOpacity,
   Dimensions,
@@ -8,18 +7,10 @@ import {
 } from "react-native";
 import React from "react";
 import { MotiView } from "moti";
-import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-
-const THEME = {
-  background: "#FDFBF7",
-  textMain: "#1A1A1A",
-  textSecondary: "#8E8E93",
-  accent: "#AF9062", // Or
-  mystery: "#1A1A1A", // Noir profond pour le mystère
-  border: "rgba(0,0,0,0.08)",
-  surface: "#FDFBF7",
-};
+import { ThemedText } from "@/components/themed-text";
+import ThemedIcon from "@/components/themed-icon";
+import { useAppTheme } from "@/hooks/custom/use-app-theme";
 
 const { width } = Dimensions.get("window");
 
@@ -28,6 +19,8 @@ const MysteryCard = ({
   index = 0,
   handlePressMystery = () => {},
 }: any) => {
+  const theme = useAppTheme();
+
   return (
     <TouchableOpacity
       key={gift.id}
@@ -40,7 +33,6 @@ const MysteryCard = ({
         transition={{ delay: index * 100 }}
         style={styles.mysteryCard}
       >
-        {/* Image du cadeau floutée */}
         {gift.imageUrl && (
           <Image
             source={{ uri: gift.imageUrl }}
@@ -49,25 +41,29 @@ const MysteryCard = ({
           />
         )}
 
-        {/* Effet de Mystère / Overlay */}
         <LinearGradient
           colors={["rgba(44, 44, 44, 0.85)", "rgba(0, 0, 0, 0.95)"]}
           style={styles.mysteryGradient}
         >
-          <Ionicons
+          <ThemedIcon
             name="gift"
             size={32}
-            color={THEME.accent}
-            style={{ opacity: 0.8 }}
+            colorName="accent"
+            // style={{ opacity: 0.8 }} // Props style non supporté par ThemedIcon
           />
-          <Text style={styles.mysteryLabel}>CONFIDENTIEL</Text>
+          <ThemedText
+            type="label"
+            colorName="accent"
+            style={styles.mysteryLabel}
+          >
+            CONFIDENTIEL
+          </ThemedText>
         </LinearGradient>
 
-        {/* Badge Indice */}
         <View style={styles.mysteryBadge}>
-          <Text style={styles.mysteryBadgeText}>
+          <ThemedText type="label" style={styles.mysteryBadgeText}>
             {gift.crowd > 1 ? `${gift.crowd} PARTICIPANTS` : "1 BIENFAITEUR"}
-          </Text>
+          </ThemedText>
         </View>
       </MotiView>
     </TouchableOpacity>
@@ -77,12 +73,10 @@ const MysteryCard = ({
 export default MysteryCard;
 
 const styles = StyleSheet.create({
-  /* MYSTERY CARDS */
-  mysteryScroll: { paddingHorizontal: 25, gap: 15 },
   mysteryCard: {
     width: 150,
     height: 180,
-    borderRadius: 0, 
+    borderRadius: 0,
     overflow: "hidden",
     position: "relative",
     backgroundColor: "#000",
@@ -94,9 +88,6 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   mysteryLabel: {
-    color: THEME.accent,
-    fontSize: 10,
-    fontWeight: "800",
     letterSpacing: 2,
   },
   mysteryBadge: {
@@ -113,17 +104,6 @@ const styles = StyleSheet.create({
   mysteryBadgeText: {
     color: "#FFF",
     fontSize: 9,
-    fontWeight: "700",
     letterSpacing: 0.5,
   },
-  emptyMystery: {
-    width: width - 50,
-    height: 100,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: THEME.border,
-    borderStyle: "dashed",
-  },
-  emptyText: { color: THEME.textSecondary, fontStyle: "italic" },
 });

@@ -1,4 +1,3 @@
-import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState, useEffect } from "react";
 import {
@@ -7,7 +6,6 @@ import {
   Platform,
   ScrollView,
   StyleSheet,
-  Text,
   TouchableOpacity,
   View,
   UIManager,
@@ -27,8 +25,10 @@ import { RegistryAccordion } from "@/components/Settings/InfoPrive/RegistryAccor
 import { SizeSelector } from "@/components/Settings/InfoPrive/SizeSelector";
 import { EditorialInput } from "@/components/Settings/InfoPrive/EditorialInput";
 import { PreferenceChip } from "@/components/Settings/InfoPrive/PreferenceChip";
+import { ThemedText } from "@/components/themed-text";
+import { useAppTheme } from "@/hooks/custom/use-app-theme";
+import ThemedIcon from "@/components/themed-icon";
 
-// Activer LayoutAnimation sur Android pour le changement d'état local
 if (
   Platform.OS === "android" &&
   UIManager.setLayoutAnimationEnabledExperimental
@@ -36,17 +36,10 @@ if (
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
-const THEME = {
-  background: "#FDFBF7",
-  textMain: "#1A1A1A",
-  textSecondary: "#8E8E93",
-  accent: "#AF9062",
-  border: "rgba(0,0,0,0.08)",
-};
-
 export default function PrivateInfoScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const theme = useAppTheme();
   const { data: session, refetch } = authClient.useSession();
   const user = session?.user as any;
 
@@ -112,22 +105,25 @@ export default function PrivateInfoScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      {/* NAV BAR */}
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       <View style={[styles.navBar, { paddingTop: insets.top + 10 }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.navBtn}>
-          <Ionicons name="chevron-back" size={24} color={THEME.textMain} />
+          <ThemedIcon name="chevron-back" size={24} colorName="textMain" />
         </TouchableOpacity>
-        <Text style={styles.navTitle}>CARNET DE MESURES</Text>
+        <ThemedText type="label" style={styles.navTitle}>
+          CARNET DE MESURES
+        </ThemedText>
         <TouchableOpacity
           onPress={handleSave}
           disabled={saving}
           style={styles.saveAction}
         >
           {saving ? (
-            <ActivityIndicator size="small" color={THEME.accent} />
+            <ActivityIndicator size="small" color={theme.accent} />
           ) : (
-            <Text style={styles.saveActionText}>OK</Text>
+            <ThemedText type="label" colorName="accent">
+              OK
+            </ThemedText>
           )}
         </TouchableOpacity>
       </View>
@@ -192,9 +188,15 @@ export default function PrivateInfoScreen() {
               value={formData.jewelry?.ringSize || ""}
               onChangeText={(t) => updateNested("jewelry", "ringSize", t)}
             />
-            <Text style={[styles.miniLabel, { marginTop: 20 }]}>
-              PRÉFÉRENCE DE MÉTAL
-            </Text>
+            <View style={{ marginTop: 20 }}>
+              <ThemedText
+                type="label"
+                colorName="textSecondary"
+                style={styles.miniLabel}
+              >
+                PRÉFÉRENCE DE MÉTAL
+              </ThemedText>
+            </View>
             <View style={styles.chipRow}>
               {JEWELRY_PREFERENCES.map((pref) => (
                 <PreferenceChip
@@ -262,7 +264,13 @@ export default function PrivateInfoScreen() {
               )
             }
           >
-            <Text style={styles.miniLabel}>MODALITÉ PRÉFÉRÉE</Text>
+            <ThemedText
+              type="label"
+              colorName="textSecondary"
+              style={styles.miniLabel}
+            >
+              MODALITÉ PRÉFÉRÉE
+            </ThemedText>
             <View style={styles.chipRow}>
               {DELIVERY_TYPES.map((type) => (
                 <PreferenceChip
@@ -326,7 +334,7 @@ export default function PrivateInfoScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: THEME.background },
+  container: { flex: 1 },
   navBar: {
     flexDirection: "row",
     alignItems: "center",
@@ -335,10 +343,7 @@ const styles = StyleSheet.create({
     paddingBottom: 15,
   },
   navTitle: {
-    fontSize: 10,
-    fontWeight: "800",
-    color: THEME.textMain,
-    letterSpacing: 2,
+    marginTop: 10,
   },
   navBtn: { width: 44, height: 44, justifyContent: "center" },
   saveAction: {
@@ -347,13 +352,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "flex-end",
   },
-  saveActionText: { fontSize: 14, fontWeight: "800", color: THEME.accent },
   scrollContent: { paddingHorizontal: 30, paddingTop: 20 },
   row: { flexDirection: "row", alignItems: "center" },
   miniLabel: {
-    fontSize: 9,
-    fontWeight: "800",
-    color: THEME.textSecondary,
     letterSpacing: 1.5,
     marginBottom: 8,
   },

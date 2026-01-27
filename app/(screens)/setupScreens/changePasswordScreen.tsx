@@ -1,39 +1,25 @@
-import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useRef, useState } from "react";
 import {
-  ActivityIndicator,
   Keyboard,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
   StyleSheet,
-  Text,
   TextInput,
   TouchableOpacity,
   TouchableWithoutFeedback,
   View,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import { MotiView } from "moti";
 import { authClient } from "@/features/auth";
 import { showErrorToast, showSuccessToast } from "@/lib/toast";
+import { ThemedText } from "@/components/themed-text";
+import { useAppTheme } from "@/hooks/custom/use-app-theme";
+import SettingsNavBar from "@/components/Settings/SettingsNavBar";
+import BtnValidate from "@/components/Settings/BtnValidate";
 
-// --- THEME ÉDITORIAL ---
-const THEME = {
-  background: "#FDFBF7",
-  surface: "#FFFFFF",
-  textMain: "#1A1A1A",
-  textSecondary: "#8E8E93",
-  primary: "#1A1A1A",
-  accent: "#AF9062", // Or brossé
-  border: "rgba(0,0,0,0.08)",
-  success: "#4A6741",
-  error: "#C34A4A",
-};
-
-// --- COMPOSANT INPUT ÉDITORIAL ---
 const EditorialPasswordInput = ({
   label,
   value,
@@ -45,19 +31,33 @@ const EditorialPasswordInput = ({
   error = false,
 }: any) => {
   const [isVisible, setIsVisible] = useState(false);
+  const theme = useAppTheme();
 
   return (
     <View style={styles.inputGroup}>
-      <Text style={styles.miniLabel}>{label}</Text>
+      <ThemedText
+        type="label"
+        colorName="textSecondary"
+        style={styles.miniLabel}
+      >
+        {label}
+      </ThemedText>
       <View
         style={[
           styles.inputUnderline,
-          error && { borderBottomColor: THEME.error },
+          { borderBottomColor: theme.border },
+          error && { borderBottomColor: theme.danger },
         ]}
       >
         <TextInput
           ref={inputRef}
-          style={styles.input}
+          style={[
+            styles.input,
+            {
+              color: theme.textMain,
+              fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
+            },
+          ]}
           placeholder={placeholder}
           placeholderTextColor="#BCBCBC"
           secureTextEntry={!isVisible}
@@ -66,7 +66,7 @@ const EditorialPasswordInput = ({
           returnKeyType={returnKeyType}
           onSubmitEditing={onSubmitEditing}
           autoCapitalize="none"
-          selectionColor={THEME.accent}
+          selectionColor={theme.accent}
         />
         <TouchableOpacity
           onPress={() => {
@@ -75,9 +75,9 @@ const EditorialPasswordInput = ({
           }}
           style={styles.eyeBtn}
         >
-          <Text style={styles.eyeBtnText}>
+          <ThemedText type="label" style={styles.eyeBtnText}>
             {isVisible ? "MASQUER" : "VOIR"}
-          </Text>
+          </ThemedText>
         </TouchableOpacity>
       </View>
     </View>
@@ -86,8 +86,8 @@ const EditorialPasswordInput = ({
 
 export default function ChangePasswordScreen() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
-  const [loading, setLoading] = useState(false);
+  const theme = useAppTheme();
+  const [isSaving, setIsSaving] = useState(false);
 
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -103,7 +103,7 @@ export default function ChangePasswordScreen() {
   const handleUpdatePassword = async () => {
     if (!canSubmit) return;
 
-    setLoading(true);
+    setIsSaving(true);
     Keyboard.dismiss();
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
@@ -124,24 +124,14 @@ export default function ChangePasswordScreen() {
     } catch {
       showErrorToast("Une erreur est survenue");
     } finally {
-      setLoading(false);
+      setIsSaving(false);
     }
   };
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-      <View style={styles.container}>
-        {/* NAV BAR */}
-        <View style={[styles.navBar, { paddingTop: insets.top + 10 }]}>
-          <TouchableOpacity
-            onPress={() => router.back()}
-            style={styles.backBtn}
-          >
-            <Ionicons name="chevron-back" size={24} color={THEME.textMain} />
-          </TouchableOpacity>
-          <Text style={styles.navTitle}>SÉCURITÉ</Text>
-          <View style={{ width: 44 }} />
-        </View>
+      <View style={[styles.container, { backgroundColor: theme.background }]}>
+        <SettingsNavBar title="SÉCURITÉ" />
 
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -151,22 +141,22 @@ export default function ChangePasswordScreen() {
             contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
           >
-            {/* HERO SECTION */}
             <MotiView
               from={{ opacity: 0, translateY: 15 }}
               animate={{ opacity: 1, translateY: 0 }}
               transition={{ type: "timing", duration: 700 }}
               style={styles.heroSection}
             >
-              <Text style={styles.heroTitle}>Nouveau{"\n"}mot de passe.</Text>
-              <View style={styles.titleDivider} />
-              <Text style={styles.heroSubtitle}>
-                Protégez l&apos;accès à vos listes et vos données personnelles avec
-                une signature secrète forte.
-              </Text>
+              <ThemedText type="hero">Nouveau{"\n"}mot de passe.</ThemedText>
+              <View
+                style={[styles.titleDivider, { backgroundColor: theme.accent }]}
+              />
+              <ThemedText type="subtitle" colorName="textSecondary">
+                Protégez l&apos;accès à vos listes et vos données personnelles
+                avec une signature secrète forte.
+              </ThemedText>
             </MotiView>
 
-            {/* FORMULAIRE */}
             <View style={styles.formContainer}>
               <EditorialPasswordInput
                 label="SIGNATURE ACTUELLE"
@@ -188,17 +178,21 @@ export default function ChangePasswordScreen() {
                 error={newPassword.length > 0 && !isLengthValid}
               />
 
-              {/* Validation Nouveau MDP */}
               <View style={styles.validationRow}>
-                <View style={[styles.dot, isLengthValid && styles.dotActive]} />
-                <Text
+                <View
                   style={[
-                    styles.validationText,
-                    isLengthValid && styles.textActive,
+                    styles.dot,
+                    { backgroundColor: theme.border },
+                    isLengthValid && { backgroundColor: theme.accent },
                   ]}
+                />
+                <ThemedText
+                  type="caption"
+                  colorName={isLengthValid ? "accent" : "textSecondary"}
+                  style={styles.validationText}
                 >
                   Exigence de sécurité : 8 caractères minimum
-                </Text>
+                </ThemedText>
               </View>
 
               <View style={{ height: 30 }} />
@@ -214,52 +208,38 @@ export default function ChangePasswordScreen() {
                 error={confirmPassword.length > 0 && !isMatch}
               />
 
-              {/* Validation Match */}
               {confirmPassword.length > 0 && (
                 <View style={styles.validationRow}>
-                  <Ionicons
-                    name={isMatch ? "checkmark" : "close"}
-                    size={12}
-                    color={isMatch ? THEME.success : THEME.error}
-                  />
-                  <Text
-                    style={[
-                      styles.validationText,
-                      { color: isMatch ? THEME.success : THEME.error },
-                    ]}
+                  <ThemedText
+                    type="caption"
+                    style={{ color: isMatch ? theme.success : theme.danger }}
                   >
                     {isMatch
                       ? "Les signatures correspondent"
                       : "Les signatures diffèrent"}
-                  </Text>
+                  </ThemedText>
                 </View>
               )}
             </View>
 
-            {/* FOOTER ACTION */}
-            <View style={styles.footer}>
-              <TouchableOpacity
-                style={[
-                  styles.primaryBtn,
-                  (!canSubmit || loading) && styles.primaryBtnDisabled,
-                ]}
-                onPress={handleUpdatePassword}
-                disabled={!canSubmit || loading}
-                activeOpacity={0.9}
-              >
-                {loading ? (
-                  <ActivityIndicator color="#FFF" size="small" />
-                ) : (
-                  <Text style={styles.primaryBtnText}>
-                    Mettre à jour la sécurité
-                  </Text>
-                )}
-              </TouchableOpacity>
-              <Text style={styles.helperFooter}>
-                Cela déconnectera vos autres sessions actives.
-              </Text>
-            </View>
+            <View style={{ height: 20 }} />
           </ScrollView>
+
+          <View style={styles.footerContainer}>
+            <BtnValidate
+              hasChanges={canSubmit}
+              isSaving={isSaving}
+              handleSave={handleUpdatePassword}
+              text="METTRE À JOUR LA SÉCURITÉ"
+            />
+            <ThemedText
+              type="caption"
+              colorName="textSecondary"
+              style={styles.helperFooter}
+            >
+              Cela déconnectera vos autres sessions actives.
+            </ThemedText>
+          </View>
         </KeyboardAvoidingView>
       </View>
     </TouchableWithoutFeedback>
@@ -267,148 +247,35 @@ export default function ChangePasswordScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: THEME.background,
-  },
-  /* NAV BAR */
-  navBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 15,
-  },
-  backBtn: {
-    width: 44,
-    height: 44,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  navTitle: {
-    fontSize: 10,
-    fontWeight: "800",
-    color: THEME.textMain,
-    letterSpacing: 2,
-  },
-  scrollContent: {
-    paddingHorizontal: 32,
-    flexGrow: 1,
-  },
-  /* HERO */
-  heroSection: {
-    marginTop: 30,
-    marginBottom: 40,
-  },
-  heroTitle: {
-    fontSize: 38,
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-    color: THEME.textMain,
-    lineHeight: 44,
-    letterSpacing: -1,
-  },
-  titleDivider: {
-    width: 35,
-    height: 2,
-    backgroundColor: THEME.accent,
-    marginVertical: 25,
-  },
-  heroSubtitle: {
-    fontSize: 14,
-    color: THEME.textSecondary,
-    lineHeight: 22,
-    fontStyle: "italic",
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-  },
-  /* FORM CONTAINER */
-  formContainer: {
-    marginBottom: 20,
-  },
-  /* INPUT COMPONENT */
-  inputGroup: {
-    marginBottom: 10,
-  },
-  miniLabel: {
-    fontSize: 9,
-    fontWeight: "800",
-    color: THEME.textSecondary,
-    letterSpacing: 1.5,
-    marginBottom: 12,
-  },
+  container: { flex: 1 },
+  scrollContent: { paddingHorizontal: 32, flexGrow: 1 },
+  heroSection: { marginTop: 30, marginBottom: 40 },
+  titleDivider: { width: 35, height: 2, marginVertical: 25 },
+  formContainer: { marginBottom: 20 },
+  inputGroup: { marginBottom: 10 },
+  miniLabel: { letterSpacing: 1.5, marginBottom: 12 },
   inputUnderline: {
     flexDirection: "row",
     alignItems: "center",
     borderBottomWidth: 1,
-    borderBottomColor: THEME.border,
     paddingBottom: 8,
   },
-  input: {
-    flex: 1,
-    fontSize: 18,
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-    color: THEME.textMain,
-  },
-  eyeBtn: {
-    paddingLeft: 10,
-  },
-  eyeBtnText: {
-    fontSize: 9,
-    fontWeight: "800",
-    color: THEME.textMain,
-    letterSpacing: 1,
-  },
-  /* VALIDATION */
+  input: { flex: 1, fontSize: 18 },
+  eyeBtn: { paddingLeft: 10 },
+  eyeBtnText: { letterSpacing: 1 },
   validationRow: {
     flexDirection: "row",
     alignItems: "center",
     marginTop: 10,
     gap: 8,
   },
-  dot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: THEME.border,
-  },
-  dotActive: {
-    backgroundColor: THEME.accent,
-  },
-  validationText: {
-    fontSize: 11,
-    color: THEME.textSecondary,
-    fontWeight: "500",
-  },
-  textActive: {
-    color: THEME.accent,
-  },
-  /* FOOTER */
-  footer: {
-    marginTop: "auto",
-    paddingBottom: 30,
-    paddingTop: 20,
-  },
-  primaryBtn: {
-    backgroundColor: THEME.primary,
-    height: 60,
-    borderRadius: 0,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  primaryBtnDisabled: {
-    backgroundColor: "#E5E7EB",
-    opacity: 0.6,
-  },
-  primaryBtnText: {
-    color: "#FFFFFF",
-    fontSize: 14,
-    fontWeight: "700",
-    letterSpacing: 1,
-    textTransform: "uppercase",
-  },
+  dot: { width: 4, height: 4, borderRadius: 2 },
+  validationText: {},
+  footerContainer: { paddingTop: 10 },
   helperFooter: {
-    marginTop: 15,
-    fontSize: 11,
-    color: THEME.textSecondary,
+    marginTop: 10,
     textAlign: "center",
     letterSpacing: 0.5,
+    marginBottom: 20,
   },
 });

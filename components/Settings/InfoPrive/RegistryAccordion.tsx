@@ -1,7 +1,6 @@
 import React from "react";
 import {
   View,
-  Text,
   TouchableOpacity,
   StyleSheet,
   LayoutAnimation,
@@ -11,23 +10,16 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import Icon from "../../themed-icon";
+import { ThemedText } from "@/components/themed-text";
+import { useAppTheme } from "@/hooks/custom/use-app-theme";
+import ThemedIcon from "../../themed-icon";
 
-// Activation de l'animation pour Android
 if (
   Platform.OS === "android" &&
   UIManager.setLayoutAnimationEnabledExperimental
 ) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
-
-// On définit un thème interne ou on peut le passer en props
-const THEME = {
-  textMain: "#1A1A1A",
-  textSecondary: "#8E8E93",
-  accent: "#AF9062",
-  border: "rgba(0,0,0,0.08)",
-};
 
 interface RegistryAccordionProps {
   title: string;
@@ -44,31 +36,32 @@ export const RegistryAccordion = ({
   onToggle,
   children,
 }: RegistryAccordionProps) => {
+  const theme = useAppTheme();
+
   const handlePress = () => {
-    // Feedback tactile
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    // Fermer le clavier si un input était focus
     Keyboard.dismiss();
-    // Animation fluide de l'ouverture
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     onToggle();
   };
 
   return (
-    <View style={styles.registryBlock}>
+    <View style={[styles.registryBlock, { borderBottomColor: theme.border }]}>
       <TouchableOpacity
         style={styles.registryHeader}
         onPress={handlePress}
         activeOpacity={0.7}
       >
         <View style={styles.row}>
-          <Icon name={icon} color={THEME.accent} />
-          <Text style={styles.registryTitle}>{title}</Text>
+          <ThemedIcon name={icon} colorName="accent" />
+          <ThemedText type="subtitle" style={styles.registryTitle}>
+            {title}
+          </ThemedText>
         </View>
-        <Ionicons
+        <ThemedIcon
           name={isOpen ? "remove" : "add"}
           size={20}
-          color={THEME.textSecondary}
+          colorName="textSecondary"
         />
       </TouchableOpacity>
 
@@ -80,7 +73,6 @@ export const RegistryAccordion = ({
 const styles = StyleSheet.create({
   registryBlock: {
     borderBottomWidth: 1,
-    borderBottomColor: THEME.border,
   },
   registryHeader: {
     flexDirection: "row",
@@ -95,8 +87,6 @@ const styles = StyleSheet.create({
   },
   registryTitle: {
     fontSize: 18,
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-    color: THEME.textMain,
   },
   registryContent: {
     paddingBottom: 30,
