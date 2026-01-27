@@ -8,18 +8,18 @@ import {
   Text,
   TouchableOpacity,
   View,
-  ActivityIndicator,
 } from "react-native";
+import { Loader } from "@/components/ui/Loader";
 import { useLocalSearchParams, useRouter, Stack } from "expo-router";
 import PagerView from "react-native-pager-view";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Image } from "expo-image";
 import { userService } from "@/lib/services/user-service";
 import { wishlistService } from "@/lib/services/wishlist-service";
-import EmptyListTab from "@/components/ProfilUI/ui/EmptyListTab";
 import HeaderParallax from "@/components/ProfilUI/HeaderParallax";
 import { HEADER_HEIGHT } from "@/constants/const";
 import GiftWishlistCard from "@/components/ProfilUI/GiftCard";
+import EmptyContent from "@/components/EmptyContent";
 
 export default function PublicUserProfileScreen() {
   const router = useRouter();
@@ -120,7 +120,7 @@ export default function PublicUserProfileScreen() {
   if (loading && !user) {
     return (
       <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#111827" />
+        <Loader size="large" />
       </View>
     );
   }
@@ -231,9 +231,10 @@ export default function PublicUserProfileScreen() {
                 </View>
               ))
             ) : (
-              <EmptyListTab
+              <EmptyContent
                 title="Cet utilisateur n'a pas encore de listes publiques."
                 icon="gift-outline"
+                subtitle=""
               />
             )}
           </View>

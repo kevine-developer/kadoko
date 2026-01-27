@@ -25,6 +25,7 @@ class AuthService {
         email: data.email,
         password: data.password,
         name: data.name,
+        image: data.image,
       });
 
       if (response.error) {
@@ -51,6 +52,37 @@ class AuthService {
   }
 
   /**
+   * Vérifie le statut de l'utilisateur avant inscription
+   */
+  async checkUserStatus(
+    email: string,
+    username?: string,
+  ): Promise<{ success: boolean; message?: string }> {
+    try {
+      const response = (await authClient.$fetch("/check-status", {
+        method: "POST",
+        body: { email, username },
+      })) as any;
+
+      if (!response.success) {
+        return {
+          success: false,
+          message: response.message || "Impossible de créer le compte",
+        };
+      }
+      return { success: true };
+    } catch (error: any) {
+      console.error("Erreur checkStatus:", error);
+      // Gérer le cas où $fetch lance une erreur pour les statuts 400/500
+      const message = error.data?.message || "Erreur de vérification";
+      return {
+        success: false,
+        message,
+      };
+    }
+  }
+
+  /**
    * Connecte un utilisateur
    */
   async signIn(data: SignInRequest): Promise<AuthResponse> {
@@ -61,10 +93,16 @@ class AuthService {
       });
 
       if (response.error) {
+        // Extraire le code d'erreur depuis le message si disponible
+        const errorCode =
+          (response.error as any)?.code ||
+          response.error.status?.toString() ||
+          "SIGNIN_FAILED";
         return {
           success: false,
           message: response.error.message || "Email ou mot de passe incorrect",
           error: response.error.status?.toString() || "SIGNIN_FAILED",
+          errorCode: errorCode,
         } as AuthResponse;
       }
 

@@ -13,7 +13,7 @@ export const StatEntry = ({ value, label }: StatEntryProps) => {
 
   return (
     <View style={styles.container}>
-      <ThemedText type="defaultBold" style={styles.number}>
+      <ThemedText type="title" style={styles.number}>
         {value || 0}
       </ThemedText>
       <ThemedText type="label" style={{ color: theme.textSecondary }}>
@@ -29,6 +29,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   number: {
-    marginBottom: 4,
+    marginBottom: 2,
+    fontSize: 20,
   },
 });

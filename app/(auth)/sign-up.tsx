@@ -25,6 +25,9 @@ import ThemedIcon from "@/components/themed-icon";
 
 // --- THEME ÉDITORIAL ---
 
+const DEFAULT_AVATAR_URL =
+  "https://res.cloudinary.com/dhe585mze/image/upload/v1769517597/avatar-default-svgrepo-com_w8fz2f.svg";
+
 export default function SignUp() {
   const router = useRouter();
   const theme = useAppTheme();
@@ -89,10 +92,20 @@ export default function SignUp() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
     try {
+      // 1. Vérification préalable (Blocage / Existence)
+      const checkRes = await authService.checkUserStatus(email.trim());
+      if (!checkRes.success) {
+        setIsLoading(false);
+        setServerError(checkRes.message || "Inscription impossible");
+        return;
+      }
+
+      // 2. Inscription
       const response = await authService.signUp({
         email: email.trim(),
         password,
         name: fullName.trim(),
+        image: DEFAULT_AVATAR_URL,
       });
 
       if (response.success) {

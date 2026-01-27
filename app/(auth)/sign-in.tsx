@@ -177,7 +177,7 @@ export default function SignIn() {
 
       {/* 6. Footer avec navigation inversée */}
       <FooterAuth
-        textIntro="Nouveau parmi nous ?"
+        textIntro="Nouveau sur Kadokou ?"
         textLink="Créer un compte"
         link="/sign-up"
       />

@@ -10,7 +10,7 @@ interface ThemedIconProps {
   colorName?: keyof typeof Colors.light;
 }
 
-const Icon = ({
+const ThemedIcon = ({
   name,
   size = 20,
   color,
@@ -21,4 +21,4 @@ const Icon = ({
   return <Ionicons name={name} size={size} color={color ?? themeColor} />;
 };
 
-export default Icon;
+export default ThemedIcon;

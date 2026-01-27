@@ -16,39 +16,13 @@ import {
 import { MotiView } from "moti";
 import * as Haptics from "expo-haptics";
 
-import { Skeleton } from "@/components/ui/Skeleton";
-import { GiftCardSkeleton } from "@/components/ui/SkeletonGroup";
+import { Loader } from "@/components/ui/Loader";
 import { socketService } from "@/lib/services/socket";
 import GiftFriendBuy from "@/components/HomeUI/GiftFriendBuy";
 import { ThemedText } from "@/components/themed-text";
 import { useAppTheme } from "@/hooks/custom/use-app-theme";
-import ThemedIcon from "@/components/themed-icon";
 import MailVerified from "@/components/HomeUI/MailVerified";
-import EmptyFeed from "@/components/HomeUI/EmptyFeed";
-
-// --- SKELETON GÉOMÉTRIQUE ---
-const HomeSkeleton = () => (
-  <View style={{ paddingHorizontal: 20, paddingTop: 20 }}>
-    <View style={{ flexDirection: "row", gap: 10, marginBottom: 40 }}>
-      {[1, 2, 3, 4].map((i) => (
-        <Skeleton key={i} width={70} height={70} borderRadius={0} />
-      ))}
-    </View>
-    <Skeleton
-      width="100%"
-      height={180}
-      borderRadius={0}
-      style={{ marginBottom: 40 }}
-    />
-    <Skeleton
-      width={150}
-      height={30}
-      borderRadius={0}
-      style={{ marginBottom: 20 }}
-    />
-    <GiftCardSkeleton />
-  </View>
-);
+import EmptyContent from "@/components/EmptyContent";
 
 export default function LuxuryFeedScreen() {
   const [inspirations, setInspirations] = useState<any[]>([]);
@@ -189,11 +163,9 @@ export default function LuxuryFeedScreen() {
         <HeaderHome user={session?.user} />
 
         {/* 2. TICKER D'ACTUALITÉ / ALERTE */}
-        {session?.user?.emailVerified === false && (
-          <MailVerified />
-        )}
+        {session?.user?.emailVerified === false && <MailVerified />}
         {loading && !refreshing ? (
-          <HomeSkeleton />
+          <Loader size="large" />
         ) : (
           <MotiView
             from={{ opacity: 0 }}
@@ -236,7 +208,10 @@ export default function LuxuryFeedScreen() {
                   <GiftCardHome key={post.id} item={post} />
                 ))
               ) : (
-                <EmptyFeed />
+                <EmptyContent
+                  title="Aucun plaisir partagé"
+                  subtitle="Soyez le premier à créer une liste et à partager vos envies !"
+                />
               )}
             </View>
           </MotiView>
@@ -256,5 +231,4 @@ const styles = StyleSheet.create({
   sectionHeader: { marginBottom: 30 },
   sectionTitle: { fontSize: 18, letterSpacing: -0.5 },
   sectionDivider: { width: 40, height: 2, marginTop: 15 },
-
 });

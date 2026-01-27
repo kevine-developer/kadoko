@@ -21,28 +21,33 @@ const SettingsNavBar = ({ title, onPress, isSaving }: SettingsNavBarProps) => {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const theme = useAppTheme();
+
+  const shouldRenderAction = Boolean(onPress);
   return (
     <View style={[styles.navBar, { paddingTop: insets.top + 10 }]}>
       <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-        <Icon name="chevron-back" size={24} color={theme.textMain} />
+        <Icon name="chevron-back" color={theme.textMain} />
       </TouchableOpacity>
       <ThemedText type="label" colorName="textMain">
         {title}
       </ThemedText>
-      <View style={{ width: 44 }} />
-      <TouchableOpacity
-        onPress={onPress}
-        disabled={isSaving}
-        style={styles.saveAction}
-      >
-        {isSaving ? (
-          <ActivityIndicator size="small" color={theme.accent} />
-        ) : (
-          <ThemedText type="label" colorName="accent">
-            OK
-          </ThemedText>
-        )}
-      </TouchableOpacity>
+      {shouldRenderAction ? (
+        <TouchableOpacity
+          onPress={onPress}
+          disabled={isSaving}
+          style={styles.saveAction}
+        >
+          {isSaving ? (
+            <ActivityIndicator size="small" color={theme.accent} />
+          ) : (
+            <ThemedText type="default" colorName="accent">
+              OK
+            </ThemedText>
+          )}
+        </TouchableOpacity>
+      ) : (
+        <View style={{ width: 44 }} />
+      )}
     </View>
   );
 };

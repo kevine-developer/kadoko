@@ -12,10 +12,7 @@ import {
   TouchableWithoutFeedback,
   View,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
-import { MotiView } from "moti";
-
 // Hooks & Components
 import { authClient } from "@/features/auth";
 import { showErrorToast, showSuccessToast } from "@/lib/toast";
@@ -23,14 +20,16 @@ import { ThemedText } from "@/components/themed-text";
 import Icon from "@/components/themed-icon";
 import { useAppTheme } from "@/hooks/custom/use-app-theme";
 import SettingsNavBar from "@/components/Settings/SettingsNavBar";
+import ChangeMailConfirme from "@/components/Settings/ChangeMailConfirme";
+import SettingHero from "@/components/Settings/SettingHero";
 
 export default function ChangeEmailScreen() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const theme = useAppTheme();
 
   const [loading, setLoading] = useState(false);
   const [newEmail, setNewEmail] = useState("");
+  const [isSent, setIsSent] = useState(false);
 
   const { data: session } = authClient.useSession();
   const currentEmail = session?.user?.email;
@@ -66,11 +65,8 @@ export default function ChangeEmailScreen() {
         showErrorToast(error.message || "Erreur lors de la demande");
       } else {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        showSuccessToast("Code de vérification envoyé");
-        router.push({
-          pathname: "/(screens)/verifyEmailScreen",
-          params: { email: newEmail, type: "change-email" },
-        });
+        setIsSent(true);
+        showSuccessToast("Email de vérification envoyé");
       }
     } catch {
       showErrorToast("Une erreur est survenue");
@@ -120,131 +116,148 @@ export default function ChangeEmailScreen() {
             showsVerticalScrollIndicator={false}
           >
             {/* HERO SECTION */}
-            <MotiView
-              from={{ opacity: 0, translateY: 15 }}
-              animate={{ opacity: 1, translateY: 0 }}
-              transition={{ type: "timing", duration: 700 }}
-              style={styles.heroSection}
-            >
-              <ThemedText type="hero">Nouvelle{"\n"}adresse email.</ThemedText>
-              <View
-                style={[styles.titleDivider, { backgroundColor: theme.accent }]}
-              />
-              <ThemedText type="subtitle" colorName="textSecondary">
-                Pour garantir la sécurité de votre compte, une vérification sera
-                nécessaire sur votre nouvelle boîte de réception.
-              </ThemedText>
-            </MotiView>
+            <SettingHero
+              title={`Nouvelle\nadresse email`}
+              subtitle="Pour garantir la sécurité de votre compte, une vérification sera nécessaire sur votre nouvelle boîte de réception."
+            />
 
             {/* REGISTRE DES ADRESSES */}
-            <View style={styles.registrySection}>
-              <View
-                style={[
-                  styles.registryRow,
-                  { borderBottomColor: theme.border },
-                ]}
-              >
-                <View style={{ flex: 1 }}>
-                  <ThemedText type="label" colorName="textSecondary">
-                    ADRESSE ACTUELLE
-                  </ThemedText>
-                  <ThemedText
-                    type="title"
-                    style={{ fontSize: 18, marginTop: 4 }}
-                  >
-                    {currentEmail || "—"}
-                  </ThemedText>
-                </View>
-                {session?.user?.emailVerified && (
-                  <Icon
-                    name="checkmark-circle-outline"
-                    size={22}
-                    colorName="success"
-                  />
-                )}
-              </View>
-
-              {!session?.user?.emailVerified && (
-                <TouchableOpacity
-                  onPress={handleVerifyCurrentEmail}
+            {!isSent ? (
+              <View style={styles.registrySection}>
+                <View
                   style={[
-                    styles.verifyActionRow,
-                    { borderLeftColor: theme.accent },
+                    styles.registryRow,
+                    { borderBottomColor: theme.border },
                   ]}
-                  activeOpacity={0.7}
                 >
-                  <View style={styles.row}>
-                    <Icon
-                      name="shield-checkmark-outline"
-                      size={18}
-                      colorName="accent"
-                    />
+                  <View style={{ flex: 1 }}>
+                    <ThemedText type="label" colorName="textSecondary">
+                      ADRESSE ACTUELLE
+                    </ThemedText>
                     <ThemedText
-                      type="label"
-                      colorName="accent"
-                      style={{ marginLeft: 12 }}
+                      type="title"
+                      style={{ fontSize: 18, marginTop: 4 }}
                     >
-                      VÉRIFIER MON IDENTITÉ
+                      {currentEmail || "—"}
                     </ThemedText>
                   </View>
-                  <Icon name="chevron-forward" size={14} colorName="accent" />
-                </TouchableOpacity>
-              )}
+                  {session?.user?.emailVerified && (
+                    <Icon
+                      name="checkmark-circle-outline"
+                      size={22}
+                      colorName="success"
+                    />
+                  )}
+                </View>
 
-              {/* Ligne : Nouvelle (Input) */}
-              <View style={styles.inputSection}>
-                <ThemedText type="label" colorName="textSecondary">
-                  NOUVELLE DESTINATION
-                </ThemedText>
-                <TextInput
-                  style={[
-                    styles.input,
-                    {
-                      color: theme.textMain,
-                      borderBottomColor: theme.accent,
-                      fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-                    },
-                  ]}
-                  placeholder="nom@domaine.com"
-                  placeholderTextColor={theme.textSecondary}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  value={newEmail}
-                  onChangeText={setNewEmail}
-                  autoCorrect={false}
-                  selectionColor={theme.accent}
-                />
+                {!session?.user?.emailVerified && (
+                  <TouchableOpacity
+                    onPress={handleVerifyCurrentEmail}
+                    style={[
+                      styles.verifyActionRow,
+                      { borderLeftColor: theme.accent },
+                    ]}
+                    activeOpacity={0.7}
+                  >
+                    <View style={styles.row}>
+                      <Icon
+                        name="shield-checkmark-outline"
+                        size={18}
+                        colorName="accent"
+                      />
+                      <ThemedText
+                        type="label"
+                        colorName="accent"
+                        style={{ marginLeft: 12 }}
+                      >
+                        VÉRIFIER MON IDENTITÉ
+                      </ThemedText>
+                    </View>
+                    <Icon name="chevron-forward" size={14} colorName="accent" />
+                  </TouchableOpacity>
+                )}
+
+                {/* Ligne : Nouvelle (Input) */}
+                <View style={styles.inputSection}>
+                  <ThemedText type="label" colorName="textSecondary">
+                    NOUVELLE DESTINATION
+                  </ThemedText>
+                  <TextInput
+                    style={[
+                      styles.input,
+                      {
+                        color: theme.textMain,
+                        borderBottomColor: theme.accent,
+                        fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
+                      },
+                    ]}
+                    placeholder="nom@domaine.com"
+                    placeholderTextColor={theme.textSecondary}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    value={newEmail}
+                    onChangeText={setNewEmail}
+                    autoCorrect={false}
+                    selectionColor={theme.accent}
+                  />
+                </View>
               </View>
-            </View>
+            ) : (
+              <ChangeMailConfirme newEmail={newEmail} />
+            )}
 
             {/* ACTION FOOTER */}
             <View style={styles.footer}>
-              <TouchableOpacity
-                style={[
-                  styles.primaryBtn,
-                  { backgroundColor: theme.textMain },
-                  (!newEmail || loading) && { opacity: 0.5 },
-                ]}
-                onPress={handleRequestChange}
-                disabled={loading || !newEmail}
-                activeOpacity={0.9}
-              >
-                {loading ? (
-                  <ActivityIndicator color={theme.background} size="small" />
-                ) : (
-                  <ThemedText type="label" lightColor="#FFF" darkColor="#000">
-                    Mettre à jour mon profil
-                  </ThemedText>
-                )}
-              </TouchableOpacity>
+              {!isSent ? (
+                <>
+                  <TouchableOpacity
+                    style={[
+                      styles.primaryBtn,
+                      { backgroundColor: theme.textMain },
+                      (!newEmail || loading) && { opacity: 0.5 },
+                    ]}
+                    onPress={handleRequestChange}
+                    disabled={loading || !newEmail}
+                    activeOpacity={0.9}
+                  >
+                    {loading ? (
+                      <ActivityIndicator
+                        color={theme.background}
+                        size="small"
+                      />
+                    ) : (
+                      <ThemedText
+                        type="label"
+                        lightColor="#FFF"
+                        darkColor="#000"
+                      >
+                        Mettre à jour mon profil
+                      </ThemedText>
+                    )}
+                  </TouchableOpacity>
 
-              <ThemedText
-                type="caption"
-                colorName="textSecondary"
-                style={styles.helperText}
-              >
-                Un code de confirmation sera envoyé instantanément.
-              </ThemedText>
+                  <ThemedText
+                    type="caption"
+                    colorName="textSecondary"
+                    style={styles.helperText}
+                  >
+                    L&apos;adresse sera mise à jour après confirmation.
+                  </ThemedText>
+                </>
+              ) : (
+                <TouchableOpacity
+                  style={[
+                    styles.primaryBtn,
+                    { backgroundColor: theme.textMain },
+                  ]}
+                  onPress={() => router.back()}
+                  activeOpacity={0.9}
+                >
+                  <ThemedText type="label" lightColor="#FFF" darkColor="#000">
+                    Retour aux réglages
+                  </ThemedText>
+                </TouchableOpacity>
+              )}
             </View>
           </ScrollView>
         </KeyboardAvoidingView>
@@ -255,21 +268,7 @@ export default function ChangeEmailScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  navBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 15,
-  },
-  backBtn: {
-    width: 44,
-    height: 44,
-    justifyContent: "center",
-    alignItems: "center",
-  },
   scrollContent: { paddingHorizontal: 32, flexGrow: 1 },
-  heroSection: { marginTop: 30, marginBottom: 40 },
-  titleDivider: { width: 35, height: 2, marginVertical: 25 },
   registrySection: { marginBottom: 40 },
   registryRow: {
     flexDirection: "row",

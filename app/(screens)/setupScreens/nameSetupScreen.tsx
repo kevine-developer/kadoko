@@ -20,6 +20,7 @@ import { ThemedText } from "@/components/themed-text";
 import { useAppTheme } from "@/hooks/custom/use-app-theme";
 import SettingsNavBar from "@/components/Settings/SettingsNavBar";
 import ThemedIcon from "@/components/themed-icon";
+import SettingHero from "@/components/Settings/SettingHero";
 
 export default function NameSetupScreen() {
   const router = useRouter();
@@ -66,30 +67,11 @@ export default function NameSetupScreen() {
           style={{ flex: 1 }}
         >
           <View style={styles.content}>
-            <MotiView
-              from={{ opacity: 0, translateY: 15 }}
-              animate={{ opacity: 1, translateY: 0 }}
-              transition={{ type: "timing", duration: 700 }}
-              style={styles.heroSection}
-            >
-              <MotiView
-                from={{ width: 0 }}
-                animate={{ width: 35 }}
-                transition={{ type: "timing", duration: 800, delay: 200 }}
-                style={[styles.titleDivider, { backgroundColor: theme.accent }]}
-              />
-              <ThemedText type="hero" style={styles.heroTitle}>
-                Comment vous{"\n"}appelle-t-on ?
-              </ThemedText>
-              <ThemedText
-                type="subtitle"
-                colorName="textSecondary"
-                style={styles.heroSubtitle}
-              >
-                Votre nom sera l&apos;élément central de votre profil pour vos
-                listes et vos cercles d&apos;amis.
-              </ThemedText>
-            </MotiView>
+            <SettingHero
+              title={`Comment vous\nappelle-t-on ?`}
+              subtitle="Votre nom sera l'élément central de votre profil pour vos
+            listes et vos cercles d'amis."
+            />
 
             <View style={styles.inputSection}>
               <ThemedText
@@ -161,10 +143,6 @@ export default function NameSetupScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { flex: 1, paddingHorizontal: 32, paddingTop: 30 },
-  heroSection: { marginBottom: 50 },
-  titleDivider: { height: 2, marginBottom: 25 },
-  heroTitle: {},
-  heroSubtitle: { marginTop: 20 },
   inputSection: { marginTop: 10 },
   miniLabel: { letterSpacing: 1.5, marginBottom: 12 },
   inputUnderline: {

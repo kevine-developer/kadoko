@@ -70,8 +70,8 @@ const SettingRow = ({
         <View style={styles.labelContainer}>
           <View style={styles.labelHeader}>
             <ThemedText
-              type="defaultBold"
-              colorName={isDanger ? "danger" : "textMain"}
+              type="default"
+              colorName="textMain"
               style={styles.rowLabel}
             >
               {label}

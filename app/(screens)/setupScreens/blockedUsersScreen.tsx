@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import {
   ActivityIndicator,
@@ -15,13 +14,14 @@ import { MotiView } from "moti";
 import { userService } from "@/lib/services/user-service";
 import { showErrorToast, showSuccessToast, showCustomAlert } from "@/lib/toast";
 import { ThemedText } from "@/components/themed-text";
-import Icon from "@/components/themed-icon";
 import { useAppTheme } from "@/hooks/custom/use-app-theme";
 import SettingsNavBar from "@/components/Settings/SettingsNavBar";
+import SettingHero from "@/components/Settings/SettingHero";
+import EmptyContent from "@/components/EmptyContent";
 
 export default function BlockedUsersScreen() {
   const theme = useAppTheme();
-  
+
   const [blockedUsers, setBlockedUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
@@ -46,7 +46,7 @@ export default function BlockedUsersScreen() {
   const handleUnblock = (user: any) => {
     if (processingIds.has(user.id)) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    
+
     showCustomAlert(
       "Rétablir l'accès ?",
       `Voulez-vous autoriser ${user.name} à consulter de nouveau votre profil ?`,
@@ -59,7 +59,9 @@ export default function BlockedUsersScreen() {
             try {
               const res = await userService.unblockUser(user.id);
               if (res.success) {
-                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                Haptics.notificationAsync(
+                  Haptics.NotificationFeedbackType.Success,
+                );
                 showSuccessToast("Accès rétabli");
                 fetchBlockedUsers();
               }
@@ -79,34 +81,18 @@ export default function BlockedUsersScreen() {
   };
 
   const renderHeader = () => (
-    <MotiView
-      from={{ opacity: 0, translateY: 10 }}
-      animate={{ opacity: 1, translateY: 0 }}
-      style={styles.listHeader}
-    >
-      <ThemedText type="hero">Accès{"\n"}restreints.</ThemedText>
-      <View style={[styles.titleDivider, { backgroundColor: theme.accent }]} />
-      <ThemedText type="subtitle" colorName="textSecondary">
-        Registre des personnes n&apos;ayant plus accès à vos collections et listes privées.
-      </ThemedText>
-    </MotiView>
+    <SettingHero
+      title={`Accès\nrestreints`}
+      subtitle="Registre des personnes n'ayant plus accès à vos collections et listes privées."
+    />
   );
 
   const renderEmptyState = () => (
-    <MotiView
-      from={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ delay: 300 }}
-      style={styles.emptyContainer}
-    >
-      <View style={[styles.placeholderCircle, { borderColor: theme.border, backgroundColor: theme.surface }]}>
-        <Icon name="shield-outline" size={30} colorName="accent" />
-      </View>
-      <ThemedText type="title" style={styles.emptyTitle}>Cercle protégé</ThemedText>
-      <ThemedText type="subtitle" colorName="textSecondary" style={styles.emptyText}>
-        Votre liste de blocage est actuellement vide.
-      </ThemedText>
-    </MotiView>
+    <EmptyContent
+      title="Cercle protégé"
+      subtitle="Votre liste de blocage est actuellement vide."
+      icon="shield-outline"
+    />
   );
 
   return (
@@ -140,7 +126,9 @@ export default function BlockedUsersScreen() {
                   contentFit="cover"
                 />
                 <View style={styles.userInfo}>
-                  <ThemedText type="title" style={{ fontSize: 16 }}>{item.name}</ThemedText>
+                  <ThemedText type="title" style={{ fontSize: 16 }}>
+                    {item.name}
+                  </ThemedText>
                   <ThemedText type="caption" colorName="textSecondary">
                     @{item.username || "utilisateur"}
                   </ThemedText>
@@ -155,7 +143,9 @@ export default function BlockedUsersScreen() {
                 {processingIds.has(item.id) ? (
                   <ActivityIndicator size="small" color={theme.accent} />
                 ) : (
-                  <ThemedText type="label" colorName="accent">Débloquer</ThemedText>
+                  <ThemedText type="label" colorName="accent">
+                    Débloquer
+                  </ThemedText>
                 )}
               </TouchableOpacity>
             </MotiView>
@@ -168,18 +158,8 @@ export default function BlockedUsersScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  navBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 15,
-    paddingBottom: 15,
-  },
-  backBtn: { width: 44, height: 44, justifyContent: "center", alignItems: "center" },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
   listContent: { paddingHorizontal: 30, paddingBottom: 40 },
-  listHeader: { marginTop: 20, marginBottom: 40 },
-  titleDivider: { width: 35, height: 2, marginVertical: 20 },
   userRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -188,19 +168,12 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
   },
   rowLeft: { flexDirection: "row", alignItems: "center", gap: 15, flex: 1 },
-  avatar: { width: 44, height: 44, borderRadius: 0, backgroundColor: "#F2F2F7" },
+  avatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 0,
+    backgroundColor: "#F2F2F7",
+  },
   userInfo: { flex: 1 },
   ghostActionBtn: { paddingVertical: 6, paddingLeft: 10 },
-  emptyContainer: { alignItems: "center", justifyContent: "center", marginTop: 80 },
-  placeholderCircle: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 20,
-    borderWidth: 1,
-  },
-  emptyTitle: { marginBottom: 8 },
-  emptyText: { textAlign: "center", paddingHorizontal: 20 },
 });
