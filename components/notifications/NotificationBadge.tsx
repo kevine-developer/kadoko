@@ -1,8 +1,11 @@
 import React, { useEffect, useRef } from "react";
-import { Text, StyleSheet, Animated, Platform } from "react-native";
+import { StyleSheet, Animated } from "react-native";
 import { useNotifications } from "../../hooks/useNotifications";
+import { ThemedText } from "@/components/themed-text";
+import { useAppTheme } from "@/hooks/custom/use-app-theme";
 
 export const NotificationBadge = () => {
+  const theme = useAppTheme();
   const { unreadCount } = useNotifications();
   const scaleAnim = useRef(new Animated.Value(0)).current;
 
@@ -20,9 +23,14 @@ export const NotificationBadge = () => {
 
   return (
     <Animated.View
-      style={[styles.badge, { transform: [{ scale: scaleAnim }] }]}
+      style={[
+        styles.badge,
+        { transform: [{ scale: scaleAnim }], borderColor: theme.background },
+      ]}
     >
-      <Text style={styles.text}>{unreadCount > 9 ? "9+" : unreadCount}</Text>
+      <ThemedText type="caption" style={styles.text}>
+        {unreadCount > 9 ? "9+" : unreadCount}
+      </ThemedText>
     </Animated.View>
   );
 };
@@ -32,14 +40,13 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: -2,
     right: 35,
-    backgroundColor: "#d3a40adc", // Noir profond Luxe
+    backgroundColor: "#D3A40A",
     borderRadius: 10,
     width: 16,
     height: 16,
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 1.5,
-    borderColor: "#FDFBF7", // Bone Silk
     zIndex: 10,
   },
   text: {
@@ -47,8 +54,5 @@ const styles = StyleSheet.create({
     fontSize: 8,
     fontWeight: "900",
     textAlign: "center",
-    ...Platform.select({
-      ios: { lineHeight: 0 }, // Centre mieux sur iOS
-    }),
   },
 });

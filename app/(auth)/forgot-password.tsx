@@ -1,21 +1,17 @@
-import { Ionicons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import React, { useState, useRef, useEffect } from "react";
-import { showErrorToast, showSuccessToast } from "../../lib/toast";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
   StyleSheet,
-  Text,
   TextInput,
   TouchableOpacity,
   View,
-  Keyboard,
 } from "react-native";
 import * as Haptics from "expo-haptics";
-import { MotiView, AnimatePresence } from "moti";
+import { MotiView } from "moti";
 import {
   authService,
   HeaderAuth,
@@ -23,21 +19,16 @@ import {
   InputCustom,
   FormError,
 } from "@/features/auth";
+import { showSuccessToast } from "@/lib/toast";
+import { ThemedText } from "@/components/themed-text";
+import { useAppTheme } from "@/hooks/custom/use-app-theme";
+import ThemedIcon from "@/components/themed-icon";
 
-// --- THEME ÉDITORIAL COHÉRENT ---
-const THEME = {
-  background: "#FDFBF7", // Bone Silk
-  surface: "#FFFFFF",
-  textMain: "#1A1A1A",
-  textSecondary: "#8E8E93",
-  accent: "#AF9062", // Or brossé
-  border: "rgba(0,0,0,0.08)",
-  success: "#4A6741",
-  primary: "#1A1A1A",
-};
+// --- THEME ÉDITORIAL ---
 
 export default function ForgotPasswordScreen() {
   const router = useRouter();
+  const theme = useAppTheme();
   const { email: initialEmail } = useLocalSearchParams<{ email?: string }>();
 
   // States
@@ -165,9 +156,12 @@ export default function ForgotPasswordScreen() {
             step > 1 ? setStep((step - 1) as any) : router.back()
           }
         >
-          <Ionicons name="chevron-back" size={24} color={THEME.textMain} />
+          <ThemedIcon name="chevron-back" size={24} colorName="textMain" />
         </TouchableOpacity>
-        <Text style={styles.navTitle}>{`RÉCUPÉRATION ${step}/3`}</Text>
+        <ThemedText
+          type="label"
+          style={styles.navTitle}
+        >{`RÉCUPÉRATION ${step}/3`}</ThemedText>
         <View style={{ width: 24 }} />
       </View>
 
@@ -201,10 +195,10 @@ export default function ForgotPasswordScreen() {
           {/* STEP 1: EMAIL */}
           {step === 1 && (
             <MotiView from={{ opacity: 0 }} animate={{ opacity: 1 }}>
-              <Text style={styles.description}>
+              <ThemedText type="subtitle" style={styles.description}>
                 Veuillez saisir l&apos;adresse associée à votre compte pour
                 recevoir une signature numérique temporaire.
-              </Text>
+              </ThemedText>
               <InputCustom
                 label="VOTRE EMAIL"
                 placeholder="nom@domaine.com"
@@ -218,14 +212,19 @@ export default function ForgotPasswordScreen() {
                 error={errors.email}
               />
               <TouchableOpacity
-                style={styles.primaryBtn}
+                style={[styles.primaryBtn, { backgroundColor: theme.textMain }]}
                 onPress={handleSendOTP}
                 disabled={isLoading}
               >
                 {isLoading ? (
-                  <ActivityIndicator color="#FFF" size="small" />
+                  <ActivityIndicator color={theme.background} size="small" />
                 ) : (
-                  <Text style={styles.primaryBtnText}>DEMANDER UN CODE</Text>
+                  <ThemedText
+                    type="label"
+                    style={[styles.primaryBtnText, { color: theme.background }]}
+                  >
+                    DEMANDER UN CODE
+                  </ThemedText>
                 )}
               </TouchableOpacity>
             </MotiView>
@@ -234,10 +233,13 @@ export default function ForgotPasswordScreen() {
           {/* STEP 2: OTP */}
           {step === 2 && (
             <MotiView from={{ opacity: 0 }} animate={{ opacity: 1 }}>
-              <Text style={styles.description}>
-                Un code de sécurité a été transmis à l&apos;adresse suivante :{"\n"}
-                <Text style={styles.emailHighlight}>{email}</Text>
-              </Text>
+              <ThemedText type="subtitle" style={styles.description}>
+                Un code de sécurité a été transmis à l&apos;adresse suivante :
+                {"\n"}
+                <ThemedText type="defaultBold" style={styles.emailHighlight}>
+                  {email}
+                </ThemedText>
+              </ThemedText>
               <View style={styles.otpWrapper}>
                 {otp.map((digit, index) => (
                   <TextInput
@@ -248,7 +250,8 @@ export default function ForgotPasswordScreen() {
                     style={[
                       styles.otpInput,
                       {
-                        borderBottomColor: digit ? THEME.accent : THEME.border,
+                        borderBottomColor: digit ? theme.accent : theme.border,
+                        color: theme.textMain,
                       },
                     ]}
                     value={digit}
@@ -261,14 +264,25 @@ export default function ForgotPasswordScreen() {
                 ))}
               </View>
               {errors.otp && (
-                <Text style={styles.errorTextCenter}>{errors.otp}</Text>
+                <ThemedText
+                  type="caption"
+                  colorName="accent"
+                  style={styles.errorTextCenter}
+                >
+                  {errors.otp}
+                </ThemedText>
               )}
 
               <TouchableOpacity
-                style={styles.primaryBtn}
+                style={[styles.primaryBtn, { backgroundColor: theme.textMain }]}
                 onPress={handleVerifyOTP}
               >
-                <Text style={styles.primaryBtnText}>VÉRIFIER LA SIGNATURE</Text>
+                <ThemedText
+                  type="label"
+                  style={[styles.primaryBtnText, { color: theme.background }]}
+                >
+                  VÉRIFIER LA SIGNATURE
+                </ThemedText>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -276,11 +290,17 @@ export default function ForgotPasswordScreen() {
                 onPress={handleSendOTP}
                 disabled={!canResend}
               >
-                <Text
-                  style={[styles.resendText, !canResend && { opacity: 0.5 }]}
+                <ThemedText
+                  type="label"
+                  colorName="accent"
+                  style={[
+                    styles.resendText,
+                    !canResend && { opacity: 0.5 },
+                    { textDecorationLine: "underline" },
+                  ]}
                 >
                   {canResend ? "RENVOYER LE CODE" : `ATTENDRE ${resendTimer}S`}
-                </Text>
+                </ThemedText>
               </TouchableOpacity>
             </MotiView>
           )}
@@ -288,10 +308,10 @@ export default function ForgotPasswordScreen() {
           {/* STEP 3: RESET */}
           {step === 3 && (
             <MotiView from={{ opacity: 0 }} animate={{ opacity: 1 }}>
-              <Text style={styles.description}>
+              <ThemedText type="subtitle" style={styles.description}>
                 Code vérifié. Veuillez définir votre nouvelle signature de
                 sécurité.
-              </Text>
+              </ThemedText>
               <InputCustom
                 label="NOUVEAU MOT DE PASSE"
                 placeholder="••••••••"
@@ -315,26 +335,35 @@ export default function ForgotPasswordScreen() {
                 error={errors.confirm}
               />
               <TouchableOpacity
-                style={styles.primaryBtn}
+                style={[styles.primaryBtn, { backgroundColor: theme.textMain }]}
                 onPress={handleResetPassword}
                 disabled={isLoading}
               >
                 {isLoading ? (
-                  <ActivityIndicator color="#FFF" size="small" />
+                  <ActivityIndicator color={theme.background} size="small" />
                 ) : (
-                  <Text style={styles.primaryBtnText}>
+                  <ThemedText
+                    type="label"
+                    style={[styles.primaryBtnText, { color: theme.background }]}
+                  >
                     RÉINITIALISER LE COMPTE
-                  </Text>
+                  </ThemedText>
                 )}
               </TouchableOpacity>
             </MotiView>
           )}
 
           <TouchableOpacity
-            style={styles.backToLogin}
+            style={[styles.backToLogin, { borderTopColor: theme.border }]}
             onPress={() => router.replace("/sign-in")}
           >
-            <Text style={styles.backToLoginText}>RETOUR À LA CONNEXION</Text>
+            <ThemedText
+              type="label"
+              colorName="textSecondary"
+              style={styles.backToLoginText}
+            >
+              RETOUR À LA CONNEXION
+            </ThemedText>
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -351,24 +380,15 @@ const styles = StyleSheet.create({
   },
   navTitle: {
     fontSize: 9,
-    fontWeight: "800",
-    color: THEME.textSecondary,
     letterSpacing: 1.5,
   },
   scrollContent: {
     flexGrow: 1,
   },
   description: {
-    fontSize: 14,
-    color: THEME.textSecondary,
-    lineHeight: 22,
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-    fontStyle: "italic",
     marginBottom: 35,
   },
   emailHighlight: {
-    color: THEME.textMain,
-    fontWeight: "700",
     fontStyle: "normal",
   },
   /* OTP */
@@ -382,13 +402,10 @@ const styles = StyleSheet.create({
     height: 54,
     borderBottomWidth: 1,
     fontSize: 24,
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-    color: THEME.textMain,
     textAlign: "center",
   },
   /* BUTTONS */
   primaryBtn: {
-    backgroundColor: THEME.primary,
     height: 60,
     borderRadius: 0,
     alignItems: "center",
@@ -396,9 +413,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   primaryBtnText: {
-    color: "#FFFFFF",
     fontSize: 13,
-    fontWeight: "800",
     letterSpacing: 1.5,
   },
   resendBtn: {
@@ -407,29 +422,21 @@ const styles = StyleSheet.create({
   },
   resendText: {
     fontSize: 10,
-    fontWeight: "800",
-    color: THEME.accent,
     letterSpacing: 1,
-    textDecorationLine: "underline",
   },
   backToLogin: {
     marginTop: 40,
     alignItems: "center",
     paddingVertical: 15,
     borderTopWidth: 1,
-    borderTopColor: THEME.border,
   },
   backToLoginText: {
     fontSize: 10,
-    fontWeight: "800",
-    color: THEME.textSecondary,
     letterSpacing: 1.5,
   },
   errorTextCenter: {
-    color: THEME.accent,
     fontSize: 12,
     textAlign: "center",
     marginBottom: 20,
-    fontWeight: "600",
   },
 });

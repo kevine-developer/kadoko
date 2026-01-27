@@ -1,26 +1,15 @@
 import {
   StyleSheet,
-  Text,
   TouchableOpacity,
   View,
-  Platform,
   ActivityIndicator,
 } from "react-native";
 import React from "react";
 import { Image } from "expo-image";
-import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-
-// --- THEME ÉDITORIAL COHÉRENT ---
-const THEME = {
-  background: "#FDFBF7", // Bone Silk
-  surface: "#FFFFFF",
-  textMain: "#1A1A1A",
-  textSecondary: "#8E8E93",
-  accent: "#AF9062", // Or brossé
-  border: "rgba(0,0,0,0.08)",
-  success: "#4A6741",
-};
+import { ThemedText } from "@/components/themed-text";
+import { useAppTheme } from "@/hooks/custom/use-app-theme";
+import ThemedIcon from "@/components/themed-icon";
 
 interface RequestCardProps {
   user: any;
@@ -35,6 +24,8 @@ const RequestCard = ({
   handleAcceptFriend,
   handleRemoveFriend,
 }: RequestCardProps) => {
+  const theme = useAppTheme();
+
   const onAccept = () => {
     if (loading) return;
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -48,46 +39,60 @@ const RequestCard = ({
   };
 
   return (
-    <View style={styles.cardContainer}>
+    <View
+      style={[
+        styles.cardContainer,
+        { backgroundColor: theme.surface, borderColor: theme.border },
+      ]}
+    >
       <View style={styles.header}>
-        {/* Avatar Carré style Galerie */}
         <Image
           source={{
             uri: user.avatarUrl || user.image || "https://i.pravatar.cc/150",
           }}
-          style={styles.avatar}
+          style={[styles.avatar, { borderColor: theme.border }]}
           contentFit="cover"
         />
         <View style={styles.info}>
-          <Text style={styles.name}>{user.name}</Text>
-          <Text style={styles.metaLabel}>INVITATION AU CERCLE</Text>
+          <ThemedText type="subtitle" style={styles.name}>
+            {user.name}
+          </ThemedText>
+          <ThemedText type="label" colorName="accent" style={styles.metaLabel}>
+            INVITATION AU CERCLE
+          </ThemedText>
         </View>
       </View>
 
       <View style={styles.actionRow}>
         <TouchableOpacity
-          style={[styles.acceptBtn, loading && { opacity: 0.7 }]}
+          style={[
+            styles.acceptBtn,
+            { backgroundColor: theme.textMain },
+            loading && { opacity: 0.7 },
+          ]}
           onPress={onAccept}
           activeOpacity={0.8}
           disabled={loading}
         >
           {loading ? (
-            <ActivityIndicator size="small" color="#FFF" />
+            <ActivityIndicator size="small" color={theme.background} />
           ) : (
-            <Text style={styles.acceptText}>ACCEPTER</Text>
+            <ThemedText type="label" style={styles.acceptText}>
+              ACCEPTER
+            </ThemedText>
           )}
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={styles.ignoreBtn}
+          style={[styles.ignoreBtn, { borderColor: theme.border }]}
           onPress={onIgnore}
           activeOpacity={0.6}
           disabled={loading}
         >
-          <Ionicons
+          <ThemedIcon
             name="close-outline"
             size={20}
-            color={THEME.textSecondary}
+            colorName="textSecondary"
           />
         </TouchableOpacity>
       </View>
@@ -99,14 +104,11 @@ export default RequestCard;
 
 const styles = StyleSheet.create({
   cardContainer: {
-    backgroundColor: THEME.surface,
     padding: 20,
-    borderRadius: 0, // Carré luxe
+    borderRadius: 0,
     marginRight: 16,
     width: 240,
     borderWidth: 1,
-    borderColor: THEME.border,
-    // Ombre ultra-légère pour détacher du fond Bone Silk
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.02,
@@ -122,25 +124,17 @@ const styles = StyleSheet.create({
   avatar: {
     width: 44,
     height: 44,
-    borderRadius: 0, // Style boutique
+    borderRadius: 0,
     backgroundColor: "#F2F2F7",
     borderWidth: 0.5,
-    borderColor: THEME.border,
   },
   info: {
     flex: 1,
   },
   name: {
-    fontSize: 16,
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-    fontWeight: "500",
-    color: THEME.textMain,
     marginBottom: 2,
   },
   metaLabel: {
-    fontSize: 8,
-    fontWeight: "800",
-    color: THEME.accent,
     letterSpacing: 1,
     textTransform: "uppercase",
   },
@@ -150,16 +144,13 @@ const styles = StyleSheet.create({
   },
   acceptBtn: {
     flex: 1,
-    backgroundColor: THEME.textMain,
     height: 40,
-    borderRadius: 0, // Bouton rectangulaire luxe
+    borderRadius: 0,
     alignItems: "center",
     justifyContent: "center",
   },
   acceptText: {
     color: "#FFF",
-    fontSize: 10,
-    fontWeight: "800",
     letterSpacing: 1.2,
   },
   ignoreBtn: {
@@ -167,7 +158,6 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: 0,
     borderWidth: 1,
-    borderColor: THEME.border,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "transparent",

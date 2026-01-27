@@ -5,17 +5,14 @@ import ReservedGiftItem from "@/components/ProfilUI/ReservedGiftItem";
 import { userService } from "@/lib/services/user-service";
 import { friendshipService } from "@/lib/services/friendship-service";
 import { wishlistService } from "@/lib/services/wishlist-service";
-import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useRef, useState, useEffect, useCallback } from "react";
 import {
   Animated,
-  Platform,
   ScrollView,
   StatusBar,
   StyleSheet,
-  Text,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -23,21 +20,15 @@ import PagerView from "react-native-pager-view";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import HeaderParallax from "@/components/ProfilUI/HeaderParallax";
-
-// --- THEME ÉDITORIAL COHÉRENT ---
-const THEME = {
-  background: "#FDFBF7",
-  surface: "#FFFFFF",
-  textMain: "#1A1A1A",
-  textSecondary: "#8E8E93",
-  accent: "#AF9062", // Or brossé
-  border: "rgba(0,0,0,0.08)",
-};
+import { ThemedText } from "@/components/themed-text";
+import { useAppTheme } from "@/hooks/custom/use-app-theme";
+import ThemedIcon from "@/components/themed-icon";
 
 const TABS = { WISHLISTS: 0, RESERVED: 1, ABOUT: 2 };
 
 export default function FriendProfileScreen() {
   const insets = useSafeAreaInsets();
+  const theme = useAppTheme();
   const [activePage, setActivePage] = useState(0);
   const pagerRef = useRef<PagerView>(null);
   const scrollY = useRef(new Animated.Value(0)).current;
@@ -114,27 +105,37 @@ export default function FriendProfileScreen() {
       params: { friendId: friendId },
     });
   };
+
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       <StatusBar barStyle="dark-content" />
 
-      {/* 1. HEADER PARALLAX ÉLÉGANT */}
       <HeaderParallax
         user={friendInfo}
         headerOpacity={headerOpacity}
         imageScale={new Animated.Value(1)}
       />
 
-      {/* 2. TOP BAR */}
       <View style={[styles.navBar, { top: insets.top + 10 }]}>
-        <TouchableOpacity style={styles.iconBtn} onPress={() => router.back()}>
-          <Ionicons name="chevron-back" size={24} color={THEME.textMain} />
+        <TouchableOpacity
+          style={[
+            styles.iconBtn,
+            { backgroundColor: theme.surface, borderColor: theme.border },
+          ]}
+          onPress={() => router.back()}
+        >
+          <ThemedIcon name="chevron-back" size={24} colorName="textMain" />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.iconBtn}>
-          <Ionicons
+        <TouchableOpacity
+          style={[
+            styles.iconBtn,
+            { backgroundColor: theme.surface, borderColor: theme.border },
+          ]}
+        >
+          <ThemedIcon
             name="ellipsis-horizontal"
             size={20}
-            color={THEME.textMain}
+            colorName="textMain"
           />
         </TouchableOpacity>
       </View>
@@ -148,41 +149,64 @@ export default function FriendProfileScreen() {
         )}
         scrollEventThrottle={16}
       >
-        {/* 3. PROFILE SECTION */}
         <View style={styles.profileSection}>
           <View style={styles.avatarRow}>
-            <Image source={{ uri: friendInfo?.image }} style={styles.avatar} />
+            <Image
+              source={{ uri: friendInfo?.image || "https://i.pravatar.cc/150" }}
+              style={[styles.avatar, { borderColor: theme.border }]}
+            />
             <View style={styles.statsContainer}>
               <View style={styles.statItem}>
-                <Text style={styles.statNum}>{friendWishlists.length}</Text>
-                <Text style={styles.statLab}>LISTES</Text>
+                <ThemedText type="defaultBold" style={styles.statNum}>
+                  {friendWishlists.length}
+                </ThemedText>
+                <ThemedText
+                  type="label"
+                  colorName="textSecondary"
+                  style={styles.statLab}
+                >
+                  LISTES
+                </ThemedText>
               </View>
-              <View style={styles.statDivider} />
+              <View
+                style={[styles.statDivider, { backgroundColor: theme.border }]}
+              />
               <View style={styles.statItem}>
-                <Text style={styles.statNum}>
+                <ThemedText type="defaultBold" style={styles.statNum}>
                   {friendInfo?.friendsCount ?? 0}
-                </Text>
-                <Text style={styles.statLab}>CERCLE</Text>
+                </ThemedText>
+                <ThemedText
+                  type="label"
+                  colorName="textSecondary"
+                  style={styles.statLab}
+                >
+                  CERCLE
+                </ThemedText>
               </View>
             </View>
           </View>
 
           <View style={styles.identity}>
-            <Text style={styles.name}>{friendInfo?.name}</Text>
-            <Text style={styles.handle}>
+            <ThemedText type="hero" style={styles.name}>
+              {friendInfo?.name}
+            </ThemedText>
+            <ThemedText type="label" colorName="accent" style={styles.handle}>
               @{friendInfo?.username || "membre"}
-            </Text>
-            <Text style={styles.bio}>
+            </ThemedText>
+            <ThemedText
+              type="default"
+              colorName="textSecondary"
+              style={styles.bio}
+            >
               {friendInfo?.description ||
                 "Passionné par les attentions qui font sens."}
-            </Text>
+            </ThemedText>
           </View>
 
-          {/* ACTIONS AUTHORITY */}
           <View style={styles.actionRow}>
             {friendshipStatus.isFriend ? (
               <TouchableOpacity
-                style={styles.secondaryBtn}
+                style={[styles.secondaryBtn, { borderColor: theme.textMain }]}
                 onPress={async () => {
                   const prev = { ...friendshipStatus };
                   setFriendshipStatus({ ...prev, isFriend: false });
@@ -198,11 +222,17 @@ export default function FriendProfileScreen() {
                   }
                 }}
               >
-                <Text style={styles.secondaryBtnText}>MEMBRE DU CERCLE</Text>
+                <ThemedText
+                  type="label"
+                  colorName="textMain"
+                  style={styles.secondaryBtnText}
+                >
+                  MEMBRE DU CERCLE
+                </ThemedText>
               </TouchableOpacity>
             ) : (
               <TouchableOpacity
-                style={styles.primaryBtn}
+                style={[styles.primaryBtn, { backgroundColor: theme.textMain }]}
                 onPress={async () => {
                   const prev = { ...friendshipStatus };
                   setFriendshipStatus({ ...prev, isPendingSent: true });
@@ -216,26 +246,32 @@ export default function FriendProfileScreen() {
                   }
                 }}
               >
-                <Text style={styles.primaryBtnText}>
+                <ThemedText
+                  type="label"
+                  style={[styles.primaryBtnText, { color: theme.background }]}
+                >
                   {friendshipStatus.isPendingSent
                     ? "DEMANDE ENVOYÉE"
                     : "REJOINDRE LE CERCLE"}
-                </Text>
+                </ThemedText>
               </TouchableOpacity>
             )}
-            <TouchableOpacity style={styles.iconActionBtn}>
-              <Ionicons
+            <TouchableOpacity
+              style={[styles.iconActionBtn, { borderColor: theme.border }]}
+            >
+              <ThemedIcon
                 name="chatbubble-outline"
                 size={20}
-                color={THEME.textMain}
+                colorName="textMain"
               />
             </TouchableOpacity>
           </View>
         </View>
 
-        {/* 4. TABS STYLE MENU */}
         <View style={styles.tabsWrapper}>
-          <View style={styles.tabsHeader}>
+          <View
+            style={[styles.tabsHeader, { borderBottomColor: theme.border }]}
+          >
             <RenderTabButton
               label="SES LISTES"
               index={TABS.WISHLISTS}
@@ -257,7 +293,6 @@ export default function FriendProfileScreen() {
           </View>
         </View>
 
-        {/* 5. CONTENU */}
         <View style={{ minHeight: 500 }}>
           <PagerView
             ref={pagerRef}
@@ -265,7 +300,6 @@ export default function FriendProfileScreen() {
             initialPage={0}
             onPageSelected={(e) => setActivePage(e.nativeEvent.position)}
           >
-            {/* WISHLISTS */}
             <LayoutPagerView pageNumber={0}>
               <View style={styles.contentGrid}>
                 {friendWishlists.map((wl) => (
@@ -281,14 +315,17 @@ export default function FriendProfileScreen() {
               </View>
             </LayoutPagerView>
 
-            {/* RESERVED */}
             <LayoutPagerView pageNumber={1}>
               <View style={styles.registryList}>
                 <View style={styles.secretBanner}>
-                  <Ionicons name="lock-closed" size={12} color={THEME.accent} />
-                  <Text style={styles.secretText}>
+                  <ThemedIcon name="lock-closed" size={12} colorName="accent" />
+                  <ThemedText
+                    type="label"
+                    colorName="textMain"
+                    style={styles.secretText}
+                  >
                     REGISTRE PRIVÉ — SEUL VOUS POUVEZ VOIR CECI
-                  </Text>
+                  </ThemedText>
                 </View>
                 {reservedGifts.map((gift) => (
                   <ReservedGiftItem
@@ -301,46 +338,73 @@ export default function FriendProfileScreen() {
               </View>
             </LayoutPagerView>
 
-            {/* ABOUT */}
             <LayoutPagerView pageNumber={2}>
               <View style={styles.registryList}>
-                <View style={styles.infoLine}>
-                  <Text style={styles.infoLabel}>MEMBRE DEPUIS</Text>
-                  <Text style={styles.infoValue}>2024</Text>
+                <View
+                  style={[styles.infoLine, { borderBottomColor: theme.border }]}
+                >
+                  <ThemedText
+                    type="label"
+                    colorName="textSecondary"
+                    style={styles.infoLabel}
+                  >
+                    MEMBRE DEPUIS
+                  </ThemedText>
+                  <ThemedText type="defaultBold" style={styles.infoValue}>
+                    2024
+                  </ThemedText>
                 </View>
-                <View style={styles.infoLine}>
-                  <Text style={styles.infoLabel}>ANNIVERSAIRE</Text>
-                  <Text style={styles.infoValue}>
+                <View
+                  style={[styles.infoLine, { borderBottomColor: theme.border }]}
+                >
+                  <ThemedText
+                    type="label"
+                    colorName="textSecondary"
+                    style={styles.infoLabel}
+                  >
+                    ANNIVERSAIRE
+                  </ThemedText>
+                  <ThemedText type="defaultBold" style={styles.infoValue}>
                     {friendInfo?.birthday
                       ? new Date(friendInfo.birthday).toLocaleDateString(
                           "fr-FR",
                           { day: "numeric", month: "long" },
                         )
                       : "NON RENSEIGNÉ"}
-                  </Text>
+                  </ThemedText>
                 </View>
                 {friendshipStatus.isFriend && (
                   <TouchableOpacity
-                    style={styles.prefLink}
+                    style={[
+                      styles.prefLink,
+                      {
+                        backgroundColor: theme.surface,
+                        borderColor: theme.border,
+                      },
+                    ]}
                     onPress={navigateToPrivateInfo}
                   >
-                    <Ionicons
+                    <ThemedIcon
                       name="heart-outline"
                       size={18}
-                      color={THEME.accent}
+                      colorName="accent"
                     />
                     <View style={{ flex: 1, marginLeft: 15 }}>
-                      <Text style={styles.prefTitle}>
+                      <ThemedText type="label" style={styles.prefTitle}>
                         PRÉFÉRENCES PERSONNELLES
-                      </Text>
-                      <Text style={styles.prefSub}>
+                      </ThemedText>
+                      <ThemedText
+                        type="caption"
+                        colorName="textSecondary"
+                        style={styles.prefSub}
+                      >
                         Tailles, goûts et modalités de livraison
-                      </Text>
+                      </ThemedText>
                     </View>
-                    <Ionicons
+                    <ThemedIcon
                       name="chevron-forward"
                       size={14}
-                      color={THEME.border}
+                      colorName="border"
                     />
                   </TouchableOpacity>
                 )}
@@ -354,7 +418,7 @@ export default function FriendProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: THEME.background },
+  container: { flex: 1 },
   navBar: {
     position: "absolute",
     left: 0,
@@ -368,13 +432,10 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: THEME.surface,
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: THEME.border,
   },
-
   profileSection: { paddingHorizontal: 32, paddingTop: 40, marginBottom: 40 },
   avatarRow: { flexDirection: "row", alignItems: "flex-end", marginBottom: 25 },
   avatar: {
@@ -383,7 +444,6 @@ const styles = StyleSheet.create({
     borderRadius: 0,
     backgroundColor: "#F2F2F7",
     borderWidth: 1,
-    borderColor: THEME.border,
   },
   statsContainer: {
     flex: 1,
@@ -394,83 +454,54 @@ const styles = StyleSheet.create({
   statItem: { flex: 1, alignItems: "center" },
   statNum: {
     fontSize: 18,
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-    color: THEME.textMain,
   },
   statLab: {
-    fontSize: 8,
-    fontWeight: "800",
-    color: THEME.textSecondary,
     letterSpacing: 1,
     marginTop: 4,
   },
-  statDivider: { width: 1, height: 20, backgroundColor: THEME.border },
-
+  statDivider: { width: 1, height: 20 },
   identity: { marginBottom: 30 },
   name: {
-    fontSize: 32,
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-    color: THEME.textMain,
     letterSpacing: -1,
   },
   handle: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: THEME.accent,
     letterSpacing: 0.5,
     marginTop: 4,
   },
   bio: {
-    fontSize: 14,
-    color: THEME.textSecondary,
     marginTop: 12,
-    lineHeight: 20,
-    fontStyle: "italic",
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
   },
-
   actionRow: { flexDirection: "row", gap: 12 },
   primaryBtn: {
     flex: 1,
     height: 50,
-    backgroundColor: THEME.textMain,
     justifyContent: "center",
     alignItems: "center",
   },
   primaryBtnText: {
-    color: "#FFF",
-    fontSize: 10,
-    fontWeight: "800",
     letterSpacing: 1,
   },
   secondaryBtn: {
     flex: 1,
     height: 50,
     borderWidth: 1,
-    borderColor: THEME.textMain,
     justifyContent: "center",
     alignItems: "center",
   },
   secondaryBtnText: {
-    color: THEME.textMain,
-    fontSize: 10,
-    fontWeight: "800",
     letterSpacing: 1,
   },
   iconActionBtn: {
     width: 50,
     height: 50,
     borderWidth: 1,
-    borderColor: THEME.border,
     justifyContent: "center",
     alignItems: "center",
   },
-
   tabsWrapper: { paddingHorizontal: 32, marginBottom: 25 },
   tabsHeader: {
     flexDirection: "row",
     borderBottomWidth: 1,
-    borderBottomColor: THEME.border,
   },
   contentGrid: {
     paddingHorizontal: 25,
@@ -479,7 +510,6 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   registryList: { paddingHorizontal: 32 },
-
   secretBanner: {
     flexDirection: "row",
     alignItems: "center",
@@ -488,41 +518,27 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   secretText: {
-    fontSize: 8,
-    fontWeight: "800",
-    color: THEME.textMain,
     letterSpacing: 1,
   },
-
   infoLine: {
     flexDirection: "row",
     justifyContent: "space-between",
     paddingVertical: 20,
     borderBottomWidth: 1,
-    borderBottomColor: THEME.border,
   },
   infoLabel: {
-    fontSize: 9,
-    fontWeight: "800",
-    color: THEME.textSecondary,
     letterSpacing: 1.5,
   },
-  infoValue: { fontSize: 13, fontWeight: "600", color: THEME.textMain },
-
+  infoValue: { fontWeight: "600" },
   prefLink: {
     flexDirection: "row",
     alignItems: "center",
     marginTop: 25,
     padding: 20,
-    backgroundColor: "#FFF",
     borderWidth: 1,
-    borderColor: THEME.border,
   },
   prefTitle: {
-    fontSize: 11,
-    fontWeight: "800",
-    color: THEME.textMain,
     letterSpacing: 1,
   },
-  prefSub: { fontSize: 10, color: THEME.textSecondary, marginTop: 2 },
+  prefSub: { marginTop: 2 },
 });

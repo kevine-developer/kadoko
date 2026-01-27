@@ -10,20 +10,12 @@ import {
 import React, { useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-
-// --- THEME ÉDITORIAL COHÉRENT ---
-const THEME = {
-  background: "#FDFBF7", // Bone Silk
-  surface: "#FFFFFF",
-  textMain: "#1A1A1A",
-  textSecondary: "#8E8E93",
-  accent: "#AF9062", // Or brossé
-  border: "rgba(0,0,0,0.08)",
-  error: "#C34A4A",
-};
+import { useAppTheme } from "@/hooks/custom/use-app-theme";
+import ThemedIcon from "@/components/themed-icon";
+import { ThemedText } from "@/components/themed-text";
 
 interface InputCustomProps extends TextInputProps {
-  label?: string; // Ajout d'un label pour le style catalogue
+  label?: string;
   icon?: keyof typeof Ionicons.glyphMap;
   showPasswordToggle?: boolean;
   error?: string;
@@ -39,6 +31,7 @@ const InputCustom = ({
   error,
   ...props
 }: InputCustomProps) => {
+  const theme = useAppTheme();
   const [isFocused, setIsFocused] = useState(false);
   const [isPasswordVisible, setIsPasswordVisible] = useState(!secureTextEntry);
 
@@ -49,48 +42,80 @@ const InputCustom = ({
 
   return (
     <View style={styles.container}>
-      {/* Label style "Étiquette de luxe" */}
-      {label && <Text style={styles.miniLabel}>{label.toUpperCase()}</Text>}
+      {label && (
+        <ThemedText
+          type="label"
+          colorName="textSecondary"
+          style={styles.miniLabel}
+        >
+          {label.toUpperCase()}
+        </ThemedText>
+      )}
 
       <View
         style={[
           styles.inputWrapper,
-          isFocused && styles.inputWrapperFocused,
-          error ? styles.inputWrapperError : null,
+          {
+            backgroundColor: theme.surface,
+            borderColor: theme.border,
+            borderBottomColor: theme.border,
+          },
+          isFocused && {
+            borderBottomColor: theme.accent,
+            borderBottomWidth: 1.5,
+          },
+          error ? { borderBottomColor: theme.danger } : null,
         ]}
       >
         {icon && (
-          <Ionicons
+          <ThemedIcon
             name={icon}
             size={18}
-            color={isFocused ? THEME.accent : "#BCBCBC"}
-            style={styles.inputIcon}
+            color={isFocused ? theme.accent : "#BCBCBC"}
+            // style={styles.inputIcon} // Props style not supported on ThemedIcon yet
           />
         )}
-
+        {icon && <View style={{ width: 12 }} />} {/* Spacer for icon */}
         <TextInput
           placeholder={placeholder}
           placeholderTextColor="#BCBCBC"
-          style={styles.input}
+          style={[
+            styles.input,
+            {
+              color: theme.textMain,
+              fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
+            },
+          ]}
           value={value}
           onChangeText={onChangeText}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
           secureTextEntry={secureTextEntry && !isPasswordVisible}
-          selectionColor={THEME.accent}
+          selectionColor={theme.accent}
           {...props}
         />
-
         {secureTextEntry && (
           <TouchableOpacity onPress={togglePassword} style={styles.eyeBtn}>
-            <Text style={styles.eyeText}>
+            <ThemedText type="label" style={{ color: theme.textMain }}>
               {isPasswordVisible ? "MASQUER" : "VOIR"}
-            </Text>
+            </ThemedText>
           </TouchableOpacity>
         )}
       </View>
 
-      {error && <Text style={styles.errorText}>{error}</Text>}
+      {error && (
+        <ThemedText
+          type="caption"
+          style={{
+            color: theme.danger,
+            marginTop: 6,
+            fontStyle: "italic",
+            fontWeight: "600",
+          }}
+        >
+          {error}
+        </ThemedText>
+      )}
     </View>
   );
 };
@@ -103,9 +128,6 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   miniLabel: {
-    fontSize: 9,
-    fontWeight: "800",
-    color: THEME.textSecondary,
     letterSpacing: 1.5,
     marginBottom: 10,
     marginLeft: 2,
@@ -113,48 +135,19 @@ const styles = StyleSheet.create({
   inputWrapper: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: THEME.surface,
     height: 54,
-    borderRadius: 0, // Carré luxe
+    borderRadius: 0,
     paddingHorizontal: 12,
     borderBottomWidth: 1,
-    borderBottomColor: THEME.border,
-    // Pas d'ombres massives, juste une structure nette
-  },
-  inputWrapperFocused: {
-    borderBottomColor: THEME.accent,
-    borderBottomWidth: 1.5,
-  },
-  inputWrapperError: {
-    borderBottomColor: THEME.error,
-  },
-  inputIcon: {
-    marginRight: 12,
   },
   input: {
     flex: 1,
     height: "100%",
     fontSize: 16,
-    color: THEME.textMain,
-    // Utilisation du Serif pour le contenu saisi (plus élégant)
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
   },
   eyeBtn: {
     paddingHorizontal: 8,
     height: "100%",
     justifyContent: "center",
-  },
-  eyeText: {
-    fontSize: 9,
-    fontWeight: "800",
-    color: THEME.textMain,
-    letterSpacing: 1,
-  },
-  errorText: {
-    color: THEME.error,
-    fontSize: 11,
-    marginTop: 6,
-    fontWeight: "600",
-    fontStyle: "italic",
   },
 });

@@ -1,12 +1,9 @@
-import { Ionicons } from "@expo/vector-icons";
 import BottomSheet, { BottomSheetView } from "@gorhom/bottom-sheet";
 import { Image } from "expo-image";
 import * as Linking from "expo-linking";
 import React, { useEffect, useMemo, useRef } from "react";
 import {
-  Platform,
   StyleSheet,
-  Text,
   TouchableOpacity,
   View,
   ActivityIndicator,
@@ -22,18 +19,9 @@ import { authClient } from "@/features/auth";
 import { Gift } from "@/types/gift";
 import { socketService } from "@/lib/services/socket";
 import { shareGift } from "@/lib/share";
-
-// --- THEME ÉDITORIAL COHÉRENT ---
-const THEME = {
-  background: "#FDFBF7", // Bone Silk
-  surface: "#FFFFFF",
-  textMain: "#1A1A1A",
-  textSecondary: "#8E8E93",
-  accent: "#AF9062", // Or brossé
-  border: "rgba(0,0,0,0.08)",
-  danger: "#C34A4A",
-  success: "#4A6741", // Vert forêt luxe
-};
+import { ThemedText } from "@/components/themed-text";
+import { useAppTheme } from "@/hooks/custom/use-app-theme";
+import ThemedIcon from "@/components/themed-icon";
 
 interface GuestGiftDetailsModalProps {
   gift: Gift | null;
@@ -49,6 +37,7 @@ export default function GuestGiftDetailsModal({
   onActionSuccess,
 }: GuestGiftDetailsModalProps) {
   const { data: session } = authClient.useSession();
+  const theme = useAppTheme();
   const bottomSheetRef = useRef<BottomSheet>(null);
   const snapPoints = useMemo(() => ["65%", "92%"], []);
 
@@ -94,7 +83,6 @@ export default function GuestGiftDetailsModal({
     const isCurrentlyReservedByMe =
       localGift.reservedById === session?.user?.id;
 
-    // Simuler le nouvel état localement
     setLocalGift((prev) => {
       if (!prev) return null;
       if (isCurrentlyReservedByMe) {
@@ -159,11 +147,19 @@ export default function GuestGiftDetailsModal({
         snapPoints={snapPoints}
         enablePanDownToClose
         onChange={(index) => index === -1 && onClose()}
-        backgroundStyle={styles.sheetBackground}
-        handleIndicatorStyle={styles.handle}
+        backgroundStyle={[
+          styles.sheetBackground,
+          { backgroundColor: theme.background },
+        ]}
+        handleIndicatorStyle={[
+          styles.handle,
+          { backgroundColor: theme.border },
+        ]}
       >
         <BottomSheetView style={styles.container}>
-          <View style={styles.imageWrapper}>
+          <View
+            style={[styles.imageWrapper, { backgroundColor: theme.surface }]}
+          >
             {localGift.imageUrl ? (
               <Image
                 source={{ uri: localGift.imageUrl }}
@@ -172,38 +168,52 @@ export default function GuestGiftDetailsModal({
               />
             ) : (
               <View style={styles.placeholder}>
-                <Ionicons name="image-outline" size={40} color={THEME.border} />
+                <ThemedIcon name="image-outline" size={40} colorName="border" />
               </View>
             )}
 
             {isTaken && (
-              <View style={styles.takenOverlay}>
-                <View style={styles.takenLabel}>
-                  <Text style={styles.takenLabelText}>
+              <View
+                style={[
+                  styles.takenOverlay,
+                  {
+                    backgroundColor:
+                      theme.background === "#FFFFFF"
+                        ? "rgba(253, 251, 247, 0.4)"
+                        : "rgba(0,0,0,0.6)",
+                  },
+                ]}
+              >
+                <View
+                  style={[
+                    styles.takenLabel,
+                    {
+                      backgroundColor: theme.surface,
+                      borderColor: theme.accent,
+                    },
+                  ]}
+                >
+                  <ThemedText
+                    type="label"
+                    colorName="accent"
+                    style={styles.takenLabelText}
+                  >
                     {isReceived
                       ? "PIÈCE REÇUE"
                       : isPurchased
                         ? "PIÈCE ACQUISE"
                         : "RÉSERVÉE"}
-                  </Text>
+                  </ThemedText>
                 </View>
               </View>
             )}
 
             <View style={styles.topActions}>
               <TouchableOpacity style={styles.iconBtn} onPress={handleShare}>
-                <Ionicons
-                  name="share-outline"
-                  size={20}
-                  color={THEME.textMain}
-                />
+                <ThemedIcon name="share-outline" size={20} color="#1A1A1A" />
               </TouchableOpacity>
               <TouchableOpacity style={styles.iconBtn} onPress={onClose}>
-                <Ionicons
-                  name="close-outline"
-                  size={22}
-                  color={THEME.textMain}
-                />
+                <ThemedIcon name="close-outline" size={22} color="#1A1A1A" />
               </TouchableOpacity>
             </View>
           </View>
@@ -218,31 +228,56 @@ export default function GuestGiftDetailsModal({
                   style={[
                     styles.statusDot,
                     {
-                      backgroundColor: isTaken ? THEME.accent : THEME.success,
+                      backgroundColor: isTaken ? theme.accent : theme.success,
                     },
                   ]}
                 />
-                <Text style={styles.miniLabel}>
+                <ThemedText
+                  type="label"
+                  colorName="textSecondary"
+                  style={styles.miniLabel}
+                >
                   {isTaken ? "INDISPONIBLE" : "DISPONIBLE"}
-                </Text>
+                </ThemedText>
               </View>
 
-              <Text style={styles.title}>{localGift.title}</Text>
+              <ThemedText type="title" style={styles.title}>
+                {localGift.title}
+              </ThemedText>
 
               <View style={styles.registryData}>
                 {localGift.estimatedPrice && (
-                  <Text style={styles.price}>{localGift.estimatedPrice} €</Text>
+                  <ThemedText type="defaultBold" style={styles.price}>
+                    {localGift.estimatedPrice} €
+                  </ThemedText>
                 )}
                 {localGift.estimatedPrice && (
-                  <View style={styles.dataDivider} />
+                  <View
+                    style={[
+                      styles.dataDivider,
+                      { backgroundColor: theme.border },
+                    ]}
+                  />
                 )}
-                <Text style={styles.dataText}>
+                <ThemedText
+                  type="label"
+                  colorName="textSecondary"
+                  style={styles.dataText}
+                >
                   REF. {localGift.id.slice(-6).toUpperCase()}
-                </Text>
+                </ThemedText>
               </View>
 
               {isTaken && (localGift.reservedBy || localGift.purchasedBy) && (
-                <View style={styles.attributionBox}>
+                <View
+                  style={[
+                    styles.attributionBox,
+                    {
+                      backgroundColor: theme.surface,
+                      borderColor: theme.accent,
+                    },
+                  ]}
+                >
                   <Image
                     source={{
                       uri:
@@ -250,35 +285,43 @@ export default function GuestGiftDetailsModal({
                           ? localGift.purchasedBy?.image
                           : localGift.reservedBy?.image,
                     }}
-                    style={styles.attrAvatar}
+                    style={[
+                      styles.attrAvatar,
+                      { backgroundColor: theme.border },
+                    ]}
                   />
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.attrText}>
+                    <ThemedText type="default" style={styles.attrText}>
                       {isReceived
                         ? "Déjà offert par "
                         : isPurchased
                           ? "Déjà offert par "
                           : "Réservé par "}
-                      <Text style={styles.attrName}>
+                      <ThemedText type="defaultBold" colorName="accent">
                         {isReservedByMe
                           ? "VOUS"
                           : (isReceived || isPurchased
                               ? localGift.purchasedBy?.name
                               : localGift.reservedBy?.name
                             )?.toUpperCase()}
-                      </Text>
-                    </Text>
+                      </ThemedText>
+                    </ThemedText>
                     {isReceived && (
-                      <Text style={styles.receivedNote}>
+                      <ThemedText
+                        type="caption"
+                        style={{ color: theme.success, marginTop: 4 }}
+                      >
                         ✓ Le propriétaire a confirmé avoir reçu ce cadeau
-                      </Text>
+                      </ThemedText>
                     )}
                   </View>
                 </View>
               )}
             </View>
 
-            <View style={styles.hairline} />
+            <View
+              style={[styles.hairline, { backgroundColor: theme.border }]}
+            />
 
             {localGift.productUrl && (
               <TouchableOpacity
@@ -286,33 +329,53 @@ export default function GuestGiftDetailsModal({
                 onPress={handleOpenLink}
                 activeOpacity={0.6}
               >
-                <View style={styles.linkIconBg}>
-                  <Ionicons
+                <View
+                  style={[
+                    styles.linkIconBg,
+                    {
+                      backgroundColor: theme.surface,
+                      borderColor: theme.border,
+                    },
+                  ]}
+                >
+                  <ThemedIcon
                     name="link-outline"
                     size={20}
-                    color={THEME.accent}
+                    colorName="accent"
                   />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.linkLabel}>SOURCE EXTERNE</Text>
-                  <Text style={styles.linkValue} numberOfLines={1}>
+                  <ThemedText type="label" colorName="textSecondary">
+                    SOURCE EXTERNE
+                  </ThemedText>
+                  <ThemedText
+                    type="subtitle"
+                    style={styles.linkValue}
+                    numberOfLines={1}
+                  >
                     Consulter sur le site marchand
-                  </Text>
+                  </ThemedText>
                 </View>
-                <Ionicons
+                <ThemedIcon
                   name="chevron-forward"
                   size={14}
-                  color={THEME.border}
+                  colorName="border"
                 />
               </TouchableOpacity>
             )}
 
             <View style={styles.descriptionSection}>
-              <Text style={styles.miniLabel}>NOTES DE RÉDACTION</Text>
-              <Text style={styles.descriptionText}>
+              <ThemedText
+                type="label"
+                colorName="textSecondary"
+                style={styles.miniLabel}
+              >
+                NOTES DE RÉDACTION
+              </ThemedText>
+              <ThemedText type="subtitle" style={styles.descriptionText}>
                 {localGift.description ||
                   "Aucune note additionnelle n'a été rédigée pour cette pièce."}
-              </Text>
+              </ThemedText>
             </View>
 
             <View style={styles.footer}>
@@ -321,34 +384,46 @@ export default function GuestGiftDetailsModal({
                 <TouchableOpacity
                   style={[
                     styles.primaryBtn,
-                    isReservedByMe && styles.removeAction,
+                    { backgroundColor: theme.textMain },
+                    isReservedByMe && {
+                      backgroundColor: "transparent",
+                      borderWidth: 1,
+                      borderColor: theme.textMain,
+                    },
                   ]}
                   onPress={handleVisitorAction}
                   disabled={loadingAction}
                 >
                   {loadingAction ? (
-                    <ActivityIndicator size="small" color="#FFF" />
+                    <ActivityIndicator size="small" color={theme.background} />
                   ) : (
-                    <Text
+                    <ThemedText
+                      type="label"
                       style={[
                         styles.primaryBtnText,
-                        isReservedByMe && { color: THEME.textMain },
+                        { color: theme.background },
+                        isReservedByMe && { color: theme.textMain },
                       ]}
                     >
                       {isReservedByMe ? "ANNULER MA RÉSERVATION" : "RÉSERVER"}
-                    </Text>
+                    </ThemedText>
                   )}
                 </TouchableOpacity>
               ) : (
-                <View style={styles.statusLockBox}>
-                  <Ionicons
+                <View
+                  style={[
+                    styles.statusLockBox,
+                    { backgroundColor: theme.surface },
+                  ]}
+                >
+                  <ThemedIcon
                     name="lock-closed-outline"
                     size={16}
-                    color={THEME.textSecondary}
+                    colorName="textSecondary"
                   />
-                  <Text style={styles.statusLockText}>
+                  <ThemedText type="label" colorName="textSecondary">
                     CETTE PIÈCE N&apos;EST PLUS DISPONIBLE
-                  </Text>
+                  </ThemedText>
                 </View>
               )}
             </View>
@@ -362,37 +437,23 @@ export default function GuestGiftDetailsModal({
 }
 
 const styles = StyleSheet.create({
-  sheetBackground: { backgroundColor: THEME.background, borderRadius: 0 },
-  handle: {
-    backgroundColor: THEME.border,
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-    marginTop: 10,
-  },
+  sheetBackground: { borderRadius: 0 },
+  handle: { width: 40, height: 4, borderRadius: 2, marginTop: 10 },
   container: { flex: 1 },
-  imageWrapper: { height: 320, width: "100%", backgroundColor: "#F2F2F7" },
+  imageWrapper: { height: 320, width: "100%" },
   image: { width: "100%", height: "100%" },
   placeholder: { flex: 1, alignItems: "center", justifyContent: "center" },
   takenOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(253, 251, 247, 0.4)",
     alignItems: "center",
     justifyContent: "center",
   },
   takenLabel: {
     paddingHorizontal: 20,
     paddingVertical: 10,
-    backgroundColor: THEME.surface,
     borderWidth: 1,
-    borderColor: THEME.accent,
   },
-  takenLabelText: {
-    color: THEME.accent,
-    fontWeight: "800",
-    letterSpacing: 2,
-    fontSize: 12,
-  },
+  takenLabelText: { fontSize: 12 },
   topActions: {
     position: "absolute",
     top: 20,
@@ -417,61 +478,26 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   statusDot: { width: 6, height: 6, borderRadius: 3 },
-  miniLabel: {
-    fontSize: 9,
-    fontWeight: "800",
-    color: THEME.textSecondary,
-    letterSpacing: 1.5,
-  },
-  title: {
-    fontSize: 34,
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-    color: THEME.textMain,
-    lineHeight: 40,
-    letterSpacing: -1,
-    marginBottom: 15,
-  },
+  miniLabel: { letterSpacing: 1.5 },
+  title: { fontSize: 34, lineHeight: 40, letterSpacing: -1, marginBottom: 15 },
   registryData: {
     flexDirection: "row",
     alignItems: "center",
     marginBottom: 20,
   },
-  price: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: THEME.textMain,
-    marginRight: 12,
-  },
-  dataDivider: {
-    width: 1,
-    height: 14,
-    backgroundColor: THEME.border,
-    marginRight: 12,
-  },
-  dataText: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: THEME.textSecondary,
-    letterSpacing: 0.5,
-  },
+  price: { fontSize: 20, marginRight: 12 },
+  dataDivider: { width: 1, height: 14, marginRight: 12 },
+  dataText: { fontSize: 12 },
   attributionBox: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    backgroundColor: "rgba(175, 144, 98, 0.05)",
     padding: 12,
     borderLeftWidth: 2,
-    borderLeftColor: THEME.accent,
   },
-  attrAvatar: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: THEME.border,
-  },
-  attrText: { fontSize: 12, color: THEME.textMain, fontWeight: "500" },
-  attrName: { fontWeight: "800", color: THEME.accent },
-  hairline: { height: 1, backgroundColor: THEME.border, marginBottom: 30 },
+  attrAvatar: { width: 24, height: 24, borderRadius: 12 },
+  attrText: { fontSize: 12 },
+  hairline: { height: 1, marginBottom: 30 },
   linkRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -481,51 +507,21 @@ const styles = StyleSheet.create({
   linkIconBg: {
     width: 44,
     height: 44,
-    backgroundColor: THEME.surface,
     borderWidth: 1,
-    borderColor: THEME.border,
     justifyContent: "center",
     alignItems: "center",
   },
-  linkLabel: {
-    fontSize: 8,
-    fontWeight: "800",
-    color: THEME.textSecondary,
-    letterSpacing: 1.5,
-  },
-  linkValue: {
-    fontSize: 14,
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-    fontStyle: "italic",
-    color: THEME.textMain,
-  },
+  linkValue: { fontSize: 14 },
   descriptionSection: { marginBottom: 40 },
-  descriptionText: {
-    fontSize: 15,
-    color: THEME.textMain,
-    lineHeight: 24,
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-    marginTop: 10,
-  },
+  descriptionText: { marginTop: 10 },
   footer: { flexDirection: "row", gap: 15 },
   primaryBtn: {
     flex: 1,
     height: 60,
-    backgroundColor: THEME.textMain,
     justifyContent: "center",
     alignItems: "center",
   },
-  primaryBtnText: {
-    fontSize: 11,
-    fontWeight: "800",
-    color: "#FFF",
-    letterSpacing: 1.5,
-  },
-  removeAction: {
-    backgroundColor: "transparent",
-    borderWidth: 1,
-    borderColor: THEME.textMain,
-  },
+  primaryBtnText: { letterSpacing: 1.5 },
   statusLockBox: {
     flex: 1,
     flexDirection: "row",
@@ -533,18 +529,5 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 10,
     padding: 15,
-    backgroundColor: "rgba(0,0,0,0.03)",
-  },
-  statusLockText: {
-    fontSize: 10,
-    fontWeight: "800",
-    color: THEME.textSecondary,
-    letterSpacing: 1,
-  },
-  receivedNote: {
-    fontSize: 11,
-    color: THEME.success,
-    marginTop: 4,
-    fontWeight: "600",
   },
 });

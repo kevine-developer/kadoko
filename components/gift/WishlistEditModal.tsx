@@ -1,15 +1,7 @@
-import { Ionicons } from "@expo/vector-icons";
 import BottomSheet, { BottomSheetView } from "@gorhom/bottom-sheet";
-import React, {
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
-  Platform,
   StyleSheet,
-  Text,
   TextInput,
   TouchableOpacity,
   View,
@@ -19,18 +11,9 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import * as Haptics from "expo-haptics";
 import { GiftWishlist, WishlistVisibility } from "@/types/gift";
-
-// --- THEME ÉDITORIAL COHÉRENT ---
-const THEME = {
-  background: "#FDFBF7", // Bone Silk
-  surface: "#FFFFFF",
-  textMain: "#1A1A1A",
-  textSecondary: "#8E8E93",
-  primary: "#1A1A1A",
-  accent: "#AF9062", // Or brossé
-  border: "rgba(0,0,0,0.08)",
-  danger: "#C34A4A",
-};
+import { ThemedText } from "@/components/themed-text";
+import { useAppTheme } from "@/hooks/custom/use-app-theme";
+import ThemedIcon from "@/components/themed-icon";
 
 const VISIBILITY_OPTIONS = [
   {
@@ -66,6 +49,7 @@ export default function WishlistEditModal({
   onClose,
   onSave,
 }: WishlistEditModalProps) {
+  const theme = useAppTheme();
   const bottomSheetRef = useRef<BottomSheet>(null);
   const snapPoints = useMemo(() => ["92%"], []);
 
@@ -113,15 +97,25 @@ export default function WishlistEditModal({
         snapPoints={snapPoints}
         enablePanDownToClose
         onChange={(index) => index === -1 && onClose()}
-        backgroundStyle={styles.sheetBackground}
-        handleIndicatorStyle={styles.handle}
+        backgroundStyle={{ backgroundColor: theme.background, borderRadius: 0 }}
+        handleIndicatorStyle={{
+          backgroundColor: theme.border,
+          width: 40,
+          marginTop: 10,
+        }}
       >
         <BottomSheetView style={styles.container}>
           {/* HEADER ÉPURÉ */}
-          <View style={styles.header}>
-            <Text style={styles.navTitle}>ÉDITION DE COLLECTION</Text>
+          <View style={[styles.header, { borderBottomColor: theme.border }]}>
+            <ThemedText
+              type="label"
+              colorName="textSecondary"
+              style={styles.navTitle}
+            >
+              ÉDITION DE COLLECTION
+            </ThemedText>
             <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-              <Ionicons name="close-outline" size={24} color={THEME.textMain} />
+              <ThemedIcon name="close-outline" size={24} colorName="textMain" />
             </TouchableOpacity>
           </View>
 
@@ -131,28 +125,49 @@ export default function WishlistEditModal({
           >
             {/* SECTION TITRE ÉDITORIAL */}
             <View style={styles.inputSection}>
-              <Text style={styles.miniLabel}>NOM DE L&apos;ÉVÉNEMENT</Text>
+              <ThemedText
+                type="label"
+                colorName="textSecondary"
+                style={styles.miniLabel}
+              >
+                NOM DE L&apos;ÉVÉNEMENT
+              </ThemedText>
               <TextInput
-                style={styles.heroInput}
+                style={[
+                  styles.heroInput,
+                  { color: theme.textMain, borderBottomColor: theme.border },
+                ]}
                 value={title}
                 onChangeText={setTitle}
                 placeholder="Titre de la pièce..."
                 placeholderTextColor="#BCBCBC"
-                selectionColor={THEME.accent}
+                selectionColor={theme.accent}
               />
             </View>
 
             {/* DATE STYLE SIGNATURE */}
             <View style={styles.inputSection}>
-              <Text style={styles.miniLabel}>DATE DE CÉLÉBRATION</Text>
+              <ThemedText
+                type="label"
+                colorName="textSecondary"
+                style={styles.miniLabel}
+              >
+                DATE DE CÉLÉBRATION
+              </ThemedText>
               <TouchableOpacity
-                style={styles.dateSelector}
+                style={[
+                  styles.dateSelector,
+                  { borderBottomColor: theme.border },
+                ]}
                 onPress={() => {
                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                   setDatePickerVisibility(true);
                 }}
               >
-                <Text style={[styles.dateValue, !date && { color: "#BCBCBC" }]}>
+                <ThemedText
+                  type="defaultBold"
+                  style={[styles.dateValue, !date && { color: "#BCBCBC" }]}
+                >
                   {date
                     ? date
                         .toLocaleDateString("fr-FR", {
@@ -162,73 +177,104 @@ export default function WishlistEditModal({
                         })
                         .toUpperCase()
                     : "DÉFINIR UNE ÉCHÉANCE"}
-                </Text>
-                <Ionicons
+                </ThemedText>
+                <ThemedIcon
                   name="calendar-outline"
                   size={18}
-                  color={THEME.accent}
+                  colorName="accent"
                 />
               </TouchableOpacity>
             </View>
 
             {/* DESCRIPTION STYLE MANUSCRIT */}
             <View style={styles.inputSection}>
-              <Text style={styles.miniLabel}>NOTES DE RÉDACTION</Text>
+              <ThemedText
+                type="label"
+                colorName="textSecondary"
+                style={styles.miniLabel}
+              >
+                NOTES DE RÉDACTION
+              </ThemedText>
               <TextInput
-                style={styles.descInput}
+                style={[
+                  styles.descInput,
+                  { color: theme.textMain, borderBottomColor: theme.border },
+                ]}
                 value={description}
                 onChangeText={setDescription}
                 placeholder="Ajoutez vos précisions ici..."
                 placeholderTextColor="#BCBCBC"
                 multiline
-                selectionColor={THEME.accent}
+                selectionColor={theme.accent}
               />
             </View>
 
             {/* VISIBILITÉ STYLE REGISTRE */}
             <View style={styles.settingsSection}>
-              <Text style={styles.miniLabel}>PARAMÈTRES D&apos;ACCÈS</Text>
+              <ThemedText
+                type="label"
+                colorName="textSecondary"
+                style={styles.miniLabel}
+              >
+                PARAMÈTRES D&apos;ACCÈS
+              </ThemedText>
               <View style={styles.registryList}>
                 {VISIBILITY_OPTIONS.map((option) => {
                   const isSelected = visibility === option.id;
                   return (
                     <TouchableOpacity
                       key={option.id}
-                      style={styles.registryRow}
+                      style={[
+                        styles.registryRow,
+                        { borderBottomColor: theme.border },
+                      ]}
                       onPress={() => {
                         Haptics.selectionAsync();
                         setVisibility(option.id);
                       }}
                     >
                       <View style={styles.rowLeft}>
-                        <Ionicons
+                        <ThemedIcon
                           name={option.icon as any}
                           size={18}
-                          color={
-                            isSelected ? THEME.accent : THEME.textSecondary
-                          }
+                          colorName={isSelected ? "accent" : "textSecondary"}
                         />
                         <View style={{ marginLeft: 15 }}>
-                          <Text
+                          <ThemedText
+                            type="subtitle"
                             style={[
                               styles.rowTitle,
-                              isSelected && { color: THEME.textMain },
+                              isSelected
+                                ? { color: theme.textMain }
+                                : { color: theme.textSecondary },
                             ]}
                           >
                             {option.label}
-                          </Text>
-                          <Text style={styles.rowSub}>
+                          </ThemedText>
+                          <ThemedText
+                            type="caption"
+                            colorName="textSecondary"
+                            style={styles.rowSub}
+                          >
                             {option.description}
-                          </Text>
+                          </ThemedText>
                         </View>
                       </View>
                       <View
                         style={[
                           styles.radioCircle,
-                          isSelected && styles.radioActive,
+                          { borderColor: theme.border },
+                          isSelected && { borderColor: theme.accent },
                         ]}
                       >
-                        {isSelected && <View style={styles.radioInner} />}
+                        {isSelected && (
+                          <View
+                            style={[
+                              styles.radioInner,
+                              { backgroundColor: theme.accent },
+                            ]}
+                          />
+                        )}
                       </View>
                     </TouchableOpacity>
                   );
@@ -242,14 +288,21 @@ export default function WishlistEditModal({
           {/* FOOTER AUTHORITY */}
           <View style={styles.footer}>
             <TouchableOpacity
-              style={[styles.saveBtn, !title.trim() && styles.saveBtnDisabled]}
+              style={[
+                styles.saveBtn,
+                { backgroundColor: theme.textMain },
+                !title.trim() && styles.saveBtnDisabled,
+              ]}
               onPress={handleSave}
               disabled={!title.trim()}
               activeOpacity={0.9}
             >
-              <Text style={styles.saveBtnText}>
+              <ThemedText
+                type="label"
+                style={[styles.saveBtnText, { color: theme.background }]}
+              >
                 ENREGISTRER LES MODIFICATIONS
-              </Text>
+              </ThemedText>
             </TouchableOpacity>
           </View>
         </BottomSheetView>
@@ -277,8 +330,6 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(0,0,0,0.4)",
   },
-  sheetBackground: { backgroundColor: THEME.background, borderRadius: 0 },
-  handle: { backgroundColor: THEME.border, width: 40, marginTop: 10 },
   container: { flex: 1 },
   scrollContent: { paddingHorizontal: 32, paddingTop: 20 },
 
@@ -290,12 +341,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
     paddingVertical: 20,
     borderBottomWidth: 1,
-    borderBottomColor: THEME.border,
   },
   navTitle: {
-    fontSize: 10,
-    fontWeight: "800",
-    color: THEME.textSecondary,
     letterSpacing: 2,
   },
   closeBtn: {
@@ -308,19 +355,13 @@ const styles = StyleSheet.create({
   /* INPUT SECTIONS */
   inputSection: { marginBottom: 35 },
   miniLabel: {
-    fontSize: 9,
-    fontWeight: "800",
-    color: THEME.textSecondary,
     letterSpacing: 1.5,
     marginBottom: 15,
   },
 
   heroInput: {
     fontSize: 28,
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-    color: THEME.textMain,
     borderBottomWidth: 1,
-    borderBottomColor: THEME.border,
     paddingBottom: 10,
   },
 
@@ -329,25 +370,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     borderBottomWidth: 1,
-    borderBottomColor: THEME.border,
     paddingBottom: 12,
   },
   dateValue: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: THEME.textMain,
     letterSpacing: 0.5,
   },
 
   descInput: {
     fontSize: 16,
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-    fontStyle: "italic",
-    color: THEME.textMain,
-    lineHeight: 24,
     minHeight: 60,
     borderBottomWidth: 1,
-    borderBottomColor: THEME.border,
     paddingBottom: 10,
   },
 
@@ -360,15 +392,11 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingVertical: 18,
     borderBottomWidth: 0.5,
-    borderBottomColor: THEME.border,
   },
   rowLeft: { flexDirection: "row", alignItems: "center", flex: 1 },
-  rowTitle: { fontSize: 15, fontWeight: "600", color: THEME.textSecondary },
+  rowTitle: {},
   rowSub: {
-    fontSize: 12,
-    color: THEME.textSecondary,
     marginTop: 3,
-    fontStyle: "italic",
   },
 
   radioCircle: {
@@ -376,16 +404,13 @@ const styles = StyleSheet.create({
     height: 18,
     borderRadius: 9,
     borderWidth: 1,
-    borderColor: THEME.border,
     alignItems: "center",
     justifyContent: "center",
   },
-  radioActive: { borderColor: THEME.accent },
   radioInner: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: THEME.accent,
   },
 
   /* FOOTER */
@@ -397,15 +422,11 @@ const styles = StyleSheet.create({
   },
   saveBtn: {
     height: 60,
-    backgroundColor: THEME.primary,
     alignItems: "center",
     justifyContent: "center",
   },
   saveBtnDisabled: { opacity: 0.5 },
   saveBtnText: {
-    color: "#FFFFFF",
-    fontSize: 11,
-    fontWeight: "800",
     letterSpacing: 1.5,
   },
 });

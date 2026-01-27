@@ -2,32 +2,23 @@ import React, { useState, useRef } from "react";
 import {
   StyleSheet,
   View,
-  Text,
   TouchableOpacity,
   Animated,
   Dimensions,
-  Platform,
-  Image,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { Image } from "expo-image";
 import { MotiView } from "moti";
 import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
 
 import GuestGiftDetailsModal from "@/components/gift/GuestGiftDetailsModal";
 import GuestGiftCard from "@/components/gift/GuestGiftCard";
+import { ThemedText } from "@/components/themed-text";
+import { useAppTheme } from "@/hooks/custom/use-app-theme";
+import ThemedIcon from "@/components/themed-icon";
 
 const { width } = Dimensions.get("window");
 const ITEM_WIDTH = (width - 60) / 2;
-
-const THEME = {
-  background: "#FDFBF7",
-  surface: "#FFFFFF",
-  textMain: "#1A1A1A",
-  textSecondary: "#8E8E93",
-  accent: "#AF9062",
-  border: "rgba(0,0,0,0.06)",
-};
 
 interface GuestWishlistProps {
   wishlist: any;
@@ -40,6 +31,7 @@ export default function GuestWishlist({
   insets,
   onRefresh,
 }: GuestWishlistProps) {
+  const theme = useAppTheme();
   const [selectedGift, setSelectedGift] = useState<any>(null);
   const scrollY = useRef(new Animated.Value(0)).current;
 
@@ -56,67 +48,103 @@ export default function GuestWishlist({
         animate={{ opacity: 1, translateY: 0 }}
         transition={{ type: "timing", duration: 700 }}
       >
-        {/* AVATAR PROPRIÉTAIRE */}
-        <View style={styles.ownerInfo}>
+        <View
+          style={[
+            styles.ownerInfo,
+            {
+              backgroundColor: `rgba(${theme.accent.replace(/[^0-9,]/g, "")}, 0.05)`,
+              borderLeftColor: theme.accent,
+            },
+          ]}
+        >
           <Image
             source={{
               uri: wishlist.user?.image || "https://i.pravatar.cc/150",
             }}
-            style={styles.ownerAvatar}
+            style={[styles.ownerAvatar, { borderColor: theme.accent }]}
           />
           <View>
-            <Text style={styles.ownerName}>
+            <ThemedText type="defaultBold" style={styles.ownerName}>
               {wishlist.user?.name || "Membre"}
-            </Text>
-            <Text style={styles.ownerRole}>PROPRIÉTAIRE</Text>
+            </ThemedText>
+            <ThemedText type="label" colorName="accent">
+              PROPRIÉTAIRE
+            </ThemedText>
           </View>
         </View>
 
         <View style={styles.metaRow}>
           {wishlist.eventDate && (
-            <Text style={styles.metaLabel}>
+            <ThemedText
+              type="label"
+              colorName="textSecondary"
+              style={styles.metaLabel}
+            >
               {new Date(wishlist.eventDate)
                 .toLocaleDateString("fr-FR", { day: "numeric", month: "long" })
                 .toUpperCase()}
-            </Text>
+            </ThemedText>
           )}
-          <View style={styles.metaDivider} />
-          <Text style={styles.metaLabel}>INVITATION</Text>
+          <View
+            style={[styles.metaDivider, { backgroundColor: theme.accent }]}
+          />
+          <ThemedText
+            type="label"
+            colorName="textSecondary"
+            style={styles.metaLabel}
+          >
+            INVITATION
+          </ThemedText>
         </View>
 
-        <Text style={styles.groupTitle}>{wishlist.title}</Text>
+        <ThemedText type="hero" style={styles.groupTitle}>
+          {wishlist.title}
+        </ThemedText>
 
         {wishlist.description && (
           <View style={styles.descriptionBox}>
-            <View style={styles.accentLine} />
-            <Text style={styles.description}>{wishlist.description}</Text>
+            <View
+              style={[styles.accentLine, { backgroundColor: theme.accent }]}
+            />
+            <ThemedText
+              type="subtitle"
+              colorName="textSecondary"
+              style={styles.description}
+            >
+              {wishlist.description}
+            </ThemedText>
           </View>
         )}
       </MotiView>
-      <View style={styles.sectionDivider} />
+      <View
+        style={[styles.sectionDivider, { backgroundColor: theme.accent }]}
+      />
     </View>
   );
 
   return (
-    <View style={styles.container}>
-      {/* STICKY NAV BAR */}
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       <Animated.View
         style={[
           styles.navbar,
-          { paddingTop: insets.top, opacity: headerOpacity },
+          {
+            paddingTop: insets.top,
+            opacity: headerOpacity,
+            backgroundColor: theme.background,
+            borderBottomColor: theme.border,
+          },
         ]}
       >
-        <Text style={styles.navTitle} numberOfLines={1}>
+        <ThemedText type="label" style={styles.navTitle} numberOfLines={1}>
           {wishlist.title.toUpperCase()}
-        </Text>
+        </ThemedText>
       </Animated.View>
 
-      {/* BACK ACTION */}
       <TouchableOpacity
         style={[styles.backBtn, { top: insets.top + 10 }]}
         onPress={() => router.back()}
       >
-        <Ionicons name="chevron-back" size={26} color={THEME.textMain} />
+        <ThemedIcon name="chevron-back" size={26} colorName="textMain" />
       </TouchableOpacity>
 
       <Animated.FlatList
@@ -148,7 +176,6 @@ export default function GuestWishlist({
         )}
       />
 
-      {/* MODALS */}
       <GuestGiftDetailsModal
         gift={selectedGift}
         visible={selectedGift !== null}
@@ -160,25 +187,19 @@ export default function GuestWishlist({
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: THEME.background },
+  container: { flex: 1 },
   navbar: {
     position: "absolute",
     top: 0,
     left: 0,
     right: 0,
     height: 100,
-    backgroundColor: THEME.background,
     zIndex: 10,
     alignItems: "center",
     justifyContent: "center",
     borderBottomWidth: 1,
-    borderBottomColor: THEME.border,
   },
   navTitle: {
-    fontSize: 10,
-    fontWeight: "800",
-    color: THEME.textMain,
-    letterSpacing: 2,
     marginTop: 10,
   },
   backBtn: {
@@ -195,67 +216,40 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 12,
     marginBottom: 25,
-    backgroundColor: "rgba(175, 144, 98, 0.05)",
     padding: 12,
     borderRadius: 0,
     borderLeftWidth: 2,
-    borderLeftColor: THEME.accent,
   },
   ownerAvatar: {
     width: 40,
     height: 40,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: THEME.accent,
   },
   ownerName: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: THEME.textMain,
     letterSpacing: -0.2,
-  },
-  ownerRole: {
-    fontSize: 8,
-    fontWeight: "800",
-    color: THEME.accent,
-    letterSpacing: 1,
   },
   metaRow: { flexDirection: "row", alignItems: "center", marginBottom: 15 },
   metaLabel: {
-    fontSize: 9,
-    fontWeight: "800",
-    color: THEME.textSecondary,
     letterSpacing: 1.5,
   },
   metaDivider: {
     width: 4,
     height: 4,
     borderRadius: 2,
-    backgroundColor: THEME.accent,
     marginHorizontal: 12,
   },
   groupTitle: {
-    fontSize: 42,
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-    color: THEME.textMain,
-    lineHeight: 48,
-    letterSpacing: -1,
     marginBottom: 20,
   },
   descriptionBox: { flexDirection: "row", gap: 20 },
-  accentLine: { width: 1, backgroundColor: THEME.accent, opacity: 0.5 },
+  accentLine: { width: 1, opacity: 0.5 },
   description: {
     flex: 1,
-    fontSize: 15,
-    color: THEME.textSecondary,
-    lineHeight: 24,
-    fontStyle: "italic",
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
   },
   sectionDivider: {
     width: 40,
     height: 2,
-    backgroundColor: THEME.accent,
     marginTop: 35,
   },
   columnWrapper: { justifyContent: "space-between", paddingHorizontal: 25 },

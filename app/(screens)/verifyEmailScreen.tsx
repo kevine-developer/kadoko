@@ -1,12 +1,11 @@
-import { Ionicons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import React, { useState, useRef, useEffect } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  StatusBar,
   StyleSheet,
-  Text,
   TextInput,
   TouchableOpacity,
   View,
@@ -18,21 +17,14 @@ import { authClient } from "@/features/auth";
 import { showErrorToast, showSuccessToast } from "@/lib/toast";
 import * as Haptics from "expo-haptics";
 import { MotiView } from "moti";
-
-// --- THEME ÉDITORIAL COHÉRENT ---
-const THEME = {
-  background: "#FDFBF7", // Bone Silk
-  surface: "#FFFFFF",
-  textMain: "#1A1A1A",
-  textSecondary: "#8E8E93",
-  primary: "#1A1A1A",
-  accent: "#AF9062", // Or brossé
-  border: "rgba(0,0,0,0.08)",
-};
+import { ThemedText } from "@/components/themed-text";
+import { useAppTheme } from "@/hooks/custom/use-app-theme";
+import ThemedIcon from "@/components/themed-icon";
 
 export default function VerifyEmailScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const theme = useAppTheme();
   const { email, type } = useLocalSearchParams<{
     email: string;
     type: string;
@@ -60,7 +52,6 @@ export default function VerifyEmailScreen() {
   }, [resendTimer]);
 
   const handleOtpChange = (value: string, index: number) => {
-    // Nettoyage si copier-coller
     const char = value.slice(-1);
     const newOtp = [...otp];
     newOtp[index] = char;
@@ -137,13 +128,16 @@ export default function VerifyEmailScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      {/* NAV BAR MINIMALISTE */}
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <StatusBar barStyle="dark-content" />
+
       <View style={[styles.navBar, { paddingTop: insets.top + 10 }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Ionicons name="chevron-back" size={24} color={THEME.textMain} />
+          <ThemedIcon name="chevron-back" size={24} colorName="textMain" />
         </TouchableOpacity>
-        <Text style={styles.navTitle}>SÉCURITÉ</Text>
+        <ThemedText type="label" style={styles.navTitle}>
+          SÉCURITÉ
+        </ThemedText>
         <View style={{ width: 44 }} />
       </View>
 
@@ -156,22 +150,30 @@ export default function VerifyEmailScreen() {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {/* HERO SECTION */}
           <MotiView
             from={{ opacity: 0, translateY: 15 }}
             animate={{ opacity: 1, translateY: 0 }}
             transition={{ type: "timing", duration: 700 }}
             style={styles.heroSection}
           >
-            <Text style={styles.heroTitle}>Signature{"\n"}numérique.</Text>
-            <View style={styles.titleDivider} />
-            <Text style={styles.heroSubtitle}>
+            <ThemedText type="hero" style={styles.heroTitle}>
+              Signature{"\n"}numérique.
+            </ThemedText>
+            <View
+              style={[styles.titleDivider, { backgroundColor: theme.accent }]}
+            />
+            <ThemedText
+              type="subtitle"
+              colorName="textSecondary"
+              style={styles.heroSubtitle}
+            >
               Saisissez le code de sécurité transmis à l&apos;adresse{"\n"}
-              <Text style={styles.emailHighlight}>{email}</Text>
-            </Text>
+              <ThemedText type="defaultBold" style={{ color: theme.textMain }}>
+                {email}
+              </ThemedText>
+            </ThemedText>
           </MotiView>
 
-          {/* OTP INPUTS - STYLE REGISTRE */}
           <View style={styles.otpContainer}>
             {otp.map((digit, index) => (
               <TextInput
@@ -181,8 +183,10 @@ export default function VerifyEmailScreen() {
                 }}
                 style={[
                   styles.otpInput,
-                  digit ? styles.otpInputFilled : null,
-                  { borderBottomColor: digit ? THEME.accent : THEME.border },
+                  {
+                    color: digit ? theme.accent : theme.textMain,
+                    borderBottomColor: digit ? theme.accent : theme.border,
+                  },
                 ]}
                 value={digit}
                 onChangeText={(val) => handleOtpChange(val, index)}
@@ -190,25 +194,27 @@ export default function VerifyEmailScreen() {
                 keyboardType="number-pad"
                 maxLength={1}
                 selectTextOnFocus
-                selectionColor={THEME.accent}
+                selectionColor={theme.accent}
               />
             ))}
           </View>
 
-          {/* ACTION BUTTON - RECTANGULAIRE LUXE */}
           <View style={styles.footer}>
             <TouchableOpacity
               style={[
                 styles.primaryBtn,
+                { backgroundColor: theme.textMain },
                 otp.join("").length < 6 && styles.primaryBtnDisabled,
               ]}
               onPress={handleVerify}
               disabled={loading || otp.join("").length < 6}
             >
               {loading ? (
-                <ActivityIndicator color="#FFF" size="small" />
+                <ActivityIndicator color={theme.background} size="small" />
               ) : (
-                <Text style={styles.primaryBtnText}>VÉRIFIER LE CODE</Text>
+                <ThemedText type="label" style={{ color: theme.background }}>
+                  VÉRIFIER LE CODE
+                </ThemedText>
               )}
             </TouchableOpacity>
 
@@ -217,7 +223,9 @@ export default function VerifyEmailScreen() {
               onPress={handleResend}
               disabled={!canResend}
             >
-              <Text
+              <ThemedText
+                type="label"
+                colorName={canResend ? "accent" : "textSecondary"}
                 style={[
                   styles.resendText,
                   !canResend && styles.resendTextDisabled,
@@ -226,7 +234,7 @@ export default function VerifyEmailScreen() {
                 {canResend
                   ? "Renvoyer une nouvelle signature"
                   : `Nouvel envoi possible dans ${resendTimer}s`}
-              </Text>
+              </ThemedText>
             </TouchableOpacity>
           </View>
         </ScrollView>
@@ -238,9 +246,7 @@ export default function VerifyEmailScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: THEME.background,
   },
-  /* NAV BAR */
   navBar: {
     flexDirection: "row",
     alignItems: "center",
@@ -254,46 +260,27 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   navTitle: {
-    fontSize: 10,
-    fontWeight: "800",
-    color: THEME.textMain,
-    letterSpacing: 2,
+    marginTop: 10,
   },
   scrollContent: {
     paddingHorizontal: 32,
     flexGrow: 1,
   },
-  /* HERO SECTION */
   heroSection: {
     marginTop: 30,
     marginBottom: 50,
   },
   heroTitle: {
-    fontSize: 38,
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-    color: THEME.textMain,
     lineHeight: 44,
-    letterSpacing: -1,
   },
   titleDivider: {
     width: 35,
     height: 2,
-    backgroundColor: THEME.accent,
     marginVertical: 25,
   },
   heroSubtitle: {
-    fontSize: 14,
-    color: THEME.textSecondary,
     lineHeight: 22,
-    fontStyle: "italic",
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
   },
-  emailHighlight: {
-    color: THEME.textMain,
-    fontWeight: "700",
-    fontStyle: "normal",
-  },
-  /* OTP INPUTS */
   otpContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -304,48 +291,29 @@ const styles = StyleSheet.create({
     height: 54,
     borderBottomWidth: 1,
     fontSize: 28,
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-    color: THEME.textMain,
     textAlign: "center",
   },
-  otpInputFilled: {
-    color: THEME.accent,
-  },
-  /* FOOTER & BUTTONS */
   footer: {
     marginTop: "auto",
     paddingBottom: 40,
   },
   primaryBtn: {
-    backgroundColor: THEME.primary,
     height: 60,
-    borderRadius: 0, // Rectangulaire luxe
+    borderRadius: 0,
     alignItems: "center",
     justifyContent: "center",
   },
   primaryBtnDisabled: {
     opacity: 0.5,
   },
-  primaryBtnText: {
-    color: "#FFFFFF",
-    fontSize: 14,
-    fontWeight: "700",
-    letterSpacing: 1,
-    textTransform: "uppercase",
-  },
   resendBtn: {
     marginTop: 25,
     alignItems: "center",
   },
   resendText: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: THEME.accent,
-    letterSpacing: 0.5,
     textDecorationLine: "underline",
   },
   resendTextDisabled: {
-    color: THEME.textSecondary,
     textDecorationLine: "none",
     opacity: 0.6,
   },

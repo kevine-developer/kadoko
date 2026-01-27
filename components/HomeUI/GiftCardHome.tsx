@@ -7,13 +7,12 @@ import {
   View,
   Animated,
   Linking,
-  Platform,
 } from "react-native";
 import * as Haptics from "expo-haptics";
 import { shareGift } from "@/lib/share";
 import { ThemedText } from "@/components/themed-text";
-import Icon from "@/components/themed-icon";
-import { useThemeColor } from "@/hooks/use-theme-color";
+import ThemedIcon from "@/components/themed-icon";
+import { useAppTheme } from "@/hooks/custom/use-app-theme";
 import { GiftPriority } from "@/types/gift";
 
 interface GiftCardHomeProps {
@@ -21,17 +20,10 @@ interface GiftCardHomeProps {
 }
 
 const GiftCardHome = ({ item }: GiftCardHomeProps) => {
+  const theme = useAppTheme();
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const [isExpanded, setIsExpanded] = useState(false);
 
-  // Couleurs du thème
-  const backgroundColor = useThemeColor({}, "background");
-  const surfaceColor = useThemeColor({}, "surface");
-  const textMain = useThemeColor({}, "textMain");
-  const textSecondary = useThemeColor({}, "textSecondary");
-  const accentColor = useThemeColor({}, "accent");
-  const borderColor = useThemeColor({}, "border");
-  const errorColor = useThemeColor({}, "danger");
   const ecoColor = "#4A6741"; // Vert forêt luxe
 
   const handlePressIn = () => {
@@ -60,11 +52,11 @@ const GiftCardHome = ({ item }: GiftCardHomeProps) => {
   const getPriorityConfig = (priority?: string) => {
     switch (priority) {
       case GiftPriority.ESSENTIAL:
-        return { label: "INDISPENSABLE", color: errorColor };
+        return { label: "INDISPENSABLE", color: theme.danger };
       case GiftPriority.DESIRED:
-        return { label: "COUP DE COEUR", color: accentColor };
+        return { label: "COUP DE COEUR", color: theme.accent };
       case GiftPriority.OPTIONAL:
-        return { label: "IDÉE CADEAU", color: textSecondary };
+        return { label: "IDÉE CADEAU", color: theme.textSecondary };
       default:
         return null;
     }
@@ -78,8 +70,8 @@ const GiftCardHome = ({ item }: GiftCardHomeProps) => {
       style={[
         styles.container,
         {
-          backgroundColor: surfaceColor,
-          borderColor,
+          backgroundColor: theme.surface,
+          borderColor: theme.border,
           transform: [{ scale: scaleAnim }],
         },
       ]}
@@ -97,7 +89,7 @@ const GiftCardHome = ({ item }: GiftCardHomeProps) => {
             </ThemedText>
             <ThemedText
               type="label"
-              style={{ color: accentColor, fontSize: 8 }}
+              style={{ color: theme.accent, fontSize: 8 }}
             >
               {item.context.toUpperCase()}
             </ThemedText>
@@ -108,7 +100,7 @@ const GiftCardHome = ({ item }: GiftCardHomeProps) => {
           onPress={() => shareGift(item.id, item.product.name)}
           style={styles.iconBtn}
         >
-          <Icon name="share-outline" size={20} color={textMain} />
+          <ThemedIcon name="share-outline" size={20} colorName="textMain" />
         </TouchableOpacity>
       </View>
 
@@ -130,7 +122,12 @@ const GiftCardHome = ({ item }: GiftCardHomeProps) => {
         {/* Badges flottants sur l'image */}
         <View style={styles.imageBadges}>
           {priority && (
-            <View style={[styles.badge, { backgroundColor: surfaceColor }]}>
+            <View
+              style={[
+                styles.badge,
+                { backgroundColor: theme.surface, borderColor: theme.border },
+              ]}
+            >
               <ThemedText
                 type="label"
                 style={{ color: priority.color, fontSize: 8 }}
@@ -140,8 +137,13 @@ const GiftCardHome = ({ item }: GiftCardHomeProps) => {
             </View>
           )}
           {item.acceptsSecondHand && (
-            <View style={[styles.badge, { backgroundColor: surfaceColor }]}>
-              <Icon name="leaf" size={10} color={ecoColor} />
+            <View
+              style={[
+                styles.badge,
+                { backgroundColor: theme.surface, borderColor: theme.border },
+              ]}
+            >
+              <ThemedIcon name="leaf" size={10} color={ecoColor} />
               <ThemedText
                 type="label"
                 style={{ color: ecoColor, fontSize: 8, marginLeft: 4 }}
@@ -179,7 +181,11 @@ const GiftCardHome = ({ item }: GiftCardHomeProps) => {
             onPress={() => Linking.openURL(item.product.url)}
             style={styles.sourceLink}
           >
-            <Icon name="link-outline" size={12} color={textSecondary} />
+            <ThemedIcon
+              name="link-outline"
+              size={12}
+              colorName="textSecondary"
+            />
             <ThemedText type="caption" style={styles.sourceName}>
               {getHostname(item.product.url).toUpperCase()}
             </ThemedText>
@@ -195,7 +201,7 @@ const GiftCardHome = ({ item }: GiftCardHomeProps) => {
               style={styles.descriptionText}
             >
               {item.notes && (
-                <ThemedText type="defaultBold" style={{ color: accentColor }}>
+                <ThemedText type="defaultBold" colorName="accent">
                   Note :{" "}
                 </ThemedText>
               )}
@@ -216,7 +222,7 @@ const GiftCardHome = ({ item }: GiftCardHomeProps) => {
         )}
 
         {/* Divider discret */}
-        <View style={[styles.divider, { backgroundColor: borderColor }]} />
+        <View style={[styles.divider, { backgroundColor: theme.border }]} />
 
         {/* 4. FOOTER : STATUS & CTAs */}
         {isTaken && !item.isMyReservation ? (
@@ -237,14 +243,18 @@ const GiftCardHome = ({ item }: GiftCardHomeProps) => {
             </View>
 
             <TouchableOpacity
-              style={[styles.alertBtn, { borderColor: textMain }]}
+              style={[styles.alertBtn, { borderColor: theme.textMain }]}
               onPress={() =>
                 Haptics.notificationAsync(
                   Haptics.NotificationFeedbackType.Success,
                 )
               }
             >
-              <Icon name="notifications-outline" size={14} color={textMain} />
+              <ThemedIcon
+                name="notifications-outline"
+                size={14}
+                colorName="textMain"
+              />
               <ThemedText type="label" style={styles.alertBtnText}>
                 M&apos;ALERTER
               </ThemedText>
@@ -252,13 +262,20 @@ const GiftCardHome = ({ item }: GiftCardHomeProps) => {
           </View>
         ) : (
           <TouchableOpacity
-            style={[styles.mainCta, { backgroundColor: textMain }]}
+            style={[styles.mainCta, { backgroundColor: theme.textMain }]}
             onPress={() => router.push(`/(screens)/gifts/${item.id}`)}
           >
-            <ThemedText type="label" style={styles.ctaText}>
+            <ThemedText
+              type="label"
+              style={[styles.ctaText, { color: theme.background }]}
+            >
               {item.isMyReservation ? "MA RÉSERVATION" : "VOIR LES DÉTAILS"}
             </ThemedText>
-            <Icon name="chevron-forward" size={14} color={backgroundColor} />
+            <ThemedIcon
+              name="chevron-forward"
+              size={14}
+              color={theme.background}
+            />
           </TouchableOpacity>
         )}
       </View>
@@ -321,7 +338,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderWidth: 0.5,
-    borderColor: "rgba(0,0,0,0.05)",
   },
   takenOverlay: {
     ...StyleSheet.absoluteFillObject,
@@ -372,15 +388,10 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   descriptionText: {
-    fontSize: 14,
     lineHeight: 20,
-    color: "#4B5563",
   },
   moreBtn: {
-    fontSize: 9,
-    color: "#AF9062",
     marginTop: 6,
-    fontWeight: "800",
   },
   divider: {
     height: 1,
@@ -425,9 +436,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   ctaText: {
-    color: "#FFF",
     fontSize: 11,
-    fontWeight: "800",
     letterSpacing: 1,
   },
 });

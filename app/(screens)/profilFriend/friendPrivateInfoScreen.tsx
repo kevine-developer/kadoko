@@ -1,12 +1,9 @@
-import { Ionicons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Platform,
   ScrollView,
   StyleSheet,
-  Text,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -15,21 +12,14 @@ import { userService } from "@/lib/services/user-service";
 import { showErrorToast } from "@/lib/toast";
 import * as Haptics from "expo-haptics";
 import { MotiView } from "moti";
-
-// --- THEME ÉDITORIAL COHÉRENT ---
-const THEME = {
-  background: "#FDFBF7", // Bone Silk
-  surface: "#FFFFFF",
-  textMain: "#1A1A1A",
-  textSecondary: "#8E8E93",
-  primary: "#1A1A1A",
-  accent: "#AF9062", // Or brossé
-  border: "rgba(0,0,0,0.08)",
-};
+import { ThemedText } from "@/components/themed-text";
+import { useAppTheme } from "@/hooks/custom/use-app-theme";
+import ThemedIcon from "@/components/themed-icon";
 
 export default function FriendPrivateInfoScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const theme = useAppTheme();
   const { friendId, name } = useLocalSearchParams<{
     friendId: string;
     name: string;
@@ -57,8 +47,14 @@ export default function FriendPrivateInfoScreen() {
 
   if (loading) {
     return (
-      <View style={[styles.container, styles.center]}>
-        <ActivityIndicator size="small" color={THEME.accent} />
+      <View
+        style={[
+          styles.container,
+          styles.center,
+          { backgroundColor: theme.background },
+        ]}
+      >
+        <ActivityIndicator size="small" color={theme.accent} />
       </View>
     );
   }
@@ -69,26 +65,37 @@ export default function FriendPrivateInfoScreen() {
     if (!value) return null;
     return (
       <View style={styles.infoRow}>
-        <Text style={styles.rowLabel}>{label}</Text>
-        <View style={styles.dotSeparator} />
-        <Text style={styles.rowValue}>{value}</Text>
+        <ThemedText
+          type="label"
+          colorName="textSecondary"
+          style={styles.rowLabel}
+        >
+          {label}
+        </ThemedText>
+        <View
+          style={[styles.dotSeparator, { borderBottomColor: theme.border }]}
+        />
+        <ThemedText type="defaultBold" style={styles.rowValue}>
+          {value}
+        </ThemedText>
       </View>
     );
   };
 
   const SectionRegistry = ({ title, icon, children }: any) => (
     <View style={styles.sectionContainer}>
-      <View style={styles.sectionHeader}>
-        <Ionicons name={icon} size={18} color={THEME.accent} />
-        <Text style={styles.sectionTitle}>{title}</Text>
+      <View style={[styles.sectionHeader, { borderBottomColor: theme.border }]}>
+        <ThemedIcon name={icon} size={18} colorName="accent" />
+        <ThemedText type="label" style={styles.sectionTitle}>
+          {title}
+        </ThemedText>
       </View>
       <View style={styles.sectionContent}>{children}</View>
     </View>
   );
 
   return (
-    <View style={styles.container}>
-      {/* NAV BAR MINIMALISTE */}
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       <View style={[styles.navBar, { paddingTop: insets.top + 10 }]}>
         <TouchableOpacity
           onPress={() => {
@@ -97,9 +104,11 @@ export default function FriendPrivateInfoScreen() {
           }}
           style={styles.backBtn}
         >
-          <Ionicons name="chevron-back" size={24} color={THEME.textMain} />
+          <ThemedIcon name="chevron-back" size={24} colorName="textMain" />
         </TouchableOpacity>
-        <Text style={styles.navTitle}>PRÉFÉRENCES</Text>
+        <ThemedText type="label" style={styles.navTitle}>
+          PRÉFÉRENCES
+        </ThemedText>
         <View style={{ width: 44 }} />
       </View>
 
@@ -107,24 +116,28 @@ export default function FriendPrivateInfoScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* HERO SECTION */}
         <MotiView
           from={{ opacity: 0, translateY: 15 }}
           animate={{ opacity: 1, translateY: 0 }}
           transition={{ type: "timing", duration: 700 }}
           style={styles.heroSection}
         >
-          <Text style={styles.heroTitle}>
+          <ThemedText type="hero" style={styles.heroTitle}>
             Notes sur{"\n"}
             {name}.
-          </Text>
-          <View style={styles.titleDivider} />
-          <Text style={styles.heroSubtitle}>
+          </ThemedText>
+          <View
+            style={[styles.titleDivider, { backgroundColor: theme.accent }]}
+          />
+          <ThemedText
+            type="subtitle"
+            colorName="textSecondary"
+            style={styles.heroSubtitle}
+          >
             Ces détails précieux vous guideront pour choisir le présent parfait.
-          </Text>
+          </ThemedText>
         </MotiView>
 
-        {/* CONTENU REGISTRE */}
         <MotiView
           from={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -137,7 +150,13 @@ export default function FriendPrivateInfoScreen() {
             {!p.clothing?.topSize &&
               !p.clothing?.bottomSize &&
               !p.clothing?.shoeSize && (
-                <Text style={styles.emptyNote}>Aucune mesure enregistrée.</Text>
+                <ThemedText
+                  type="caption"
+                  colorName="textSecondary"
+                  style={styles.emptyNote}
+                >
+                  Aucune mesure enregistrée.
+                </ThemedText>
               )}
           </SectionRegistry>
 
@@ -145,37 +164,67 @@ export default function FriendPrivateInfoScreen() {
             {renderInfoRow("TOUR DE DOIGT", p.jewelry?.ringSize)}
             {renderInfoRow("MÉTAL PRÉFÉRÉ", p.jewelry?.preference)}
             {!p.jewelry?.ringSize && !p.jewelry?.preference && (
-              <Text style={styles.emptyNote}>Aucune préférence notée.</Text>
+              <ThemedText
+                type="caption"
+                colorName="textSecondary"
+                style={styles.emptyNote}
+              >
+                Aucune préférence notée.
+              </ThemedText>
             )}
           </SectionRegistry>
 
           <SectionRegistry title="GOÛTS & DIÈTE" icon="restaurant-outline">
             {p.diet?.allergies?.length > 0 && (
               <View style={styles.noteBlock}>
-                <Text style={styles.blockLabel}>ALLERGIES SIGNALEES</Text>
-                <Text style={styles.blockValue}>
+                <ThemedText
+                  type="label"
+                  colorName="textSecondary"
+                  style={styles.blockLabel}
+                >
+                  ALLERGIES SIGNALEES
+                </ThemedText>
+                <ThemedText type="subtitle" style={styles.blockValue}>
                   {p.diet.allergies.join(", ")}
-                </Text>
+                </ThemedText>
               </View>
             )}
             {p.diet?.preferences?.length > 0 && (
               <View style={[styles.noteBlock, { marginTop: 15 }]}>
-                <Text style={styles.blockLabel}>RÉGIMES ALIMENTAIRES</Text>
-                <Text style={styles.blockValue}>
+                <ThemedText
+                  type="label"
+                  colorName="textSecondary"
+                  style={styles.blockLabel}
+                >
+                  RÉGIMES ALIMENTAIRES
+                </ThemedText>
+                <ThemedText type="subtitle" style={styles.blockValue}>
                   {p.diet.preferences.join(", ")}
-                </Text>
+                </ThemedText>
               </View>
             )}
             {!p.diet?.allergies?.length && !p.diet?.preferences?.length && (
-              <Text style={styles.emptyNote}>Aucune restriction connue.</Text>
+              <ThemedText
+                type="caption"
+                colorName="textSecondary"
+                style={styles.emptyNote}
+              >
+                Aucune restriction connue.
+              </ThemedText>
             )}
           </SectionRegistry>
 
           <SectionRegistry title="LOGISTIQUE" icon="cube-outline">
             {p.delivery?.address ? (
               <View style={styles.noteBlock}>
-                <Text style={styles.blockLabel}>ADRESSE DE LIVRAISON</Text>
-                <Text style={styles.addressValue}>
+                <ThemedText
+                  type="label"
+                  colorName="textSecondary"
+                  style={styles.blockLabel}
+                >
+                  ADRESSE DE LIVRAISON
+                </ThemedText>
+                <ThemedText type="subtitle" style={styles.addressValue}>
                   {[
                     p.delivery.address.street,
                     p.delivery.address.postalCode,
@@ -184,10 +233,16 @@ export default function FriendPrivateInfoScreen() {
                   ]
                     .filter(Boolean)
                     .join("\n")}
-                </Text>
+                </ThemedText>
               </View>
             ) : (
-              <Text style={styles.emptyNote}>Adresse non communiquée.</Text>
+              <ThemedText
+                type="caption"
+                colorName="textSecondary"
+                style={styles.emptyNote}
+              >
+                Adresse non communiquée.
+              </ThemedText>
             )}
           </SectionRegistry>
         </MotiView>
@@ -201,14 +256,11 @@ export default function FriendPrivateInfoScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: THEME.background,
   },
   center: {
     justifyContent: "center",
     alignItems: "center",
   },
-
-  /* NAV BAR */
   navBar: {
     flexDirection: "row",
     alignItems: "center",
@@ -223,13 +275,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   navTitle: {
-    fontSize: 10,
-    fontWeight: "800",
-    color: THEME.textMain,
     letterSpacing: 2,
   },
-
-  /* CONTENT */
   scrollContent: {
     paddingHorizontal: 32,
     paddingTop: 20,
@@ -239,26 +286,18 @@ const styles = StyleSheet.create({
   },
   heroTitle: {
     fontSize: 38,
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-    color: THEME.textMain,
     lineHeight: 44,
     letterSpacing: -1,
   },
   titleDivider: {
     width: 35,
     height: 2,
-    backgroundColor: THEME.accent,
     marginVertical: 25,
   },
   heroSubtitle: {
     fontSize: 15,
-    color: THEME.textSecondary,
     lineHeight: 24,
-    fontStyle: "italic",
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
   },
-
-  /* SECTIONS */
   sectionContainer: {
     marginBottom: 35,
   },
@@ -268,20 +307,14 @@ const styles = StyleSheet.create({
     gap: 10,
     marginBottom: 15,
     borderBottomWidth: 1,
-    borderBottomColor: THEME.border,
     paddingBottom: 10,
   },
   sectionTitle: {
-    fontSize: 11,
-    fontWeight: "800",
-    color: THEME.textMain,
     letterSpacing: 1.5,
   },
   sectionContent: {
-    paddingLeft: 28, // Alignement sous le texte du titre
+    paddingLeft: 28,
   },
-
-  /* ROW ITEM */
   infoRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -290,53 +323,36 @@ const styles = StyleSheet.create({
   },
   rowLabel: {
     fontSize: 10,
-    fontWeight: "700",
-    color: THEME.textSecondary,
     letterSpacing: 1,
   },
   dotSeparator: {
     flex: 1,
     borderBottomWidth: 1,
-    borderBottomColor: THEME.border,
     marginHorizontal: 10,
-    borderStyle: "dotted", // Si supporté, sinon solid fin
+    borderStyle: "dotted",
     opacity: 0.5,
   },
   rowValue: {
     fontSize: 14,
-    fontWeight: "600",
-    color: THEME.textMain,
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
   },
-
-  /* BLOCKS (TEXTE LONG) */
   noteBlock: {
     marginBottom: 5,
   },
   blockLabel: {
     fontSize: 9,
-    fontWeight: "800",
-    color: THEME.textSecondary,
     marginBottom: 6,
     letterSpacing: 1,
   },
   blockValue: {
     fontSize: 14,
-    color: THEME.textMain,
     lineHeight: 20,
   },
   addressValue: {
     fontSize: 15,
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-    color: THEME.textMain,
     lineHeight: 24,
-    fontStyle: "italic",
   },
-
   emptyNote: {
     fontSize: 13,
-    color: THEME.textSecondary,
-    fontStyle: "italic",
     opacity: 0.7,
   },
 });

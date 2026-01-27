@@ -1,30 +1,17 @@
-import {
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-  Platform,
-} from "react-native";
+import { StyleSheet, TouchableOpacity, View } from "react-native";
 import React from "react";
-import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { MotiView } from "moti";
-
-// --- THEME ÉDITORIAL COHÉRENT ---
-const THEME = {
-  background: "#FDFBF7", // Bone Silk
-  surface: "#FFFFFF",
-  textMain: "#1A1A1A",
-  textSecondary: "#8E8E93",
-  accent: "#AF9062", // Or brossé
-  border: "rgba(0,0,0,0.08)",
-};
+import { ThemedText } from "@/components/themed-text";
+import { useAppTheme } from "@/hooks/custom/use-app-theme";
+import ThemedIcon from "@/components/themed-icon";
 
 interface EmptyFriendProps {
   onPress?: () => void;
 }
 
 const EmptyFriend = ({ onPress }: EmptyFriendProps) => {
+  const theme = useAppTheme();
   const handlePress = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     onPress?.();
@@ -37,31 +24,45 @@ const EmptyFriend = ({ onPress }: EmptyFriendProps) => {
       transition={{ type: "timing", duration: 800 }}
       style={styles.container}
     >
-      {/* Icône Bijou */}
-      <View style={styles.iconCircle}>
-        <Ionicons name="people-outline" size={28} color={THEME.accent} />
+      <View
+        style={[
+          styles.iconCircle,
+          { borderColor: `rgba(${theme.accent.replace(/[^0-9,]/g, "")}, 0.2)` },
+        ]}
+      >
+        <ThemedIcon name="people-outline" size={28} colorName="accent" />
       </View>
 
-      {/* Texte Éditorial */}
       <View style={styles.textContainer}>
-        <Text style={styles.title}>Cercle restreint.</Text>
-        <Text style={styles.subtitle}>
+        <ThemedText type="hero" style={styles.title}>
+          Cercle restreint.
+        </ThemedText>
+        <ThemedText
+          type="subtitle"
+          colorName="textSecondary"
+          style={styles.subtitle}
+        >
           Votre répertoire est encore vide. Commencez à bâtir votre cercle pour
           partager vos intentions.
-        </Text>
+        </ThemedText>
       </View>
 
-      {/* Bouton Authority Rectangulaire */}
       <TouchableOpacity
         onPress={handlePress}
-        style={styles.actionBtn}
+        style={[styles.actionBtn, { backgroundColor: theme.textMain }]}
         activeOpacity={0.9}
       >
-        <Text style={styles.btnText}>INVITER VOS PROCHES</Text>
+        <ThemedText
+          type="label"
+          style={[styles.btnText, { color: theme.background }]}
+        >
+          INVITER VOS PROCHES
+        </ThemedText>
       </TouchableOpacity>
 
-      {/* Ligne décorative minimaliste */}
-      <View style={styles.decorativeLine} />
+      <View
+        style={[styles.decorativeLine, { backgroundColor: theme.accent }]}
+      />
     </MotiView>
   );
 };
@@ -81,7 +82,6 @@ const styles = StyleSheet.create({
     height: 64,
     borderRadius: 32,
     borderWidth: 1,
-    borderColor: "rgba(175, 144, 98, 0.2)", // Or brossé translucide
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 30,
@@ -91,39 +91,25 @@ const styles = StyleSheet.create({
     marginBottom: 35,
   },
   title: {
-    fontSize: 22,
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-    color: THEME.textMain,
     marginBottom: 12,
-    letterSpacing: -0.5,
   },
   subtitle: {
-    color: THEME.textSecondary,
-    fontSize: 14,
-    lineHeight: 22,
     textAlign: "center",
-    fontStyle: "italic",
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
   },
   actionBtn: {
-    backgroundColor: THEME.textMain,
     paddingHorizontal: 25,
     paddingVertical: 15,
-    borderRadius: 0, // Rectangulaire luxe
+    borderRadius: 0,
     width: "100%",
     alignItems: "center",
     justifyContent: "center",
   },
   btnText: {
-    color: "#FFFFFF",
-    fontSize: 11,
-    fontWeight: "800",
     letterSpacing: 1.5,
   },
   decorativeLine: {
     width: 40,
     height: 1,
-    backgroundColor: THEME.accent,
     marginTop: 40,
     opacity: 0.3,
   },

@@ -1,17 +1,13 @@
 import React from "react";
-import { TouchableOpacity, Text, StyleSheet } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { TouchableOpacity, StyleSheet } from "react-native";
 import * as Haptics from "expo-haptics";
-
-const THEME = {
-  textMain: "#1A1A1A",
-  primary: "#1A1A1A",
-  border: "rgba(0,0,0,0.08)",
-};
+import { ThemedText } from "@/components/themed-text";
+import { useAppTheme } from "@/hooks/custom/use-app-theme";
+import ThemedIcon from "../../themed-icon";
 
 interface PreferenceChipProps {
   label: string;
-  icon?:any;
+  icon?: any;
   active?: boolean;
   onPress: () => void;
 }
@@ -22,6 +18,8 @@ export const PreferenceChip = ({
   active,
   onPress,
 }: PreferenceChipProps) => {
+  const theme = useAppTheme();
+
   const handlePress = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     onPress();
@@ -30,20 +28,36 @@ export const PreferenceChip = ({
   return (
     <TouchableOpacity
       activeOpacity={0.7}
-      style={[styles.prefChip, active && styles.prefChipActive]}
+      style={[
+        styles.prefChip,
+        {
+          backgroundColor: theme.surface,
+          borderColor: theme.border,
+        },
+        active && {
+          backgroundColor: theme.textMain,
+          borderColor: theme.textMain,
+        },
+      ]}
       onPress={handlePress}
     >
       {icon && (
-        <Ionicons
+        <ThemedIcon
           name={icon}
           size={14}
-          color={active ? "#FFF" : THEME.textMain}
-          style={{ marginRight: 8 }}
+          color={active ? theme.background : theme.textMain}
         />
       )}
-      <Text style={[styles.prefChipText, active && styles.prefChipTextActive]}>
+      <ThemedText
+        type="defaultBold"
+        style={[
+          styles.prefChipText,
+          { color: theme.textMain },
+          active && { color: theme.background },
+        ]}
+      >
         {label}
-      </Text>
+      </ThemedText>
     </TouchableOpacity>
   );
 };
@@ -55,20 +69,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     paddingVertical: 12,
     borderWidth: 1,
-    borderColor: THEME.border,
-    backgroundColor: "#FFF",
     marginBottom: 8,
-  },
-  prefChipActive: {
-    backgroundColor: THEME.primary,
-    borderColor: THEME.primary,
   },
   prefChipText: {
     fontSize: 12,
-    fontWeight: "700",
-    color: THEME.textMain,
-  },
-  prefChipTextActive: {
-    color: "#FFF",
   },
 });

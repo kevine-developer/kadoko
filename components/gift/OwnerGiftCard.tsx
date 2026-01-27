@@ -1,28 +1,12 @@
-import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import React, { memo } from "react";
-import {
-  Platform,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { Platform, StyleSheet, TouchableOpacity, View } from "react-native";
 import * as Haptics from "expo-haptics";
 
 import { Gift } from "@/types/gift";
-
-// --- THEME ÉDITORIAL COHÉRENT ---
-const THEME = {
-  background: "#FDFBF7", // Bone Silk
-  surface: "#FFFFFF",
-  textMain: "#1A1A1A",
-  textSecondary: "#8E8E93",
-  accent: "#AF9062", // Or brossé
-  border: "rgba(0,0,0,0.08)",
-  success: "#4A6741", // Vert forêt luxe
-  error: "#C34A4A",
-};
+import { ThemedText } from "@/components/themed-text";
+import { useAppTheme } from "@/hooks/custom/use-app-theme";
+import ThemedIcon from "@/components/themed-icon";
 
 type OwnerGiftCardProps = {
   gift: Gift;
@@ -31,6 +15,8 @@ type OwnerGiftCardProps = {
 };
 
 function OwnerGiftCard({ gift, onPress, onRemove }: OwnerGiftCardProps) {
+  const theme = useAppTheme();
+
   // Logique des statuts étendue
   const isReceived = gift.status === "RECEIVED";
   const isPurchased =
@@ -63,8 +49,12 @@ function OwnerGiftCard({ gift, onPress, onRemove }: OwnerGiftCardProps) {
       onPress={handlePress}
       style={styles.container}
     >
-      {/* 1. CADRE IMAGE STYLE GALERIE */}
-      <View style={styles.imageFrame}>
+      <View
+        style={[
+          styles.imageFrame,
+          { borderColor: theme.border, backgroundColor: theme.surface },
+        ]}
+      >
         {gift.imageUrl ? (
           <Image
             source={gift.imageUrl}
@@ -74,31 +64,51 @@ function OwnerGiftCard({ gift, onPress, onRemove }: OwnerGiftCardProps) {
           />
         ) : (
           <View style={styles.placeholder}>
-            <Ionicons name="gift-outline" size={24} color={THEME.border} />
+            <ThemedIcon name="gift-outline" size={24} colorName="border" />
           </View>
         )}
 
-        {/* OVERLAY D'INDISPONIBILITÉ (Soyeux) */}
-        {isTaken && <View style={styles.takenOverlay} />}
+        {isTaken && (
+          <View
+            style={[
+              styles.takenOverlay,
+              {
+                backgroundColor:
+                  theme.background === "#FFFFFF"
+                    ? "rgba(253, 251, 247, 0.2)"
+                    : "rgba(0,0,0,0.4)",
+              },
+            ]}
+          />
+        )}
 
-        {/* BADGE DE PRIX (Discret, style étiquette) */}
         {gift.estimatedPrice && (
-          <View style={styles.priceTag}>
-            <Text style={styles.priceText}>{gift.estimatedPrice}€</Text>
+          <View
+            style={[
+              styles.priceTag,
+              { backgroundColor: theme.surface, borderColor: theme.border },
+            ]}
+          >
+            <ThemedText type="defaultBold" style={styles.priceText}>
+              {gift.estimatedPrice}€
+            </ThemedText>
           </View>
         )}
 
-        {/* BOUTON SUPPRIMER (Seulement si non réservé/acheté/reçu) */}
         {!isTaken && (
-          <TouchableOpacity style={styles.removeCircle} onPress={handleRemove}>
-            <Ionicons name="close" size={14} color={THEME.textMain} />
+          <TouchableOpacity
+            style={[
+              styles.removeCircle,
+              { backgroundColor: theme.surface, borderColor: theme.border },
+            ]}
+            onPress={handleRemove}
+          >
+            <ThemedIcon name="close" size={14} colorName="textMain" />
           </TouchableOpacity>
         )}
       </View>
 
-      {/* 2. INFORMATIONS ÉDITORIALES */}
       <View style={styles.infoSection}>
-        {/* STATUT (Petit point + Label espacé) */}
         {isTaken || isDraft ? (
           <View style={styles.statusRow}>
             <View
@@ -107,23 +117,24 @@ function OwnerGiftCard({ gift, onPress, onRemove }: OwnerGiftCardProps) {
                 {
                   backgroundColor:
                     isReceived || isPurchased
-                      ? THEME.success
+                      ? theme.success
                       : isReserved
-                        ? THEME.accent
-                        : THEME.textSecondary,
+                        ? theme.accent
+                        : theme.textSecondary,
                 },
               ]}
             />
-            <Text
+            <ThemedText
+              type="label"
               style={[
                 styles.statusLabel,
                 {
                   color:
                     isReceived || isPurchased
-                      ? THEME.success
+                      ? theme.success
                       : isReserved
-                        ? THEME.accent
-                        : THEME.textSecondary,
+                        ? theme.accent
+                        : theme.textSecondary,
                 },
               ]}
             >
@@ -134,24 +145,34 @@ function OwnerGiftCard({ gift, onPress, onRemove }: OwnerGiftCardProps) {
                   : isReserved
                     ? "RÉSERVÉ"
                     : "BROUILLON"}
-            </Text>
+            </ThemedText>
           </View>
         ) : (
-          <Text style={styles.statusLabel}>DISPONIBLE</Text>
+          <ThemedText
+            type="label"
+            style={[styles.statusLabel, { color: theme.textSecondary }]}
+          >
+            DISPONIBLE
+          </ThemedText>
         )}
 
-        {/* TITRE SERIF */}
-        <Text
-          style={[styles.title, isTaken && styles.titleTaken]}
+        <ThemedText
+          type="subtitle"
+          style={[
+            styles.title,
+            isTaken && styles.titleTaken,
+            { color: theme.textMain },
+          ]}
           numberOfLines={1}
         >
           {gift.title}
-        </Text>
+        </ThemedText>
 
-        {/* LIGNE DE DÉTAIL FINALE */}
         <View style={styles.footerRow}>
-          <Text style={styles.detailLink}>GÉRER</Text>
-          <View style={styles.hairline} />
+          <ThemedText type="label" colorName="accent" style={styles.detailLink}>
+            GÉRER
+          </ThemedText>
+          <View style={[styles.hairline, { backgroundColor: theme.accent }]} />
         </View>
       </View>
     </TouchableOpacity>
@@ -170,9 +191,7 @@ const styles = StyleSheet.create({
     aspectRatio: 0.9,
     borderRadius: 0,
     overflow: "hidden",
-    backgroundColor: "#F2F2F7",
     borderWidth: 1,
-    borderColor: THEME.border,
     position: "relative",
   },
   image: {
@@ -189,22 +208,17 @@ const styles = StyleSheet.create({
   },
   takenOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(253, 251, 247, 0.2)",
   },
   priceTag: {
     position: "absolute",
     bottom: 0,
     left: 0,
-    backgroundColor: THEME.surface,
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderWidth: 1,
-    borderColor: THEME.border,
   },
   priceText: {
     fontSize: 12,
-    fontWeight: "700",
-    color: THEME.textMain,
     letterSpacing: -0.5,
   },
   removeCircle: {
@@ -214,11 +228,9 @@ const styles = StyleSheet.create({
     width: 26,
     height: 26,
     borderRadius: 13,
-    backgroundColor: "rgba(255,255,255,0.9)",
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 0.5,
-    borderColor: THEME.border,
   },
   infoSection: {
     paddingVertical: 12,
@@ -236,23 +248,14 @@ const styles = StyleSheet.create({
     borderRadius: 2,
   },
   statusLabel: {
-    fontSize: 9,
-    fontWeight: "800",
-    color: THEME.textSecondary,
-    letterSpacing: 1.5,
-    textTransform: "uppercase",
     marginBottom: 4,
   },
   title: {
     fontSize: 16,
-    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-    color: THEME.textMain,
     lineHeight: 20,
     letterSpacing: -0.2,
   },
   titleTaken: {
-    color: THEME.textSecondary,
-    fontStyle: "italic",
     opacity: 0.7,
   },
   footerRow: {
@@ -263,14 +266,11 @@ const styles = StyleSheet.create({
   },
   detailLink: {
     fontSize: 8,
-    fontWeight: "800",
-    color: THEME.accent,
     letterSpacing: 1,
   },
   hairline: {
     flex: 1,
     height: 1,
-    backgroundColor: THEME.accent,
     opacity: 0.2,
   },
 });
