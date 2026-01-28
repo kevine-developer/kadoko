@@ -21,10 +21,15 @@ class AuthService {
    */
   async signUp(data: SignUpRequest): Promise<AuthResponse> {
     try {
+      console.log("Tentative d'inscription avec les données:", {
+        ...data,
+        password: "***",
+      });
       const response = await authClient.signUp.email({
         email: data.email,
         password: data.password,
         name: data.name,
+        image: data.image,
       });
 
       if (response.error) {
@@ -61,10 +66,16 @@ class AuthService {
       });
 
       if (response.error) {
+        // Extraire le code d'erreur depuis le message si disponible
+        const errorCode =
+          (response.error as any)?.code ||
+          response.error.status?.toString() ||
+          "SIGNIN_FAILED";
         return {
           success: false,
           message: response.error.message || "Email ou mot de passe incorrect",
           error: response.error.status?.toString() || "SIGNIN_FAILED",
+          errorCode: errorCode,
         } as AuthResponse;
       }
 

@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   View,
   ScrollView,
+  Platform,
 } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
@@ -165,7 +166,7 @@ export default function WishlistEditModal({
                 }}
               >
                 <ThemedText
-                  type="defaultBold"
+                  type="default"
                   style={[styles.dateValue, !date && { color: "#BCBCBC" }]}
                 >
                   {date

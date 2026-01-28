@@ -192,6 +192,14 @@ export default function SettingsScreen() {
             badgeColor={!user?.emailVerified ? theme.accent : undefined}
           />
           <SettingRow
+            label="Appareils connectés"
+            subLabel="Gérer vos sessions actives"
+            icon="laptop-outline"
+            onPress={() =>
+              router.push("/(screens)/setupScreens/connectedDevicesScreen")
+            }
+          />
+          <SettingRow
             label="Blocage"
             subLabel="Registre des personnes bloquées"
             icon="person-remove-outline"

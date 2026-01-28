@@ -6,7 +6,6 @@ import ReservedGiftItem from "@/components/ProfilUI/ReservedGiftItem";
 import {
   Animated,
   ScrollView,
-  StatusBar,
   StyleSheet,
   TouchableOpacity,
   View,
@@ -18,7 +17,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { authClient } from "@/features/auth";
 import StatsMinimalistes from "@/components/ProfilUI/StatsMinimalistes";
 import ProfilCard from "@/components/ProfilUI/ProfilCard";
-import EmptyListTab from "@/components/ProfilUI/ui/EmptyListTab";
 import LayoutPagerView from "@/components/layoutPagerView";
 import HeaderParallax from "@/components/ProfilUI/HeaderParallax";
 import * as ImagePicker from "expo-image-picker";
@@ -30,6 +28,8 @@ import { ProfileHeaderSkeleton } from "@/components/ui/SkeletonGroup";
 import { ThemedText } from "@/components/themed-text";
 import Icon from "@/components/themed-icon";
 import { useAppTheme } from "@/hooks/custom/use-app-theme";
+import AddUserNameNotif from "@/components/AddUserNameNotif";
+import EmptyContent from "@/components/EmptyContent";
 
 export default function ModernUserProfileScreen() {
   const router = useRouter();
@@ -153,8 +153,6 @@ export default function ModernUserProfileScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <StatusBar barStyle="dark-content" />
-
       <HeaderParallax
         user={user}
         headerOpacity={headerOpacity}
@@ -162,7 +160,6 @@ export default function ModernUserProfileScreen() {
       />
 
       <View style={[styles.navBar, { top: insets.top + 10 }]}>
-        <View />
         <TopBarSettingQr
           handleSettingsPress={() => router.push("/(screens)/settingsScreen")}
           onQrPress={() => {
@@ -199,23 +196,7 @@ export default function ModernUserProfileScreen() {
                 purchasedGifts={purchasedGifts}
               />
 
-              {!user?.username && (
-                <TouchableOpacity
-                  style={[
-                    styles.alertBanner,
-                    { borderLeftColor: theme.accent },
-                  ]}
-                  onPress={() =>
-                    router.push("/(screens)/setupScreens/usernameSetupScreen")
-                  }
-                >
-                  <Icon name="at-outline" size={16} color={theme.accent} />
-                  <ThemedText type="label" style={[styles.alertText]}>
-                    Ajoutez un pseudo pour commencer
-                  </ThemedText>
-                  <Icon name="chevron-forward" size={14} color={theme.accent} />
-                </TouchableOpacity>
-              )}
+              {!user?.username && <AddUserNameNotif />}
             </>
           )}
         </View>
@@ -274,9 +255,10 @@ export default function ModernUserProfileScreen() {
                     />
                   ))
                 ) : (
-                  <EmptyListTab
+                  <EmptyContent
                     title="Le registre est vide."
-                    icon="gift-outline"
+                    subtitle="Vous n'avez pas de registre"
+                    icon="person-outline"
                   />
                 )}
               </View>
@@ -298,6 +280,11 @@ export default function ModernUserProfileScreen() {
                   NOUVELLE COLLECTION
                 </ThemedText>
               </TouchableOpacity>
+              <EmptyContent
+                title="Aucune collection."
+                subtitle="Vous n'avez pas de collection"
+                icon="receipt-outline"
+              />
             </LayoutPagerView>
 
             {/* HISTORIQUE */}
@@ -313,8 +300,9 @@ export default function ModernUserProfileScreen() {
                     />
                   ))
                 ) : (
-                  <EmptyListTab
+                  <EmptyContent
                     title="Aucune attention passée."
+                    subtitle="Vous n'avez pas d'attention passée"
                     icon="receipt-outline"
                   />
                 )}
@@ -331,27 +319,14 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   navBar: {
     position: "absolute",
-    left: 0,
     right: 0,
     paddingHorizontal: 25,
     zIndex: 20,
     flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    justifyContent: "flex-end",
   },
   profileContent: { paddingHorizontal: 22, paddingTop: 20 },
-  alertBanner: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "rgba(175, 144, 98, 0.05)",
-    padding: 12,
-    borderLeftWidth: 2,
-    marginTop: 25,
-  },
-  alertText: {
-    flex: 1,
-    marginLeft: 10,
-  },
+
   tabsWrapper: { paddingHorizontal: 22, marginBottom: 30 },
   tabsHeader: {
     flexDirection: "row",

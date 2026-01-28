@@ -22,9 +22,9 @@ import { socketService } from "@/lib/services/socket";
 import GiftFriendBuy from "@/components/HomeUI/GiftFriendBuy";
 import { ThemedText } from "@/components/themed-text";
 import { useAppTheme } from "@/hooks/custom/use-app-theme";
-import ThemedIcon from "@/components/themed-icon";
 import MailVerified from "@/components/HomeUI/MailVerified";
 import EmptyFeed from "@/components/HomeUI/EmptyFeed";
+import EmptyContent from "@/components/EmptyContent";
 
 // --- SKELETON GÉOMÉTRIQUE ---
 const HomeSkeleton = () => (
@@ -189,9 +189,7 @@ export default function LuxuryFeedScreen() {
         <HeaderHome user={session?.user} />
 
         {/* 2. TICKER D'ACTUALITÉ / ALERTE */}
-        {session?.user?.emailVerified === false && (
-          <MailVerified />
-        )}
+        {session?.user?.emailVerified === false && <MailVerified />}
         {loading && !refreshing ? (
           <HomeSkeleton />
         ) : (
@@ -236,7 +234,10 @@ export default function LuxuryFeedScreen() {
                   <GiftCardHome key={post.id} item={post} />
                 ))
               ) : (
-                <EmptyFeed />
+                <EmptyContent
+                  title="Aucun plaisir partagé"
+                  subtitle="Soyez le premier à créer une liste et à partager vos envies !"
+                />
               )}
             </View>
           </MotiView>
@@ -256,5 +257,4 @@ const styles = StyleSheet.create({
   sectionHeader: { marginBottom: 30 },
   sectionTitle: { fontSize: 18, letterSpacing: -0.5 },
   sectionDivider: { width: 40, height: 2, marginTop: 15 },
-
 });

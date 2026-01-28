@@ -8,9 +8,8 @@ import {
 } from "react-native";
 import { NotificationItem } from "./NotificationItem";
 import { useNotifications } from "../../hooks/useNotifications";
-import { ThemedText } from "@/components/themed-text";
 import { useAppTheme } from "@/hooks/custom/use-app-theme";
-import ThemedIcon from "@/components/themed-icon";
+import EmptyContent from "../EmptyContent";
 
 export const NotificationList = () => {
   const theme = useAppTheme();
@@ -30,28 +29,13 @@ export const NotificationList = () => {
 
   const renderEmpty = () =>
     !loading ? (
-      <View style={styles.emptyContainer}>
-        <View style={styles.iconCircle}>
-          <ThemedIcon
-            name="notifications-off-outline"
-            size={24}
-            colorName="accent"
-          />
-        </View>
-        <ThemedText type="hero" style={styles.emptyTitle}>
-          Silence radio.
-        </ThemedText>
-        <ThemedText
-          type="subtitle"
-          colorName="textSecondary"
-          style={styles.emptyText}
-        >
-          Votre flux d&lsquo;activité est actuellement vierge.
-        </ThemedText>
-        <View
-          style={[styles.decorativeLine, { backgroundColor: theme.accent }]}
+      <>
+        <EmptyContent
+          icon="notifications-off-outline"
+          title="Silence radio."
+          subtitle="Votre flux d&lsquo;activité est actuellement vierge."
         />
-      </View>
+      </>
     ) : null;
 
   return (
@@ -89,33 +73,5 @@ export const NotificationList = () => {
 };
 
 const styles = StyleSheet.create({
-  emptyContainer: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 50,
-  },
-  iconCircle: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    borderWidth: 1,
-    borderColor: "rgba(175, 144, 98, 0.2)",
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 20,
-  },
-  emptyTitle: {
-    marginBottom: 10,
-  },
-  emptyText: {
-    textAlign: "center",
-  },
-  decorativeLine: {
-    width: 30,
-    height: 1,
-    marginTop: 25,
-    opacity: 0.3,
-  },
   footer: { paddingVertical: 30 },
 });
