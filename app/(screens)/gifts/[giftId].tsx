@@ -334,7 +334,8 @@ export default function GiftDetailView() {
                   <ThemedText type="default" style={styles.attrText}>
                     {isPurchased ? "Offert par " : "Réservé par "}
                     <ThemedText
-                      type="defaultBold"
+                      type="default"
+                      bold
                       style={{ color: theme.accent }}
                     >
                       {isPurchased

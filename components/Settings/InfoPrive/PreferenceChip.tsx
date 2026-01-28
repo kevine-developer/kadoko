@@ -49,7 +49,8 @@ export const PreferenceChip = ({
         />
       )}
       <ThemedText
-        type="defaultBold"
+        type="default"
+        bold
         style={[
           styles.prefChipText,
           { color: theme.textMain },

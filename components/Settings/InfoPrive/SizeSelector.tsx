@@ -55,7 +55,8 @@ export const SizeSelector = ({
             }}
           >
             <ThemedText
-              type="defaultBold"
+              type="default"
+              bold
               style={[
                 styles.sizeItemText,
                 { color: theme.textMain },

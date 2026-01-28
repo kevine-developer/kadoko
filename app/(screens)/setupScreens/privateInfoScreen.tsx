@@ -28,6 +28,7 @@ import { PreferenceChip } from "@/components/Settings/InfoPrive/PreferenceChip";
 import { ThemedText } from "@/components/themed-text";
 import { useAppTheme } from "@/hooks/custom/use-app-theme";
 import ThemedIcon from "@/components/themed-icon";
+import NavBar from "@/features/setting/components/navBar";
 
 if (
   Platform.OS === "android" &&
@@ -106,27 +107,7 @@ export default function PrivateInfoScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <View style={[styles.navBar, { paddingTop: insets.top + 10 }]}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.navBtn}>
-          <ThemedIcon name="chevron-back" size={24} colorName="textMain" />
-        </TouchableOpacity>
-        <ThemedText type="label" style={styles.navTitle}>
-          CARNET DE MESURES
-        </ThemedText>
-        <TouchableOpacity
-          onPress={handleSave}
-          disabled={saving}
-          style={styles.saveAction}
-        >
-          {saving ? (
-            <ActivityIndicator size="small" color={theme.accent} />
-          ) : (
-            <ThemedText type="label" colorName="accent">
-              OK
-            </ThemedText>
-          )}
-        </TouchableOpacity>
-      </View>
+      <NavBar title="CARNET DE MESURES" />
 
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}

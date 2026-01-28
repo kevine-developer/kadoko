@@ -21,6 +21,7 @@ import { ThemedText } from "@/components/themed-text";
 import { useAppTheme } from "@/hooks/custom/use-app-theme";
 import BtnValidate from "@/components/Settings/BtnValidate";
 import SettingsNavBar from "@/components/Settings/SettingsNavBar";
+import NavBar from "@/features/setting/components/navBar";
 
 const MAX_CHARS = 160;
 
@@ -65,7 +66,7 @@ export default function BioSetupScreen() {
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
       <View style={[styles.container, { backgroundColor: theme.background }]}>
         {/* NAV BAR MINIMALISTE */}
-        <SettingsNavBar title="Biographie" />
+        <NavBar title="Biographie" />
 
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : "height"}

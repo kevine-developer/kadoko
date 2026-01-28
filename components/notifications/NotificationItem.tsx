@@ -79,7 +79,7 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
 
         <View style={styles.textContent}>
           <ThemedText style={styles.messageText} numberOfLines={2}>
-            <ThemedText type="defaultBold">
+            <ThemedText type="default" bold>
               {notification.actor?.name}
             </ThemedText>{" "}
             {cleanMessage}
