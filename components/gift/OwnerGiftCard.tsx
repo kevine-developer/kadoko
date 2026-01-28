@@ -89,7 +89,7 @@ function OwnerGiftCard({ gift, onPress, onRemove }: OwnerGiftCardProps) {
               { backgroundColor: theme.surface, borderColor: theme.border },
             ]}
           >
-            <ThemedText type="defaultBold" style={styles.priceText}>
+            <ThemedText type="default" bold style={styles.priceText}>
               {gift.estimatedPrice}€
             </ThemedText>
           </View>

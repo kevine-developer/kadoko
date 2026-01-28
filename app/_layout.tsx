@@ -31,7 +31,7 @@ export default function RootLayout() {
   const router = useRouter();
   const colorScheme = useColorScheme();
 
-  const { toast, alertModal, hideToast, hideAlert } = useUIStore();
+  const { toast, alertModal,  hideAlert } = useUIStore();
 
   const { session, isLoading: isSessionLoading } = useSession();
   const { isFirstLaunch, isLoading: isFirstLaunchLoading } = useIsFirstLaunch();

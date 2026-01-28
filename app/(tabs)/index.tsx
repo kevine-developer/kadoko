@@ -23,7 +23,6 @@ import GiftFriendBuy from "@/components/HomeUI/GiftFriendBuy";
 import { ThemedText } from "@/components/themed-text";
 import { useAppTheme } from "@/hooks/custom/use-app-theme";
 import MailVerified from "@/components/HomeUI/MailVerified";
-import EmptyFeed from "@/components/HomeUI/EmptyFeed";
 import EmptyContent from "@/components/EmptyContent";
 
 // --- SKELETON GÉOMÉTRIQUE ---

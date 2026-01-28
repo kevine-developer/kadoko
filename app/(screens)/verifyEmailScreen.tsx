@@ -168,7 +168,7 @@ export default function VerifyEmailScreen() {
               style={styles.heroSubtitle}
             >
               Saisissez le code de sécurité transmis à l&apos;adresse{"\n"}
-              <ThemedText type="defaultBold" style={{ color: theme.textMain }}>
+              <ThemedText type="default" bold style={{ color: theme.textMain }}>
                 {email}
               </ThemedText>
             </ThemedText>

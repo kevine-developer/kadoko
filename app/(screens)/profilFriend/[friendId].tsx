@@ -157,7 +157,7 @@ export default function FriendProfileScreen() {
             />
             <View style={styles.statsContainer}>
               <View style={styles.statItem}>
-                <ThemedText type="defaultBold" style={styles.statNum}>
+                <ThemedText type="default" bold style={styles.statNum}>
                   {friendWishlists.length}
                 </ThemedText>
                 <ThemedText
@@ -172,7 +172,7 @@ export default function FriendProfileScreen() {
                 style={[styles.statDivider, { backgroundColor: theme.border }]}
               />
               <View style={styles.statItem}>
-                <ThemedText type="defaultBold" style={styles.statNum}>
+                <ThemedText type="default" bold style={styles.statNum}>
                   {friendInfo?.friendsCount ?? 0}
                 </ThemedText>
                 <ThemedText
@@ -350,7 +350,7 @@ export default function FriendProfileScreen() {
                   >
                     MEMBRE DEPUIS
                   </ThemedText>
-                  <ThemedText type="defaultBold" style={styles.infoValue}>
+                  <ThemedText type="default" bold style={styles.infoValue}>
                     2024
                   </ThemedText>
                 </View>
@@ -364,7 +364,7 @@ export default function FriendProfileScreen() {
                   >
                     ANNIVERSAIRE
                   </ThemedText>
-                  <ThemedText type="defaultBold" style={styles.infoValue}>
+                  <ThemedText type="default" bold style={styles.infoValue}>
                     {friendInfo?.birthday
                       ? new Date(friendInfo.birthday).toLocaleDateString(
                           "fr-FR",

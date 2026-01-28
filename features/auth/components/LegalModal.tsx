@@ -37,7 +37,7 @@ const LegalModal = ({ visible, onClose, url, title }: LegalModalProps) => {
             { backgroundColor: theme.surface, borderBottomColor: theme.border },
           ]}
         >
-          <ThemedText type="defaultBold" style={{ color: theme.textMain }}>
+          <ThemedText type="default" bold style={{ color: theme.textMain }}>
             {title}
           </ThemedText>
           <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
