@@ -4,7 +4,6 @@ import { Link, LinkProps } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import { ThemedText } from "@/components/themed-text";
-import { useAppTheme } from "@/hooks/custom/use-app-theme";
 
 interface FooterAuthProps {
   textIntro: string;
@@ -14,7 +13,6 @@ interface FooterAuthProps {
 
 const FooterAuth = ({ textIntro, textLink, link }: FooterAuthProps) => {
   const insets = useSafeAreaInsets();
-  const theme = useAppTheme();
 
   const handlePress = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -23,7 +21,7 @@ const FooterAuth = ({ textIntro, textLink, link }: FooterAuthProps) => {
   return (
     <View style={[styles.footer, { paddingBottom: insets.bottom + 25 }]}>
       <ThemedText
-        type="subtitle"
+        type="default"
         colorName="textSecondary"
         style={styles.footerText}
       >
@@ -34,12 +32,10 @@ const FooterAuth = ({ textIntro, textLink, link }: FooterAuthProps) => {
         <TouchableOpacity
           activeOpacity={0.7}
           onPress={handlePress}
-          style={styles.linkWrapper}
         >
           <ThemedText type="label" colorName="accent" style={styles.footerLink}>
             {textLink.toUpperCase()}
           </ThemedText>
-          <View style={[styles.underline, { backgroundColor: theme.accent }]} />
         </TouchableOpacity>
       </Link>
     </View>
@@ -50,26 +46,19 @@ export default FooterAuth;
 
 const styles = StyleSheet.create({
   footer: {
-    flexDirection: "column",
-    justifyContent: "center",
+    flexDirection: "row",
+    marginTop: 30,
     alignItems: "center",
+    justifyContent: "center",
     gap: 8,
-    marginTop: 20,
   },
   footerText: {
     fontSize: 14,
   },
-  linkWrapper: {
-    alignItems: "center",
-  },
+
   footerLink: {
     fontSize: 11,
     letterSpacing: 1.5,
-  },
-  underline: {
-    height: 1,
-    width: "40%",
-    marginTop: 4,
-    opacity: 0.3,
+    textDecorationLine: "underline"
   },
 });

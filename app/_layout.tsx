@@ -3,20 +3,16 @@ import {
   DefaultTheme,
   ThemeProvider,
 } from "@react-navigation/native";
-import {
-  Stack,
-  useRouter,
-  useSegments,
-  useRootNavigationState,
-} from "expo-router";
+import { Stack, useRootNavigationState } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import React, { useEffect } from "react";
+import React from "react";
 import { ActivityIndicator, View } from "react-native";
 import "react-native-reanimated";
 
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { useSession } from "@/features/auth";
+import { useSession, useProtectedRoute } from "@/features/auth";
 import { useIsFirstLaunch } from "@/hooks/use-is-first-launch";
+import { useDeepLinking } from "@/hooks/useDeepLinking";
 import OfflineModal from "@/components/Network/OfflineModal";
 import ServerErrorModal from "@/components/Network/ServerErrorModal";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
@@ -27,36 +23,35 @@ import { AnimatePresence } from "moti";
 
 export default function RootLayout() {
   usePushNotifications();
-  const segments = useSegments();
-  const router = useRouter();
+  useDeepLinking();
   const colorScheme = useColorScheme();
 
-  const { toast, alertModal,  hideAlert } = useUIStore();
+  const { toast, alertModal, hideAlert } = useUIStore();
 
   const { session, isLoading: isSessionLoading } = useSession();
   const { isFirstLaunch, isLoading: isFirstLaunchLoading } = useIsFirstLaunch();
 
   const isLoading = isSessionLoading || isFirstLaunchLoading;
-
   const navigationState = useRootNavigationState();
-  const isNavigationReady = navigationState?.key;
+  const isNavigationReady = !!navigationState?.key;
 
-  useEffect(() => {
-    if (isLoading || !isNavigationReady) return;
+  const [hasLoadedOnce, setHasLoadedOnce] = React.useState(false);
 
-    const inAuthGroup = segments[0] === "(auth)";
-    const inOnboarding = segments[0] === "(onboarding)";
-
-    if (isFirstLaunch && !inOnboarding) {
-      router.replace("/(onboarding)");
-    } else if (!isFirstLaunch && !session && !inAuthGroup) {
-      router.replace("/(auth)/sign-in");
-    } else if (session && (inAuthGroup || inOnboarding)) {
-      router.replace("/(tabs)");
+  React.useEffect(() => {
+    if (!isLoading && isNavigationReady) {
+      setHasLoadedOnce(true);
     }
-  }, [session, isFirstLaunch, isLoading, isNavigationReady, segments, router]);
+  }, [isLoading, isNavigationReady]);
 
-  if (isLoading) {
+  // Gestion centralisée des redirections (Auth, Onboarding, Protected Routes)
+  useProtectedRoute({
+    session,
+    isLoading,
+    isFirstLaunch,
+    isNavigationReady,
+  });
+
+  if (!hasLoadedOnce && isLoading) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
         <ActivityIndicator size="large" />
@@ -64,18 +59,9 @@ export default function RootLayout() {
     );
   }
 
-  // Calculer l'écran initial pour éviter le flash de l'onboarding
-  let initialRouteName: string = "(onboarding)";
-  if (!isFirstLaunch) {
-    initialRouteName = session ? "(tabs)" : "(auth)";
-  }
-
   return (
     <ThemeProvider value={colorScheme === "light" ? DefaultTheme : DarkTheme}>
-      <Stack
-        screenOptions={{ headerShown: false }}
-        initialRouteName={initialRouteName as any}
-      >
+      <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(onboarding)" />
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="(screens)" />

@@ -41,7 +41,7 @@ export const userService = {
   // Récupérer le profil complet de l'utilisateur connecté
   getMe: async () => {
     try {
-      const response = await authClient.$fetch(getApiUrl("/auth/users/me"));
+      const response = await authClient.$fetch(getApiUrl("/users/me"));
       return (response.data || { success: false, user: null }) as unknown as {
         success: boolean;
         user: any;
@@ -55,7 +55,7 @@ export const userService = {
   // Récupérer le profil public d' un utilisateur
   getUserById: async (id: string) => {
     try {
-      const response = await authClient.$fetch(getApiUrl(`/auth/users/${id}`));
+      const response = await authClient.$fetch(getApiUrl(`/users/${id}`));
       return (response.data || { success: false, user: null }) as unknown as {
         success: boolean;
         user: any;
@@ -70,7 +70,7 @@ export const userService = {
   getUserByUsername: async (username: string) => {
     try {
       const response = await authClient.$fetch(
-        getApiUrl(`/auth/users/profile/${username}`),
+        getApiUrl(`/users/profile/${username}`),
       );
       return (response.data || { success: false, user: null }) as unknown as {
         success: boolean;
@@ -86,7 +86,7 @@ export const userService = {
   searchUsers: async (query: string) => {
     try {
       const response = await authClient.$fetch(
-        getApiUrl(`/auth/users/search?q=${encodeURIComponent(query)}`),
+        getApiUrl(`/users/search?q=${encodeURIComponent(query)}`),
       );
       console.log("Search response:", response);
 
@@ -110,7 +110,7 @@ export const userService = {
     try {
       const response = await authClient.$fetch(
         getApiUrl(
-          `/auth/users/check-availability?username=${encodeURIComponent(username)}`,
+          `/users/check-availability?username=${encodeURIComponent(username)}`,
         ),
       );
       return (response.data || {
@@ -132,7 +132,7 @@ export const userService = {
     try {
       const response = await authClient.$fetch(
         getApiUrl(
-          `/auth/users/suggestions?username=${encodeURIComponent(username)}`,
+          `/users/suggestions?username=${encodeURIComponent(username)}`,
         ),
       );
       return (response.data || {
@@ -160,7 +160,7 @@ export const userService = {
     preferences?: any;
   }) => {
     try {
-      const response = await authClient.$fetch(getApiUrl("/auth/users/me"), {
+      const response = await authClient.$fetch(getApiUrl("/users/me"), {
         method: "PATCH",
         body: data,
       });
@@ -182,7 +182,7 @@ export const userService = {
   // Supprimer mon propre compte
   deleteAccount: async (data: { password: string; otp?: string }) => {
     try {
-      const response = await authClient.$fetch(getApiUrl("/auth/users/me"), {
+      const response = await authClient.$fetch(getApiUrl("/users/me"), {
         method: "DELETE",
         body: data,
       });

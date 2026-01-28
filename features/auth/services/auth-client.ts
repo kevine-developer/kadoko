@@ -2,7 +2,6 @@ import { createAuthClient } from "better-auth/react";
 import { expoClient } from "@better-auth/expo/client";
 import * as SecureStore from "expo-secure-store";
 import { serverErrorStore } from "@/hooks/useServerError";
-import { emailOTPClient } from "better-auth/client/plugins";
 
 export const authClient = createAuthClient({
   baseURL: process.env.EXPO_PUBLIC_API_URL,
@@ -16,10 +15,9 @@ export const authClient = createAuthClient({
   },
   plugins: [
     expoClient({
-      scheme: "wishly",
+      scheme: "kadokou",
       storagePrefix: "withbetterauth",
       storage: SecureStore,
     }),
-    emailOTPClient(),
   ],
 });

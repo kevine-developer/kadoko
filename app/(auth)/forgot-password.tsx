@@ -18,6 +18,7 @@ import {
   LayoutAuth,
   InputCustom,
   FormError,
+  PasswordRequirements,
 } from "@/features/auth";
 import { showSuccessToast } from "@/lib/toast";
 import { ThemedText } from "@/components/themed-text";
@@ -119,6 +120,20 @@ export default function ForgotPasswordScreen() {
 
   const handleResetPassword = async () => {
     if (isLoading) return;
+
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,20}$/;
+    if (!newPassword) {
+      setErrors({ password: "Le mot de passe est requis" });
+      return;
+    }
+    if (newPassword.length < 8 || newPassword.length > 20) {
+      setErrors({ password: "Entre 8 et 20 caractères requis" });
+      return;
+    }
+    if (!passwordRegex.test(newPassword)) {
+      setErrors({ password: "La sécurité n'est pas respectée" });
+      return;
+    }
 
     if (newPassword !== confirmPassword) {
       setErrors({ confirm: "Les signatures ne correspondent pas" });
@@ -322,6 +337,10 @@ export default function ForgotPasswordScreen() {
                 }}
                 secureTextEntry
                 error={errors.password}
+              />
+              <PasswordRequirements
+                password={newPassword}
+                visible={newPassword.length > 0}
               />
               <InputCustom
                 label="CONFIRMATION"

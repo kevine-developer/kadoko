@@ -20,6 +20,9 @@ import {
 
 import { useAppTheme } from "@/hooks/custom/use-app-theme";
 import { ThemedText } from "@/components/themed-text";
+import ThemedIcon from "@/components/themed-icon";
+import { MotiView, AnimatePresence } from "moti";
+import { showSuccessToast } from "@/lib/toast";
 
 // --- THEME ÉDITORIAL ---
 
@@ -60,10 +63,36 @@ export default function SignIn() {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         router.replace("/");
       } else {
-        setServerError(response.message || "Identifiants incorrects");
+        if (response.errorCode === "EMAIL_NOT_VERIFIED") {
+          setServerError("EMAIL_NOT_VERIFIED");
+        } else {
+          setServerError(response.message || "Identifiants incorrects");
+        }
       }
     } catch {
       setServerError("Une erreur système est survenue");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleResendLink = async () => {
+    setIsLoading(true);
+    setServerError(null);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    try {
+      const response = await authService.resendVerificationEmail(email.trim());
+      if (response.success) {
+        showSuccessToast("Nouveau lien envoyé");
+        router.push({
+          pathname: "/(auth)/verify-email",
+          params: { email: email.trim() },
+        });
+      } else {
+        setServerError(response.message);
+      }
+    } catch {
+      setServerError("Erreur de communication");
     } finally {
       setIsLoading(false);
     }
@@ -89,7 +118,44 @@ export default function SignIn() {
       <HeaderAuth title="Connectez-vous." subtitle="BON RETOUR" />
 
       {/* 2. Gestion des erreurs serveur style "Alerte Discrète" */}
-      <FormError message={serverError} />
+      <AnimatePresence>
+        {serverError && serverError !== "EMAIL_NOT_VERIFIED" && (
+          <FormError message={serverError} />
+        )}
+
+        {serverError === "EMAIL_NOT_VERIFIED" && (
+          <MotiView
+            from={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            style={[styles.verifyCard, { borderColor: theme.accent }]}
+          >
+            <View style={styles.verifyHeader}>
+              <ThemedIcon
+                name="mail-unread-outline"
+                size={24}
+                colorName="accent"
+              />
+              <ThemedText type="label" colorName="accent">
+                COMPTE NON VERIFIÉ
+              </ThemedText>
+            </View>
+            <ThemedText type="caption" style={styles.verifyText}>
+              Votre compte est en attente de validation. Veuillez vérifier vos
+              emails.
+            </ThemedText>
+            <TouchableOpacity
+              style={[styles.resendAction, { backgroundColor: theme.accent }]}
+              onPress={handleResendLink}
+              disabled={isLoading}
+            >
+              <ThemedText type="label" style={{ color: "white", fontSize: 10 }}>
+                RENVOYER LE LIEN DE VÉRIFICATION
+              </ThemedText>
+            </TouchableOpacity>
+          </MotiView>
+        )}
+      </AnimatePresence>
 
       {/* 3. Groupe de saisie style "Registre" */}
       <View style={styles.inputGroup}>
@@ -223,5 +289,29 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 16,
     marginBottom: 40,
+  },
+
+  /* --- VERIFICATION CARD --- */
+  verifyCard: {
+    borderWidth: 1,
+    padding: 20,
+    marginBottom: 25,
+    backgroundColor: "rgba(175, 144, 98, 0.05)",
+    gap: 12,
+  },
+  verifyHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  verifyText: {
+    opacity: 0.8,
+    lineHeight: 18,
+  },
+  resendAction: {
+    height: 40,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 5,
   },
 });

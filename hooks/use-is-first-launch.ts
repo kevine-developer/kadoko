@@ -25,9 +25,14 @@ class FirstLaunchStore {
   private async init() {
     try {
       const value = await SecureStore.getItemAsync(KEY_IS_FIRST_LAUNCH);
+      console.log("[FirstLaunchStore] Value from SecureStore:", value);
       this.isFirstLaunch = value === null;
+      console.log(
+        "[FirstLaunchStore] Final isFirstLaunch:",
+        this.isFirstLaunch,
+      );
     } catch (error) {
-      console.error("Error checking first launch:", error);
+      console.error("[FirstLaunchStore] Error checking first launch:", error);
       this.isFirstLaunch = false;
     } finally {
       this.isLoading = false;
@@ -41,11 +46,13 @@ class FirstLaunchStore {
 
   async setHasLaunched() {
     try {
+      console.log("[FirstLaunchStore] Setting has launched to false...");
       await SecureStore.setItemAsync(KEY_IS_FIRST_LAUNCH, "false");
       this.isFirstLaunch = false;
       this.notify();
+      console.log("[FirstLaunchStore] Successfully persisted hasLaunched.");
     } catch (error) {
-      console.error("Error setting first launch:", error);
+      console.error("[FirstLaunchStore] Error setting first launch:", error);
     }
   }
 
