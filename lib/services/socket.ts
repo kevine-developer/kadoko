@@ -22,34 +22,42 @@ class SocketService {
       this.socket?.connected &&
       (userId === undefined || this.userId === userId)
     ) {
+      console.log("[Socket] Déjà connecté...");
       return;
     }
 
     // Déconnexion si on change de userId
     if (this.socket && this.userId !== userId) {
+      console.log("[Socket] Changement d'utilisateur, déconnexion forcée");
       this.disconnect();
     }
 
     this.userId = userId || null;
 
+    console.log("[Socket] Tentative de connexion à:", SOCKET_URL);
     this.socket = io(SOCKET_URL, {
       query: userId ? { userId } : {},
-      transports: ["websocket"],
+      transports: ["websocket", "polling"], // On autorise le polling en fallback
       autoConnect: true,
       reconnection: true,
+      reconnectionAttempts: Infinity,
+      reconnectionDelay: 1000,
     });
 
     this.socket.on("connect", () => {
       console.log(
-        "Socket connected:",
-        this.socket?.id,
-        "for user:",
-        this.userId,
+        `[Socket] 🟢 Connecté! ID: ${this.socket?.id} | User: ${this.userId}`,
       );
     });
 
-    this.socket.on("disconnect", () => {
-      console.log("Socket disconnected");
+    this.socket.on("connect_error", (error) => {
+      console.warn("[Socket] ⚠️ Erreur de connexion:", error.message);
+    });
+
+    this.socket.on("disconnect", (reason) => {
+      console.log(`[Socket] 🔴 Déconnecté | Raison: ${reason}`);
+      // Si la déconnexion vient du serveur, Socket.io tentera de se reconnecter automatiquement
+      // sauf si la raison est "io client disconnect"
     });
   }
 

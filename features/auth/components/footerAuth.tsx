@@ -51,13 +51,14 @@ export default FooterAuth;
 const styles = StyleSheet.create({
   footer: {
     flexDirection: "column",
-    justifyContent: "center",
-    alignItems: "center",
     gap: 8,
     marginTop: 20,
+    width: "100%",
   },
   footerText: {
     fontSize: 14,
+    width: "100%",
+    textAlign: "center",
   },
   linkWrapper: {
     alignItems: "center",

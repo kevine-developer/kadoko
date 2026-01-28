@@ -1,4 +1,4 @@
-import { Platform, StyleSheet, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import React from "react";
 import { MotiView } from "moti";
 import { ThemedText } from "@/components/themed-text";
@@ -36,7 +36,7 @@ const HeaderAuth = ({ title, subtitle }: HeaderAuthProps) => {
         animate={{ opacity: 1, translateY: 0 }}
         transition={{ type: "timing", duration: 700, delay: 100 }}
       >
-        <ThemedText type="hero" style={styles.title}>
+        <ThemedText type="hero">
           {title}
         </ThemedText>
       </MotiView>
@@ -48,20 +48,16 @@ export default HeaderAuth;
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 25,
+    marginBottom: 20,
     marginTop: 10,
   },
   topDivider: {
     height: 2,
-    marginBottom: 20,
+    marginBottom: 10,
   },
   label: {
     letterSpacing: 2,
-    marginBottom: 12,
+    marginBottom: 8,
   },
-  title: {
-    fontSize: 40,
-    lineHeight: 46,
-    letterSpacing: -1,
-  },
+
 });
