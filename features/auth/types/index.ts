@@ -7,6 +7,7 @@ export interface SignUpRequest {
   password: string;
   name: string;
   username?: string;
+  image?: string;
 }
 
 export interface SignInRequest {

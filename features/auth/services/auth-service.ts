@@ -21,10 +21,15 @@ class AuthService {
    */
   async signUp(data: SignUpRequest): Promise<AuthResponse> {
     try {
+      console.log("Tentative d'inscription avec les données:", {
+        ...data,
+        password: "***",
+      });
       const response = await authClient.signUp.email({
         email: data.email,
         password: data.password,
         name: data.name,
+        image: data.image,
       });
 
       if (response.error) {

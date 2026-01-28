@@ -166,7 +166,7 @@ export default function WishlistEditModal({
                 }}
               >
                 <ThemedText
-                  type="defaultBold"
+                  type="default"
                   style={[styles.dateValue, !date && { color: "#BCBCBC" }]}
                 >
                   {date

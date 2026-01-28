@@ -25,6 +25,9 @@ import ThemedIcon from "@/components/themed-icon";
 
 // --- THEME ÉDITORIAL ---
 
+const URL_DEFAULT_PROFIL =
+  "https://res.cloudinary.com/dhe585mze/image/upload/v1769517597/avatar-default-svgrepo-com_w8fz2f.svg";
+
 export default function SignUp() {
   const router = useRouter();
   const theme = useAppTheme();
@@ -93,6 +96,7 @@ export default function SignUp() {
         email: email.trim(),
         password,
         name: fullName.trim(),
+        image: URL_DEFAULT_PROFIL,
       });
 
       if (response.success) {
