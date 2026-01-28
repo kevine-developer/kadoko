@@ -25,6 +25,7 @@ import { useAppTheme } from "@/hooks/custom/use-app-theme";
 import SettingsNavBar from "@/components/Settings/SettingsNavBar";
 import BtnValidate from "@/components/Settings/BtnValidate";
 import SettingHero from "@/components/Settings/SettingHero";
+import NavBar from "@/features/setting/components/navBar";
 
 const USERNAME_REGEX =
   /^[a-zA-Z0-9](?!.*[_.]{2})[a-zA-Z0-9._]{1,28}[a-zA-Z0-9]$/;
@@ -123,7 +124,7 @@ export default function UsernameSetupScreen() {
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
       <View style={[styles.container, { backgroundColor: theme.background }]}>
         {/* NAV BAR */}
-        <SettingsNavBar title="Identité" />
+        <NavBar title="Identité" />
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : "height"}
           style={{ flex: 1 }}
@@ -132,7 +133,7 @@ export default function UsernameSetupScreen() {
             {/* HERO SECTION */}
             <SettingHero
               title={`Votre alias\nunique.`}
-              subtitle="C&apos;est ainsi que vos amis vous identifieront pour partager leurs intentions."
+              subtitle="C'est ainsi que vos amis vous identifieront pour partager leurs intentions."
             />
 
             {/* INFO LOCK */}
@@ -140,9 +141,10 @@ export default function UsernameSetupScreen() {
               <View
                 style={[styles.lockBanner, { backgroundColor: theme.surface }]}
               >
-                <Icon name="time-outline"  colorName="accent" />
+                <Icon name="time-outline" colorName="accent" />
                 <ThemedText
-                  type="defaultBold"
+                  type="default"
+                  bold
                   colorName="textSecondary"
                   style={{ fontSize: 12 }}
                 >
@@ -187,9 +189,9 @@ export default function UsernameSetupScreen() {
                   {isChecking ? (
                     <ActivityIndicator size="small" color={theme.accent} />
                   ) : isAvailable === true ? (
-                    <Icon name="checkmark"  colorName="success" />
+                    <Icon name="checkmark" colorName="success" />
                   ) : isAvailable === false ? (
-                    <Icon name="close"  colorName="danger" />
+                    <Icon name="close" colorName="danger" />
                   ) : null}
                 </View>
               </View>
@@ -244,7 +246,8 @@ export default function UsernameSetupScreen() {
                           }}
                         >
                           <ThemedText
-                            type="defaultBold"
+                            type="default"
+                            bold
                             style={{ fontSize: 12 }}
                           >
                             {s}

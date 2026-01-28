@@ -18,6 +18,7 @@ import { ThemedText } from "@/components/themed-text";
 import Icon from "@/components/themed-icon";
 import { useAppTheme } from "@/hooks/custom/use-app-theme";
 import SettingsNavBar from "@/components/Settings/SettingsNavBar";
+import NavBar from "@/features/setting/components/navBar";
 
 export default function ConnectedDevicesScreen() {
   const theme = useAppTheme();
@@ -148,7 +149,7 @@ export default function ConnectedDevicesScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <SettingsNavBar title="Sécurité" />
+      <NavBar title="Sécurité" />
 
       {loading ? (
         <View style={styles.center}>

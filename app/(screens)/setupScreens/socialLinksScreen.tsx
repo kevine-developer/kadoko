@@ -22,6 +22,7 @@ import { useAppTheme } from "@/hooks/custom/use-app-theme";
 import { getIconName } from "@/constants/socialLink";
 import SettingsNavBar from "@/components/Settings/SettingsNavBar";
 import SettingHero from "@/components/Settings/SettingHero";
+import NavBar from "@/features/setting/components/navBar";
 
 interface SocialLink {
   id: string;
@@ -90,7 +91,7 @@ export default function SocialLinksScreen() {
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       {/* NAV BAR */}
-      <SettingsNavBar
+      <NavBar
         title="Connexions"
         onPress={handleSave}
         isSaving={isSaving}

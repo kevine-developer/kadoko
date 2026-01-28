@@ -19,6 +19,7 @@ import { ThemedText } from "@/components/themed-text";
 import { useAppTheme } from "@/hooks/custom/use-app-theme";
 import SettingsNavBar from "@/components/Settings/SettingsNavBar";
 import BtnValidate from "@/components/Settings/BtnValidate";
+import NavBar from "@/features/setting/components/navBar";
 
 const EditorialPasswordInput = ({
   label,
@@ -132,7 +133,7 @@ export default function ChangePasswordScreen() {
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
       <View style={[styles.container, { backgroundColor: theme.background }]}>
-        <SettingsNavBar title="SÉCURITÉ" />
+        <NavBar title="SÉCURITÉ" />
 
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : "height"}

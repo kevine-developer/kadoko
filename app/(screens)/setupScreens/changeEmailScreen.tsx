@@ -246,7 +246,8 @@ export default function ChangeEmailScreen() {
                 >
                   Un email de confirmation a été expédié à{"\n"}
                   <ThemedText
-                    type="defaultBold"
+                    type="default"
+                    bold
                     style={{ color: theme.textMain }}
                   >
                     {newEmail}

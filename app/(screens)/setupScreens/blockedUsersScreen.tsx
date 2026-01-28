@@ -17,7 +17,7 @@ import { showErrorToast, showSuccessToast, showCustomAlert } from "@/lib/toast";
 import { ThemedText } from "@/components/themed-text";
 import Icon from "@/components/themed-icon";
 import { useAppTheme } from "@/hooks/custom/use-app-theme";
-import SettingsNavBar from "@/components/Settings/SettingsNavBar";
+import NavBar from "@/features/setting/components/navBar";
 
 export default function BlockedUsersScreen() {
   const theme = useAppTheme();
@@ -112,7 +112,7 @@ export default function BlockedUsersScreen() {
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       {/* HEADER NAV */}
-      <SettingsNavBar title="Blocage" />
+      <NavBar title="Blocage" />
 
       {loading ? (
         <View style={styles.center}>

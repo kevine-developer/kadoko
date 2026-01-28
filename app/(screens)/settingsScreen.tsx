@@ -19,6 +19,7 @@ import { ThemedText } from "@/components/themed-text";
 import Icon from "@/components/themed-icon";
 import { useAppTheme } from "@/hooks/custom/use-app-theme";
 import SettingsSection from "@/components/Settings/SettingsSection";
+import NavBar from "@/features/setting/components/navBar";
 
 interface LinkedAccount {
   provider: string;
@@ -85,13 +86,7 @@ export default function SettingsScreen() {
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       {/* HEADER ÉDITORIAL */}
-      <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.navBtn}>
-          <Icon name="chevron-back" size={26} color={theme.textMain} />
-        </TouchableOpacity>
-        <ThemedText type="label">Paramètres</ThemedText>
-        <View style={{ width: 44 }} />
-      </View>
+      <NavBar title="Paramètres" />
 
       <ScrollView
         contentContainerStyle={styles.scrollContent}

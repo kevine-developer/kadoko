@@ -20,6 +20,7 @@ import { ThemedText } from "@/components/themed-text";
 import { useAppTheme } from "@/hooks/custom/use-app-theme";
 import SettingsNavBar from "@/components/Settings/SettingsNavBar";
 import ThemedIcon from "@/components/themed-icon";
+import NavBar from "@/features/setting/components/navBar";
 
 export default function NameSetupScreen() {
   const router = useRouter();
@@ -59,7 +60,7 @@ export default function NameSetupScreen() {
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
       <View style={[styles.container, { backgroundColor: theme.background }]}>
-        <SettingsNavBar title="NOM COMPLET" />
+        <NavBar title="NOM COMPLET" />
 
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : "height"}

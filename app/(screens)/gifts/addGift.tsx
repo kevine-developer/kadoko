@@ -145,7 +145,8 @@ export default function AddGiftScreen() {
             <ActivityIndicator size="small" color={theme.accent} />
           ) : (
             <ThemedText
-              type="defaultBold"
+              type="default"
+              bold
               style={[
                 styles.saveActionText,
                 { color: theme.accent },
@@ -404,7 +405,9 @@ export default function AddGiftScreen() {
                     />
                   </View>
                   <View style={{ flex: 1, marginLeft: 15 }}>
-                    <ThemedText type="defaultBold">Mettre en avant</ThemedText>
+                    <ThemedText type="default" bold>
+                      Mettre en avant
+                    </ThemedText>
                     <ThemedText type="caption" colorName="textSecondary">
                       Publier dans le fil d&apos;actualité
                     </ThemedText>
@@ -440,7 +443,7 @@ export default function AddGiftScreen() {
                     <ThemedIcon name="leaf" size={20} colorName="success" />
                   </View>
                   <View style={{ flex: 1, marginLeft: 15 }}>
-                    <ThemedText type="defaultBold">
+                    <ThemedText type="default" bold>
                       Seconde main acceptée
                     </ThemedText>
                     <ThemedText

@@ -58,7 +58,8 @@ export default function WebviewScreen() {
             SOURCE EXTERNE
           </ThemedText>
           <ThemedText
-            type="defaultBold"
+            type="default"
+            bold
             style={styles.headerTitle}
             numberOfLines={1}
           >

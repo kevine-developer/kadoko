@@ -11,6 +11,7 @@ import BtnValidate from "@/components/Settings/BtnValidate";
 import { ThemedText } from "@/components/themed-text";
 import { useAppTheme } from "@/hooks/custom/use-app-theme";
 import SettingsNavBar from "@/components/Settings/SettingsNavBar";
+import NavBar from "@/features/setting/components/navBar";
 
 export default function BirthdaySetupScreen() {
   const router = useRouter();
@@ -80,7 +81,7 @@ export default function BirthdaySetupScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <SettingsNavBar title="ANNIVERSAIRE" />
+      <NavBar title="ANNIVERSAIRE" />
 
       <View style={styles.content}>
         <MotiView
