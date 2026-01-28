@@ -127,7 +127,6 @@ const styles = StyleSheet.create({
   },
   miniLabel: {
     letterSpacing: 1.5,
-    marginBottom: 10,
     marginLeft: 2,
   },
   inputWrapper: {

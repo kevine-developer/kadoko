@@ -17,11 +17,13 @@ import {
   LegalModal,
   LayoutAuth,
   FormError,
+  PasswordRequirements,
 } from "@/features/auth";
 import { showErrorToast, showSuccessToast } from "@/lib/toast";
 import { ThemedText } from "@/components/themed-text";
 import { useAppTheme } from "@/hooks/custom/use-app-theme";
 import ThemedIcon from "@/components/themed-icon";
+import { MotiView, AnimatePresence } from "moti";
 
 // --- THEME ÉDITORIAL ---
 
@@ -53,9 +55,12 @@ export default function SignUp() {
     else if (!/\S+@\S+\.\S+/.test(email))
       newErrors.email = "Adresse email invalide";
 
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,20}$/;
     if (!password) newErrors.password = "Le mot de passe est requis";
-    else if (password.length < 8)
-      newErrors.password = "Au moins 8 caractères requis";
+    else if (password.length < 8 || password.length > 20)
+      newErrors.password = "Entre 8 et 20 caractères requis";
+    else if (!passwordRegex.test(password))
+      newErrors.password = "La sécurité n'est pas respectée";
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -101,10 +106,20 @@ export default function SignUp() {
 
       if (response.success) {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        showSuccessToast("Bienvenue dans le cercle");
-        router.replace("/");
+        showSuccessToast("Code de vérification envoyé");
+        router.push({
+          pathname: "/(auth)/verify-email",
+          params: { email: email.trim() },
+        });
       } else {
-        setServerError(response.message || "Échec de l'inscription");
+        if (
+          response.errorCode === "EMAIL_ALREADY_EXISTS" ||
+          response.errorCode === "USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL"
+        ) {
+          setServerError("EMAIL_ALREADY_EXISTS");
+        } else {
+          setServerError(response.message || "Échec de l'inscription");
+        }
       }
     } catch {
       setServerError("Une erreur système est survenue");
@@ -119,7 +134,46 @@ export default function SignUp() {
         {/* Header avec signature éditoriale */}
         <HeaderAuth title="Rejoignez le cercle." subtitle="NOUVEAU MEMBRE" />
 
-        <FormError message={serverError} />
+        <AnimatePresence>
+          {serverError && serverError !== "EMAIL_ALREADY_EXISTS" && (
+            <FormError message={serverError} />
+          )}
+
+          {serverError === "EMAIL_ALREADY_EXISTS" && (
+            <MotiView
+              from={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              style={[styles.loginCard, { borderColor: theme.accent }]}
+            >
+              <View style={styles.loginCardHeader}>
+                <ThemedIcon
+                  name="information-circle-outline"
+                  size={24}
+                  colorName="accent"
+                />
+                <ThemedText type="label" colorName="accent">
+                  COMPTE DÉJÀ EXISTANT
+                </ThemedText>
+              </View>
+              <ThemedText type="caption" style={styles.loginCardText}>
+                Cette adresse email est déjà enregistrée. Souhaitez-vous vous
+                connecter à votre espace ?
+              </ThemedText>
+              <TouchableOpacity
+                style={[styles.loginAction, { backgroundColor: theme.accent }]}
+                onPress={() => router.push("/sign-in")}
+              >
+                <ThemedText
+                  type="label"
+                  style={{ color: "white", fontSize: 10 }}
+                >
+                  ACCÉDER À LA CONNEXION
+                </ThemedText>
+              </TouchableOpacity>
+            </MotiView>
+          )}
+        </AnimatePresence>
 
         {/* Formulaire style Registre */}
         <View style={styles.inputGroup}>
@@ -158,6 +212,10 @@ export default function SignUp() {
             }}
             secureTextEntry
             error={errors.password}
+          />
+          <PasswordRequirements
+            password={password}
+            visible={password.length > 0}
           />
         </View>
 
@@ -270,14 +328,13 @@ export default function SignUp() {
 const styles = StyleSheet.create({
   inputGroup: {
     gap: 10,
-    marginBottom: 10,
   },
 
   /* TERMS & CONDITIONS LUXE */
   termsSection: {
     flexDirection: "row",
     alignItems: "flex-start",
-    marginBottom: 35,
+    marginVertical: 20,
     paddingHorizontal: 2,
   },
   checkbox: {
@@ -307,7 +364,7 @@ const styles = StyleSheet.create({
     borderRadius: 0,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 20,
+    marginBottom: 10,
   },
   primaryBtnText: {
     fontSize: 13,
@@ -321,6 +378,30 @@ const styles = StyleSheet.create({
   socialRow: {
     flexDirection: "row",
     gap: 16,
-    marginBottom: 40,
+    marginBottom: 10,
+  },
+
+  /* LOGIN REDIRECTION CARD */
+  loginCard: {
+    borderWidth: 1,
+    padding: 20,
+    marginBottom: 25,
+    backgroundColor: "rgba(175, 144, 98, 0.05)",
+    gap: 12,
+  },
+  loginCardHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  loginCardText: {
+    opacity: 0.8,
+    lineHeight: 18,
+  },
+  loginAction: {
+    height: 40,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 5,
   },
 });

@@ -10,21 +10,11 @@ import type {
  * Service d'authentification utilisant Better Auth
  */
 class AuthService {
-  constructor() {
-    console.log(
-      "AuthService initialized with API URL:",
-      process.env.EXPO_PUBLIC_API_URL,
-    );
-  }
   /**
    * Inscrit un nouvel utilisateur
    */
   async signUp(data: SignUpRequest): Promise<AuthResponse> {
     try {
-      console.log("Tentative d'inscription avec les données:", {
-        ...data,
-        password: "***",
-      });
       const response = await authClient.signUp.email({
         email: data.email,
         password: data.password,
@@ -33,10 +23,16 @@ class AuthService {
       });
 
       if (response.error) {
+        const errorCode =
+          (response.error as any)?.code ||
+          response.error.status?.toString() ||
+          "SIGNUP_FAILED";
+
         return {
           success: false,
           message: response.error.message || "Erreur lors de l'inscription",
           error: response.error.status?.toString() || "SIGNUP_FAILED",
+          errorCode: errorCode,
         } as AuthResponse;
       }
 
@@ -212,6 +208,39 @@ class AuthService {
       return {
         success: false,
         message: "Code invalide ou expiré",
+      };
+    }
+  }
+
+  /**
+   * Renvoie un email de vérification (Lien)
+   */
+  async resendVerificationEmail(
+    email: string,
+  ): Promise<{ success: boolean; message: string }> {
+    try {
+      const response = await authClient.sendVerificationEmail({
+        email,
+        callbackURL: "kadokou://", // Utilisation d'un deep link pour revenir sur l'app
+      });
+
+      if (response.error) {
+        return {
+          success: false,
+          message:
+            response.error.message || "Erreur lors de l'envoi de l'email",
+        };
+      }
+
+      return {
+        success: true,
+        message: "Email de vérification envoyé !",
+      };
+    } catch (error) {
+      console.error("Erreur resendVerificationEmail:", error);
+      return {
+        success: false,
+        message: "Une erreur est survenue lors de l'envoi",
       };
     }
   }

@@ -1,9 +1,8 @@
-import React, { useEffect } from "react";
+import React from "react";
 import { StyleSheet, View } from "react-native";
 import { MotiView, AnimatePresence } from "moti";
 import { ThemedText } from "@/components/themed-text";
 import { useAppTheme } from "@/hooks/custom/use-app-theme";
-import ThemedIcon from "@/components/themed-icon";
 
 interface PasswordRequirementsProps {
   password?: string;
@@ -20,8 +19,8 @@ export const PasswordRequirements = ({
 
   const checks = [
     {
-      label: "8 caractères minimum",
-      isValid: password.length >= 8,
+      label: "8 à 20 caractères",
+      isValid: password.length >= 8 && password.length <= 20,
     },
     {
       label: "Une majuscule",

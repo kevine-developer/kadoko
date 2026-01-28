@@ -8,6 +8,8 @@ import LegalModal from "./LegalModal";
 import LayoutAuth from "./LayoutAuth";
 import ImageHeader from "./ImageHeader";
 
+import { PasswordRequirements } from "./PasswordRequirements";
+
 export {
   InputCustom,
   HeaderAuth,
@@ -18,4 +20,5 @@ export {
   LegalModal,
   LayoutAuth,
   ImageHeader,
+  PasswordRequirements,
 };

@@ -13,7 +13,7 @@ import {
 } from "react-native";
 import * as Haptics from "expo-haptics";
 import { MotiView } from "moti";
-import { authClient } from "@/features/auth";
+import { authClient, PasswordRequirements } from "@/features/auth";
 import { showErrorToast, showSuccessToast } from "@/lib/toast";
 import { ThemedText } from "@/components/themed-text";
 import { useAppTheme } from "@/hooks/custom/use-app-theme";
@@ -96,9 +96,10 @@ export default function ChangePasswordScreen() {
   const newPassRef = useRef<TextInput>(null);
   const confirmPassRef = useRef<TextInput>(null);
 
-  const isLengthValid = newPassword.length >= 8;
+  const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,20}$/;
+  const isPasswordValid = passwordRegex.test(newPassword);
   const isMatch = newPassword.length > 0 && newPassword === confirmPassword;
-  const canSubmit = currentPassword.length > 0 && isLengthValid && isMatch;
+  const canSubmit = currentPassword.length > 0 && isPasswordValid && isMatch;
 
   const handleUpdatePassword = async () => {
     if (!canSubmit) return;
@@ -175,25 +176,13 @@ export default function ChangePasswordScreen() {
                 value={newPassword}
                 onChangeText={setNewPassword}
                 onSubmitEditing={() => confirmPassRef.current?.focus()}
-                error={newPassword.length > 0 && !isLengthValid}
+                error={newPassword.length > 0 && !isPasswordValid}
               />
 
-              <View style={styles.validationRow}>
-                <View
-                  style={[
-                    styles.dot,
-                    { backgroundColor: theme.border },
-                    isLengthValid && { backgroundColor: theme.accent },
-                  ]}
-                />
-                <ThemedText
-                  type="caption"
-                  colorName={isLengthValid ? "accent" : "textSecondary"}
-                  style={styles.validationText}
-                >
-                  Exigence de sécurité : 8 caractères minimum
-                </ThemedText>
-              </View>
+              <PasswordRequirements
+                password={newPassword}
+                visible={newPassword.length > 0}
+              />
 
               <View style={{ height: 30 }} />
 

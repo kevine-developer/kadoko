@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "wishly",
-    "slug": "wishly",
+    "name": "kadokou",
+    "slug": "kadokou",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "wishly",
+    "scheme": "kadokou",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
@@ -21,7 +21,20 @@
       "package": "com.kadokou.devengalere",
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "data": [
+            {
+              "scheme": "kadokou"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        }
+      ],
       "permissions": [
         "android.permission.RECORD_AUDIO"
       ]
@@ -60,7 +73,7 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "0f39ce88-4b44-4b3a-9b0e-a63738d0172f"
+        "projectId": "fa9f7ac9-10d6-4442-b65d-391f212eff50"
       }
     }
   }
