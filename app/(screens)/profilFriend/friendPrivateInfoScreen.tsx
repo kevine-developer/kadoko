@@ -75,7 +75,7 @@ export default function FriendPrivateInfoScreen() {
         <View
           style={[styles.dotSeparator, { borderBottomColor: theme.border }]}
         />
-        <ThemedText type="defaultBold" style={styles.rowValue}>
+        <ThemedText type="default" bold style={styles.rowValue}>
           {value}
         </ThemedText>
       </View>

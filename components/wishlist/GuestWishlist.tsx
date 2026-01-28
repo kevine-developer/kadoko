@@ -64,7 +64,7 @@ export default function GuestWishlist({
             style={[styles.ownerAvatar, { borderColor: theme.accent }]}
           />
           <View>
-            <ThemedText type="defaultBold" style={styles.ownerName}>
+            <ThemedText type="default" bold style={styles.ownerName}>
               {wishlist.user?.name || "Membre"}
             </ThemedText>
             <ThemedText type="label" colorName="accent">

@@ -259,7 +259,7 @@ export default function PremiumCardScreen() {
                 />
               </View>
               <View style={styles.benefitText}>
-                <ThemedText type="defaultBold" style={styles.benefitName}>
+                <ThemedText type="default" bold style={styles.benefitName}>
                   {benefit.title}
                 </ThemedText>
                 <ThemedText

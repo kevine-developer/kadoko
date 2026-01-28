@@ -6,7 +6,6 @@ import { ThemedText } from "@/components/themed-text";
 import { useAppTheme } from "@/hooks/custom/use-app-theme";
 
 const ProfilCard = ({ user, onEditAvatar }: any) => {
-
   const theme = useAppTheme();
   return (
     <View style={styles.container}>
@@ -34,11 +33,14 @@ const ProfilCard = ({ user, onEditAvatar }: any) => {
           </View>
         </TouchableOpacity>
         <View style={styles.info}>
-          <ThemedText type="defaultBold" style={styles.name}>
+          <ThemedText type="default" bold style={styles.name}>
             {user?.name}
           </ThemedText>
 
-          <ThemedText type="label" style={{ color: theme.accent, marginTop: 2 }}>
+          <ThemedText
+            type="label"
+            style={{ color: theme.accent, marginTop: 2 }}
+          >
             {user?.username ? `@${user.username}` : "Alias non défini"}
           </ThemedText>
         </View>

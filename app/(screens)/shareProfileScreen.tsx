@@ -9,7 +9,6 @@ import {
   View,
   Animated,
   Easing,
-
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { authClient } from "@/features/auth";
@@ -252,7 +251,7 @@ export default function ShareProfileScreen() {
                 >
                   MEMBRE DEPUIS
                 </ThemedText>
-                <ThemedText type="defaultBold" style={styles.footerValue}>
+                <ThemedText type="default" bold style={styles.footerValue}>
                   2024
                 </ThemedText>
               </View>
@@ -264,7 +263,7 @@ export default function ShareProfileScreen() {
                 >
                   IDENTITÉ
                 </ThemedText>
-                <ThemedText type="defaultBold" style={styles.footerValue}>
+                <ThemedText type="default" bold style={styles.footerValue}>
                   CERTIFIÉE
                 </ThemedText>
               </View>
@@ -285,7 +284,9 @@ export default function ShareProfileScreen() {
             </ThemedText>
             <TouchableOpacity
               style={[styles.primaryBtn, { backgroundColor: theme.textMain }]}
-              onPress={() => router.push("/(screens)/setupScreens/usernameSetupScreen")}
+              onPress={() =>
+                router.push("/(screens)/setupScreens/usernameSetupScreen")
+              }
             >
               <ThemedText type="label" style={{ color: theme.background }}>
                 CONFIGURER

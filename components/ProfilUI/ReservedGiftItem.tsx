@@ -105,7 +105,7 @@ export default function ReservedGiftItem({
       </View>
 
       <View style={styles.priceContainer}>
-        <ThemedText type="defaultBold" style={{ color: theme.textMain }}>
+        <ThemedText type="default" bold style={{ color: theme.textMain }}>
           {gift.estimatedPrice}€
         </ThemedText>
       </View>

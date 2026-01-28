@@ -90,7 +90,7 @@ export default function EphemeralScreen() {
           <ThemedText type="label" colorName="accent" style={styles.timerLabel}>
             EXPIRATION
           </ThemedText>
-          <ThemedText type="defaultBold" style={styles.timerValue}>
+          <ThemedText type="default" bold style={styles.timerValue}>
             {timeLeft}
           </ThemedText>
         </View>

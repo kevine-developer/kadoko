@@ -247,7 +247,7 @@ export default function GuestGiftDetailsModal({
 
               <View style={styles.registryData}>
                 {localGift.estimatedPrice && (
-                  <ThemedText type="defaultBold" style={styles.price}>
+                  <ThemedText type="default" bold style={styles.price}>
                     {localGift.estimatedPrice} €
                   </ThemedText>
                 )}
@@ -297,7 +297,7 @@ export default function GuestGiftDetailsModal({
                         : isPurchased
                           ? "Déjà offert par "
                           : "Réservé par "}
-                      <ThemedText type="defaultBold" colorName="accent">
+                      <ThemedText type="default" bold colorName="accent">
                         {isReservedByMe
                           ? "VOUS"
                           : (isReceived || isPurchased

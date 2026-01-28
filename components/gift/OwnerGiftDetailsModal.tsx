@@ -226,7 +226,7 @@ export default function OwnerGiftDetailsModal({
 
               <View style={styles.registryData}>
                 {localGift.estimatedPrice && (
-                  <ThemedText type="defaultBold" style={styles.price}>
+                  <ThemedText type="default" bold style={styles.price}>
                     {localGift.estimatedPrice} €
                   </ThemedText>
                 )}

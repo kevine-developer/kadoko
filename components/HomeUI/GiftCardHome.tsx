@@ -84,7 +84,7 @@ const GiftCardHome = ({ item }: GiftCardHomeProps) => {
         >
           <Image source={{ uri: item.user.avatar }} style={styles.avatar} />
           <View>
-            <ThemedText type="defaultBold" style={styles.userName}>
+            <ThemedText type="default" bold style={styles.userName}>
               {item.user.name}
             </ThemedText>
             <ThemedText
@@ -201,7 +201,7 @@ const GiftCardHome = ({ item }: GiftCardHomeProps) => {
               style={styles.descriptionText}
             >
               {item.notes && (
-                <ThemedText type="defaultBold" colorName="accent">
+                <ThemedText type="default" bold colorName="accent">
                   Note :{" "}
                 </ThemedText>
               )}
@@ -236,7 +236,7 @@ const GiftCardHome = ({ item }: GiftCardHomeProps) => {
               />
               <ThemedText type="caption" style={{ fontStyle: "italic" }}>
                 {item.isPurchased ? "Offert par " : "Réservé par "}
-                <ThemedText type="defaultBold" style={{ fontSize: 12 }}>
+                <ThemedText type="default" bold style={{ fontSize: 12 }}>
                   {item.reservedBy?.name}
                 </ThemedText>
               </ThemedText>

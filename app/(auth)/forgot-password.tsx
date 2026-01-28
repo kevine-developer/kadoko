@@ -236,7 +236,7 @@ export default function ForgotPasswordScreen() {
               <ThemedText type="subtitle" style={styles.description}>
                 Un code de sécurité a été transmis à l&apos;adresse suivante :
                 {"\n"}
-                <ThemedText type="defaultBold" style={styles.emailHighlight}>
+                <ThemedText type="default" bold style={styles.emailHighlight}>
                   {email}
                 </ThemedText>
               </ThemedText>

@@ -133,7 +133,7 @@ export default function AddGiftScreen() {
         <TouchableOpacity onPress={() => router.back()} style={styles.closeBtn}>
           <ThemedIcon name="close-outline" size={28} colorName="textMain" />
         </TouchableOpacity>
-        <ThemedText type="defaultBold" style={styles.headerTitle}>
+        <ThemedText type="default" bold style={styles.headerTitle}>
           {giftId ? "Édition" : "Nouvelle Envie"}
         </ThemedText>
         <TouchableOpacity

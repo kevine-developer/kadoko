@@ -42,7 +42,7 @@ const OpportunityCard = ({ opp, index, handleContribute }: any) => {
               source={{ uri: opp.friendAvatar }}
               style={styles.friendAvatar}
             />
-            <ThemedText type="defaultBold" style={styles.friendName}>
+            <ThemedText type="default" bold style={styles.friendName}>
               {opp.friendName}
             </ThemedText>
           </View>
@@ -71,7 +71,7 @@ const OpportunityCard = ({ opp, index, handleContribute }: any) => {
             </View>
             <ThemedText type="caption" colorName="textSecondary">
               Manque{" "}
-              <ThemedText type="defaultBold" colorName="accent">
+              <ThemedText type="default" bold colorName="accent">
                 {remaining}€
               </ThemedText>
             </ThemedText>
